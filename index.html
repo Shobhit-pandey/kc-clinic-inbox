@@ -125,7 +125,7 @@ h3{font-size:13px;margin:16px 14px 6px;color:var(--mut);font-weight:600;text-tra
   <p class="mut">Staff sign in</p>
   <input id="email" type="email" placeholder="Email" autocomplete="username" autocapitalize="none">
   <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
-  <button class="act" id="loginBtn">Sign in</button>
+  <button class="act" id="loginBtn" type="button">Sign in</button>
   <p id="loginErr" class="mut" style="color:var(--bad)"></p>
 </div>
 
@@ -163,8 +163,18 @@ h3{font-size:13px;margin:16px 14px 6px;color:var(--mut);font-weight:600;text-tra
 </div>
 <div id="toast"></div>
 
-<script type="module">
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+<script src="supabase.js"></script>
+<script>
+// Surface any load/runtime failure instead of a silently dead button.
+window.addEventListener("error", function(e){
+  var el=document.getElementById("loginErr");
+  if (el && !el.textContent) el.textContent = "App error, please reload. (" + (e.message||"") + ")";
+});
+if (!window.supabase || !window.supabase.createClient) {
+  var el0 = document.getElementById("loginErr");
+  if (el0) el0.textContent = "Could not load the app. Check your internet and reload the page.";
+}
+const createClient = window.supabase && window.supabase.createClient;
 const SUPABASE_URL = "https://tzjvxqdnktgmxweqovwc.supabase.co";
 const PUBLISHABLE_KEY = "sb_publishable_42opnFY4QP-KC2bCoNQSfw_OuHtBISF";
 const VAPID = "BKxKqzaKG39_Xf2O543johvOqr1XXP-mLrvwiuRrzZRUmS-ay8DMFDAm0EDuujytb5GRBVDZFFBjLZdgZmrkRHk";
