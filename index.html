@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="hi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -51,7 +51,7 @@ h3{font-size:14px;margin:14px 12px 4px;color:var(--mut);font-weight:600}
 <body>
 <div id="login">
   <h2 style="color:var(--p)">🏥 KC Dada Clinic Inbox</h2>
-  <p class="mut">स्टाफ़ लॉगिन / Staff login</p>
+  <p class="mut">Staff login</p>
   <input id="email" type="email" placeholder="Email" autocomplete="username">
   <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
   <button class="act" id="loginBtn">Login</button>
@@ -59,11 +59,11 @@ h3{font-size:14px;margin:14px 12px 4px;color:var(--mut);font-weight:600}
 </div>
 
 <div id="app" class="hide" style="display:flex;flex-direction:column;height:100dvh">
-<header><b id="hTitle">💬 Chats</b><button class="ghost" id="backBtn" style="border-color:#fff;color:#fff;display:none">‹ वापस</button></header>
+<header><b id="hTitle">💬 Chats</b><button class="ghost" id="backBtn" style="border-color:#fff;color:#fff;display:none">‹ Back</button></header>
 <nav id="tabs">
-  <button data-tab="chats" class="on">💬 चैट</button>
-  <button data-tab="bookings">📅 बुकिंग</button>
-  <button data-tab="settings">⚙️ सेटिंग</button>
+  <button data-tab="chats" class="on">💬 Chats</button>
+  <button data-tab="bookings">📅 Bookings</button>
+  <button data-tab="settings">⚙️ Settings</button>
 </nav>
 <main>
   <div id="chats"></div>
@@ -72,13 +72,13 @@ h3{font-size:14px;margin:14px 12px 4px;color:var(--mut);font-weight:600}
       <span id="tName" style="font-weight:600"></span>
       <span id="tStatus" class="chip"></span>
       <span style="flex:1"></span>
-      <button class="ghost" id="toBot">🤖 बोट को दें</button>
-      <button class="ghost" id="toClosed">✔ बंद करें</button>
+      <button class="ghost" id="toBot">🤖 Give to bot</button>
+      <button class="ghost" id="toClosed">✔ Close</button>
     </div>
     <div id="msgs"></div>
     <div id="replybar">
-      <textarea id="replyText" placeholder="जवाब लिखें… / Type a reply…"></textarea>
-      <button class="act" id="sendBtn">भेजें</button>
+      <textarea id="replyText" placeholder="Type a reply…"></textarea>
+      <button class="act" id="sendBtn">Send</button>
     </div>
   </div>
   <div id="bookings" class="hide"></div>
@@ -98,7 +98,7 @@ let me = null, openConvo = null, channel = null;
 
 function toast(t){ const el=$("toast"); el.textContent=t; el.style.opacity=1; setTimeout(()=>el.style.opacity=0, 2600); }
 const fmtT = (s)=> new Intl.DateTimeFormat("en-IN",{timeZone:"Asia/Kolkata",hour:"numeric",minute:"2-digit",hour12:true}).format(new Date(s));
-const fmtD = (s)=> new Intl.DateTimeFormat("hi-IN",{timeZone:"Asia/Kolkata",weekday:"short",day:"numeric",month:"long"}).format(new Date(s));
+const fmtD = (s)=> new Intl.DateTimeFormat("en-IN",{timeZone:"Asia/Kolkata",weekday:"short",day:"numeric",month:"long"}).format(new Date(s));
 const esc = (s)=> (s??"").replace(/[&<>"]/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 $("loginBtn").onclick = async () => {
@@ -140,9 +140,9 @@ async function loadChats(){
         <div class="mut">${c.last_patient_msg_at ? fmtD(c.last_patient_msg_at)+" "+fmtT(c.last_patient_msg_at) : ""}</div></div>
       <div style="text-align:right">
         ${c.unread_count>0?`<span class="badge">${c.unread_count}</span> `:""}
-        <span class="chip ${c.status}">${c.status==="needs_human"?"👋 इंसान चाहिए":c.status==="human"?"🧑 स्टाफ़":c.status==="closed"?"बंद":"🤖 बोट"}</span>
+        <span class="chip ${c.status}">${c.status==="needs_human"?"👋 Needs human":c.status==="human"?"🧑 Staff":c.status==="closed"?"Closed":"🤖 Bot"}</span>
       </div></div>`;
-  }).join("") || '<p class="mut" style="padding:20px">अभी कोई बातचीत नहीं। No conversations yet.</p>';
+  }).join("") || '<p class="mut" style="padding:20px">No conversations yet.</p>';
 }
 
 window.openThread = async (id) => {
@@ -173,7 +173,7 @@ async function renderMsgs(){
       if (s?.signedUrl) {
         media = /\.(jpg|png|webp)$/.test(m.media_path)
           ? `<a href="${s.signedUrl}" target="_blank"><img src="${s.signedUrl}" loading="lazy"></a>`
-          : `<a href="${s.signedUrl}" target="_blank">📎 फ़ाइल देखें / open file</a>`;
+          : `<a href="${s.signedUrl}" target="_blank">📎 Open file</a>`;
       }
     }
     parts.push(`<div class="m ${m.direction}">${media}${esc(m.body)}
@@ -190,7 +190,7 @@ $("sendBtn").onclick = async () => {
   $("sendBtn").disabled = true;
   try {
     const { data: session } = await sb.auth.getSession();
-    if (!session?.session) { toast("Session expired — फिर से login करें"); return; }
+    if (!session?.session) { toast("Session expired — please log in again"); return; }
     const res = await fetch(SUPABASE_URL + "/functions/v1/send-message", {
       method: "POST",
       headers: { "Content-Type":"application/json", "apikey": PUBLISHABLE_KEY,
@@ -200,7 +200,7 @@ $("sendBtn").onclick = async () => {
     if (res.ok) { $("replyText").value = ""; renderMsgs(); }
     else {
       const e = await res.json().catch(()=>({}));
-      toast(e.error==="outside_24h_window" ? "24 घंटे की मुफ़्त विंडो बंद है — मरीज़ के अगले मैसेज का इंतज़ार करें" : "भेजना विफल: "+(e.error??res.status));
+      toast(e.error==="outside_24h_window" ? "24-hour free reply window is closed — wait for the patient's next message" : "Send failed: "+(e.error??res.status));
     }
   } catch (err) {
     toast("Network error: " + err.message);
@@ -215,7 +215,7 @@ async function setStatus(status){
   if (!openConvo) return;
   await sb.from("conversations").update({ status }).eq("id", openConvo);
   $("tStatus").textContent = status; $("tStatus").className = "chip "+status;
-  toast(status==="bot" ? "बोट फिर से जवाब देगा" : "बातचीत बंद");
+  toast(status==="bot" ? "Bot will reply again" : "Conversation closed");
 }
 
 async function loadBookings(){
@@ -223,7 +223,7 @@ async function loadBookings(){
   const days = [...Array(8)].map((_,i)=> new Date(today.getTime()+i*86400000));
   const from = new Date(today.getTime()-86400000).toISOString();
   const { data: appts } = await sb.from("appointments")
-    .select("id,slot_start,status,new_or_followup,note,type_code,gcal_event_id,appointment_types(name_hi),patients(name,age,wa_phone)")
+    .select("id,slot_start,status,new_or_followup,note,type_code,gcal_event_id,appointment_types(name_en),patients(name,age,wa_phone)")
     .gte("slot_start", from).order("slot_start");
   const { data: blocked } = await sb.from("blocked_dates").select("date,reason").order("date");
   const byDay = {};
@@ -235,27 +235,27 @@ async function loadBookings(){
   for (const d of days) {
     const key = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata"}).format(d);
     const list = byDay[key] ?? [];
-    html += `<h3>${fmtD(d)} — ${list.filter(a=>a.status==="booked").length} बुकिंग</h3>`;
+    html += `<h3>${fmtD(d)} — ${list.filter(a=>a.status==="booked").length} booking(s)</h3>`;
     html += list.map((a)=>`
       <div class="card appt ${a.status!=="booked"?"cancelled":""}">
         <div class="row"><b>${fmtT(a.slot_start)} · ${esc(a.patients?.name??"?")} (${a.patients?.age??"?"})</b>
-          ${a.status==="booked"?`<button class="danger" onclick="cancelAppt('${a.id}')">रद्द करें</button>`:`<span class="mut">${a.status}</span>`}</div>
-        <div class="mut">${esc(a.appointment_types?.name_hi ?? a.type_code)} · ${a.new_or_followup==="new"?"पहली बार":"फॉलो-अप"} · +${esc(a.patients?.wa_phone??"")}</div>
+          ${a.status==="booked"?`<button class="danger" onclick="cancelAppt('${a.id}')">Cancel</button>`:`<span class="mut">${a.status}</span>`}</div>
+        <div class="mut">${esc(a.appointment_types?.name_en ?? a.type_code)} · ${a.new_or_followup==="new"?"First visit":"Follow-up"} · +${esc(a.patients?.wa_phone??"")}</div>
         ${a.note?`<div class="mut">📝 ${esc(a.note)}</div>`:""}
       </div>`).join("");
   }
-  html += `<h3>🚫 छुट्टी के दिन / Blocked days</h3>
+  html += `<h3>🚫 Blocked days</h3>
     <div class="card">
-      <div class="row"><input type="date" id="blkDate" style="max-width:170px"><input id="blkReason" placeholder="कारण (optional)"><button class="act" onclick="blockDay()">ब्लॉक</button></div>
-      ${(blocked??[]).map((b)=>`<div class="row" style="margin-top:8px"><span>${b.date} ${esc(b.reason??"")}</span><button class="ghost" onclick="unblockDay('${b.date}')">हटाएँ</button></div>`).join("")}
+      <div class="row"><input type="date" id="blkDate" style="max-width:170px"><input id="blkReason" placeholder="Reason (optional)"><button class="act" onclick="blockDay()">Block</button></div>
+      ${(blocked??[]).map((b)=>`<div class="row" style="margin-top:8px"><span>${b.date} ${esc(b.reason??"")}</span><button class="ghost" onclick="unblockDay('${b.date}')">Remove</button></div>`).join("")}
     </div>`;
   $("bookings").innerHTML = html;
 }
 
 window.cancelAppt = async (id) => {
-  if (!confirm("यह अपॉइंटमेंट रद्द करें? / Cancel this appointment?")) return;
+  if (!confirm("Cancel this appointment?")) return;
   const { error } = await sb.from("appointments").update({ status: "cancelled_by_clinic" }).eq("id", id);
-  if (error) toast(error.message); else { toast("रद्द किया गया — मरीज़ को खुद सूचित करें (chat/call)"); loadBookings(); }
+  if (error) toast(error.message); else { toast("Cancelled — please inform the patient (chat/call)"); loadBookings(); }
 };
 window.blockDay = async () => {
   const date = $("blkDate").value; if (!date) return;
@@ -271,10 +271,10 @@ async function loadSettings(){
   const perm = ("Notification" in window) ? Notification.permission : "unsupported";
   $("settings").innerHTML = `
     <div class="card">
-      <b>🔔 सूचनाएँ / Notifications</b>
-      <p class="mut" style="margin:6px 0">हर नए मैसेज और बुकिंग पर इस डिवाइस पर सूचना आएगी। iPhone पर पहले "Add to Home Screen" करें।</p>
+      <b>🔔 Notifications</b>
+      <p class="mut" style="margin:6px 0">Get an alert on this device for every new message and booking. On iPhone, add this app to the Home Screen first.</p>
       <p class="mut">Status: ${perm}</p>
-      <button class="act" id="pushBtn">इस डिवाइस पर चालू करें / Enable on this device</button>
+      <button class="act" id="pushBtn">Enable on this device</button>
     </div>
     <div class="card"><button class="danger" id="logoutBtn">Logout</button></div>`;
   $("pushBtn").onclick = enablePush;
@@ -288,16 +288,16 @@ function b64ToU8(b64){
 }
 async function enablePush(){
   try {
-    if (!("serviceWorker" in navigator)) { toast("यह ब्राउज़र सपोर्ट नहीं करता"); return; }
+    if (!("serviceWorker" in navigator)) { toast("This browser does not support notifications"); return; }
     const reg = await navigator.serviceWorker.register("sw.js");
     const perm = await Notification.requestPermission();
-    if (perm !== "granted") { toast("Notification permission देनी होगी"); return; }
+    if (perm !== "granted") { toast("Please allow notification permission"); return; }
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(VAPID) });
     const j = sub.toJSON();
     const { error } = await sb.from("push_subscriptions").upsert(
       { endpoint: j.endpoint, keys: j.keys, device_label: navigator.userAgent.slice(0,80) },
       { onConflict: "endpoint" });
-    if (error) toast(error.message); else toast("✅ सूचनाएँ चालू हो गईं");
+    if (error) toast(error.message); else toast("✅ Notifications enabled");
     loadSettings();
   } catch (e) { toast("Push setup failed: " + e.message); }
 }
