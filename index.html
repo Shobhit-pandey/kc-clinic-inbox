@@ -30,6 +30,9 @@ svg{display:block}
 header{background:var(--green);color:#fff;display:flex;align-items:center;gap:11px;padding:11px 14px;padding-top:calc(11px + env(safe-area-inset-top));box-shadow:0 1px 4px rgba(0,0,0,.18);z-index:5;flex-shrink:0}
 header .av{width:38px;height:38px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:var(--navy);flex-shrink:0;overflow:hidden}
 header .av img{width:100%;height:100%;object-fit:cover}
+/* app-logo variant: show the shield in its true rounded-square shape, no circle crop */
+header .av.logo-sq{background:transparent;border-radius:9px;overflow:visible}
+header .av.logo-sq img{border-radius:9px}
 header .ttl{font-size:17px;font-weight:600;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 header .sub{font-size:12.5px;opacity:.85;font-weight:400}
 header .ico-btn{background:none;border:0;color:#fff;cursor:pointer;padding:4px;display:flex}
@@ -73,8 +76,7 @@ nav button:active svg{transform:scale(.84)}
 .tbar{display:flex;gap:6px;padding:6px 10px;background:#f6f6f6;border-bottom:1px solid var(--line);align-items:center;flex-shrink:0}
 #msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 8px;display:flex;flex-direction:column;gap:2px}
 #msgs::-webkit-scrollbar{width:0}
-.m{position:relative;max-width:85%;padding:6px 9px 8px;border-radius:9px;font-size:14.6px;line-height:1.36;white-space:pre-wrap;word-break:break-word;box-shadow:0 1px .6px rgba(11,20,26,.13);animation:pop .13s ease-out}
-@keyframes pop{from{transform:translateY(4px) scale(.98);opacity:.3}to{transform:none;opacity:1}}
+.m{position:relative;max-width:85%;padding:6px 9px 8px;border-radius:9px;font-size:14.6px;line-height:1.36;white-space:pre-wrap;word-break:break-word;box-shadow:0 1px .6px rgba(11,20,26,.13)}
 .m.in{background:var(--in);align-self:flex-start;border-top-left-radius:1px}
 .m.out{background:var(--out);align-self:flex-end;border-top-right-radius:1px}
 .m img{max-width:100%;border-radius:7px;display:block;margin-bottom:3px}
@@ -113,8 +115,16 @@ nav button:active svg{transform:scale(.84)}
 button.ghost{background:#fff;color:var(--green);border:1px solid var(--green);border-radius:11px;padding:10px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
 button.ghost:active{background:#e7f8f3}
 button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);border-radius:11px;padding:10px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
-.appt{border-left:4px solid var(--green);padding-left:11px}
-.appt.cancelled{border-color:#d1d5db;opacity:.55}
+.bcard{display:flex;align-items:center;gap:12px;background:#fff;border-radius:15px;margin:8px 10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer}
+.bcard:active{background:#f5f7f8}
+.bcard.cancelled{opacity:.5}
+.bcard .bt{font-weight:700;color:var(--green);font-size:14px;min-width:66px;line-height:1.2}
+.bcard .bmid{flex:1;min-width:0}
+.bcard .bname{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bcancel{background:none;border:0;color:var(--bad);font-size:19px;cursor:pointer;padding:4px 8px;line-height:1}
+.dayline{padding:7px 18px;color:var(--mut);font-size:13px}
+.sumtiles{display:flex;gap:14px;text-align:center}
+.sumtiles .n{font-size:27px;font-weight:700;line-height:1}
 h3{font-size:12.5px;margin:18px 16px 6px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .bookings input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:11px;font-size:16px}
 #toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:rgba(17,17,17,.94);color:#fff;padding:11px 18px;border-radius:22px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88vw;z-index:20;box-shadow:0 6px 20px rgba(0,0,0,.35)}
@@ -212,6 +222,7 @@ function showTab(tab){
   document.querySelectorAll("#tabs button").forEach((b)=>b.classList.toggle("on", b.dataset.tab===tab));
   $("tabs").classList.remove("hide");
   $("backBtn").style.display = "none";
+  $("hAv").className = "av logo-sq";
   $("hAv").innerHTML = '<img src="logo.svg" alt="">';
   $("hTitle").textContent = "KC Clinic";
   $("hSub").textContent = tab==="chats" ? "Staff inbox" : tab==="bookings" ? "Appointments" : "Preferences";
@@ -255,6 +266,7 @@ window.openThread = async (id) => {
   $("backBtn").style.display = "flex";
   const { data: c } = await sb.from("conversations").select("status,patients(name,wa_phone)").eq("id", id).single();
   const nm = c?.patients?.name || ("+"+(c?.patients?.wa_phone ?? ""));
+  $("hAv").className = "av";
   $("hAv").textContent = initials(c?.patients?.name)||"•";
   $("hTitle").textContent = nm;
   $("hSub").textContent = "+"+(c?.patients?.wa_phone ?? "");
@@ -288,6 +300,14 @@ async function renderMsgs(){
   $("msgs").scrollTop = $("msgs").scrollHeight;
 }
 
+// Coalesce rapid refresh triggers (own send + realtime echoes) into ONE render,
+// so the thread doesn't flicker/re-render several times per message.
+let renderTimer = null;
+function scheduleRender(){
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => { if (!$("thread").classList.contains("hide")) renderMsgs(); }, 180);
+}
+
 async function authHeader(){
   const { data } = await sb.auth.getSession();
   if (!data?.session) { toast("Session expired — please sign in again"); return null; }
@@ -312,7 +332,7 @@ $("sendBtn").onclick = async () => {
       headers: { "Content-Type":"application/json", "apikey": PUBLISHABLE_KEY, "Authorization": auth },
       body: JSON.stringify({ conversation_id: conv, text }),
     });
-    if (res.ok) { if (openConvo === conv) renderMsgs(); }
+    if (res.ok) { if (openConvo === conv) scheduleRender(); }
     else {
       const e = await res.json().catch(()=>({}));
       tmp.querySelector(".meta").innerHTML = '<span class="fail">not sent ⚠︎</span>';
@@ -337,7 +357,7 @@ $("fileInput").onchange = async () => {
     const fd = new FormData();
     fd.append("conversation_id", conv); fd.append("caption", $("replyText").value.trim()); fd.append("file", f);
     const res = await fetch(SUPABASE_URL + "/functions/v1/send-message", { method:"POST", headers:{ "apikey":PUBLISHABLE_KEY, "Authorization":auth }, body: fd });
-    if (res.ok) { $("replyText").value=""; autoGrow(); if (openConvo===conv) renderMsgs(); }
+    if (res.ok) { $("replyText").value=""; autoGrow(); if (openConvo===conv) scheduleRender(); }
     else { const e=await res.json().catch(()=>({})); tmp.querySelector(".meta").innerHTML='<span class="fail">not sent ⚠︎</span>'; toast(e.error==="outside_24h_window"?"24-hour reply window is closed":"Image send failed: "+(e.error??res.status)); }
   } catch (err) { tmp.querySelector(".meta").innerHTML='<span class="fail">not sent ⚠︎</span>'; toast("Network error — check connection"); }
 };
@@ -359,34 +379,54 @@ async function loadBookings(){
   const days = [...Array(8)].map((_,i)=> new Date(today.getTime()+i*86400000));
   const from = new Date(today.getTime()-86400000).toISOString();
   const { data: appts } = await sb.from("appointments")
-    .select("id,slot_start,status,new_or_followup,note,type_code,appointment_types(name_en),patients(name,age,wa_phone)")
+    .select("id,slot_start,status,new_or_followup,note,type_code,patient_id,appointment_types(name_en),patients(name,age,wa_phone)")
     .gte("slot_start", from).order("slot_start");
   const { data: blocked } = await sb.from("blocked_dates").select("date,reason").order("date");
   const byDay = {};
   for (const a of (appts??[])) (byDay[istKey(a.slot_start)] ??= []).push(a);
-  let html = "";
+  const todayKey = istKey(today);
+  const upcoming = (appts??[]).filter(a=>a.status==="booked");
+  const todayCount = (byDay[todayKey]??[]).filter(a=>a.status==="booked").length;
+
+  let html = `<div class="card sumtiles">
+      <div style="flex:1"><div class="n" style="color:var(--green)">${todayCount}</div><div class="mut">Today</div></div>
+      <div style="flex:1;border-left:1px solid var(--line)"><div class="n" style="color:var(--navy)">${upcoming.length}</div><div class="mut">Next 7 days</div></div>
+    </div>`;
+
   for (const d of days) {
-    const list = byDay[istKey(d)] ?? [];
-    html += `<h3>${fmtDayFull(d)} — ${list.filter(a=>a.status==="booked").length} booking(s)</h3>`;
-    html += list.map((a)=>`
-      <div class="card appt ${a.status!=="booked"?"cancelled":""}">
-        <div class="row"><b>${fmtT(a.slot_start)} · ${esc(a.patients?.name??"?")} (${a.patients?.age??"?"})</b>
-          ${a.status==="booked"?`<button class="danger" onclick="cancelAppt('${a.id}')">Cancel</button>`:`<span class="mut">${a.status}</span>`}</div>
-        <div class="mut">${esc(a.appointment_types?.name_en ?? a.type_code)} · ${a.new_or_followup==="new"?"First visit":"Follow-up"} · +${esc(a.patients?.wa_phone??"")}</div>
-        ${a.note?`<div class="mut">📝 ${esc(a.note)}</div>`:""}
-      </div>`).join("");
+    const key = istKey(d);
+    const list = byDay[key] ?? [];
+    const label = fmtDayFull(d) + (key===todayKey ? " · Today" : "");
+    if (!list.length){ html += `<div class="dayline">${label} — no bookings</div>`; continue; }
+    html += `<h3>${label}</h3>`;
+    html += list.map((a)=>{
+      const cancelled = a.status!=="booked";
+      const sub = `${esc(a.appointment_types?.name_en ?? a.type_code)} · ${a.new_or_followup==="new"?"First visit":"Follow-up"}`;
+      return `<div class="bcard ${cancelled?"cancelled":""}" onclick="openPatientChat('${a.patient_id}')">
+        <div class="bt">${fmtT(a.slot_start)}</div>
+        <div class="bmid"><div class="bname">${esc(a.patients?.name??"?")}${a.patients?.age?" · "+a.patients.age:""}</div>
+          <div class="mut">${sub}</div>${a.note?`<div class="mut">📝 ${esc(a.note)}</div>`:""}</div>
+        ${cancelled?`<span class="mut">${a.status.replace(/_/g," ")}</span>`:`<button class="bcancel" title="Cancel" onclick="event.stopPropagation();cancelAppt('${a.id}')">✕</button>`}
+      </div>`;
+    }).join("");
   }
-  html += `<h3>🚫 Blocked days (leave / holidays)</h3>
+
+  html += `<h3>Blocked days (leave / holidays)</h3>
     <div class="card">
+      <label class="mut" style="display:block;margin-bottom:5px">Choose a date, then Block</label>
       <div style="display:flex;flex-direction:column;gap:9px">
         <input type="date" id="blkDate">
         <input id="blkReason" placeholder="Reason (optional), e.g. On leave">
         <button class="act" onclick="blockDay()">Block this day</button>
       </div>
-      ${(blocked??[]).map((b)=>`<div class="row" style="margin-top:9px;border-top:1px solid var(--line);padding-top:9px"><span>${b.date}${b.reason?" · "+esc(b.reason):""}</span><button class="ghost" onclick="unblockDay('${b.date}')">Remove</button></div>`).join("")}
-    </div>`;
+      ${(blocked??[]).map((b)=>`<div class="row" style="margin-top:9px;border-top:1px solid var(--line);padding-top:9px"><span>🚫 ${b.date}${b.reason?" · "+esc(b.reason):""}</span><button class="ghost" onclick="unblockDay('${b.date}')">Remove</button></div>`).join("")}
+    </div><div style="height:10px"></div>`;
   $("bookings").innerHTML = html;
 }
+window.openPatientChat = async (pid) => {
+  const { data: c } = await sb.from("conversations").select("id").eq("patient_id", pid).maybeSingle();
+  if (c?.id) openThread(c.id); else toast("No chat found for this patient yet");
+};
 window.cancelAppt = async (id) => {
   if (!confirm("Cancel this appointment?")) return;
   const { error } = await sb.from("appointments").update({ status: "cancelled_by_clinic" }).eq("id", id);
@@ -447,7 +487,7 @@ async function disablePush(){
 function subscribeRealtime(){
   if (channel) return;
   channel = sb.channel("inbox")
-    .on("postgres_changes",{event:"*",schema:"public",table:"messages"},()=>{ if(openConvo)renderMsgs(); if(!$("chats").classList.contains("hide"))loadChats(); })
+    .on("postgres_changes",{event:"*",schema:"public",table:"messages"},()=>{ if(openConvo)scheduleRender(); if(!$("chats").classList.contains("hide"))loadChats(); })
     .on("postgres_changes",{event:"*",schema:"public",table:"conversations"},()=>{ if(!$("chats").classList.contains("hide"))loadChats(); })
     .subscribe();
 }
