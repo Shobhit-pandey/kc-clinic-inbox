@@ -131,9 +131,12 @@ h3{font-size:12.5px;margin:18px 16px 6px;color:var(--mut);font-weight:700;text-t
 .shell,.pane,#thread,#msgs,.card{overflow-x:hidden}
 .bookings input,.searchwrap input,#replybar textarea{width:100%;max-width:100%;min-width:0}
 input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100%}
-/* chat search */
-.searchwrap{position:sticky;top:0;background:var(--chatbg);padding:9px 12px;z-index:3}
-.searchwrap input{padding:11px 14px;border:1px solid var(--line);border-radius:13px;font-size:16px;background:#fff}
+/* chat search + new-patient */
+.searchwrap{position:sticky;top:0;background:var(--chatbg);padding:9px 12px;z-index:3;display:flex;gap:8px;align-items:center}
+.searchwrap input{flex:1;padding:11px 14px;border:1px solid var(--line);border-radius:13px;font-size:16px;background:#fff}
+.npbtn{flex-shrink:0;width:42px;height:42px;border-radius:50%;background:var(--green);color:#fff;border:0;font-size:24px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,128,105,.3)}
+.npbtn:active{background:var(--green-d)}
+#sheet .body input{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:12px;font-size:16px;margin-top:8px}
 /* quick replies */
 #qrPanel{display:flex;gap:7px;overflow-x:auto;padding:9px 9px 2px;background:#f0f2f5}
 #qrPanel::-webkit-scrollbar{height:0}
@@ -182,7 +185,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   <div style="flex:1;min-width:0"><div class="ttl" id="hTitle">KC Clinic</div><div class="sub" id="hSub">Staff inbox</div></div>
 </header>
 <main>
-  <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"></div><div id="chatList"></div></div>
+  <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"><button class="npbtn" title="New patient" onclick="openNewPatient()">＋</button></div><div id="chatList"></div></div>
   <div id="thread" class="hide">
     <div class="seg" id="threadSeg">
       <button data-mode="chat" class="on">💬 Chat</button>
@@ -390,7 +393,8 @@ async function renderMsgs(){
     parts.push(`<div class="m ${m.direction}">${media}${esc(m.body)}${meta}</div>`);
   }
   if (openConvo !== renderFor) return;
-  $("msgs").innerHTML = parts.join("");
+  $("msgs").innerHTML = parts.join("") ||
+    `<div class="notes-hint" style="margin-top:22px;line-height:1.6">No WhatsApp messages yet.<br>To chat here, ask the patient to send <b>Hi</b> to the clinic number.<br>You can still add Private notes anytime.</div>`;
   $("msgs").scrollTop = $("msgs").scrollHeight;
 }
 
@@ -608,6 +612,44 @@ async function setApptStatus(id, status){
   const { error } = await sb.from("appointments").update({ status }).eq("id", id);
   if (error) toast(error.message);
   else { toast(status==="completed"?"Marked done":status==="no_show"?"Marked no-show":"Booking cancelled — please inform the patient"); loadBookings(); }
+}
+
+// --- new patient (walk-in / phone-in): create record + notes, NO WhatsApp message sent (free) ---
+window.openNewPatient = () => {
+  const s = $("sheet");
+  s.querySelector(".body").innerHTML =
+    `<div class="title">New patient — no WhatsApp message is sent</div>
+     <input id="npName" placeholder="Patient name" autocapitalize="words">
+     <input id="npPhone" placeholder="Mobile number (e.g. 98765 43210)" inputmode="numeric">
+     <button class="opt" id="npSave">Save &amp; add notes</button>
+     <button class="opt plain" id="npCancel">Cancel</button>`;
+  s.querySelector("#npCancel").onclick = (e)=>{ e.stopPropagation(); closeSheet(); };
+  s.querySelector("#npSave").onclick = (e)=>{ e.stopPropagation(); saveNewPatient(); };
+  s.classList.add("open");
+};
+async function saveNewPatient(){
+  const name = $("npName").value.trim();
+  let digits = ($("npPhone").value || "").replace(/\D/g, "");
+  if (digits.length === 10) digits = "91" + digits;         // default India country code
+  if (digits.length < 11 || digits.length > 15) { toast("Enter a valid mobile number"); return; }
+  const { data: existing } = await sb.from("patients").select("id").eq("wa_phone", digits).maybeSingle();
+  let pid;
+  if (existing) { pid = existing.id; if (name) await sb.from("patients").update({ name }).eq("id", pid); }
+  else {
+    const { data: np, error } = await sb.from("patients").insert({ wa_phone: digits, name: name || null }).select("id").single();
+    if (error) { toast(error.message); return; }
+    pid = np.id;
+  }
+  let { data: conv } = await sb.from("conversations").select("id").eq("patient_id", pid).maybeSingle();
+  if (!conv) {
+    const { data: nc, error } = await sb.from("conversations").insert({ patient_id: pid, status: "bot" }).select("id").single();
+    if (error) { toast(error.message); return; }
+    conv = nc;
+  }
+  closeSheet();
+  await openThread(conv.id);
+  setThreadMode("notes");
+  toast(existing ? "Opened existing patient" : "Patient added — add private notes below");
 }
 
 // --- quick replies ---
