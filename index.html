@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KC Dada Clinic Inbox</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#7c3aed">
+<style>
+:root{--p:#7c3aed;--p2:#ede9fe;--bg:#f5f3ff;--tx:#1e1b2e;--mut:#6b7280;--ok:#059669;--warn:#d97706;--bad:#dc2626}
+*{box-sizing:border-box;margin:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);height:100dvh;display:flex;flex-direction:column}
+header{background:var(--p);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+header b{font-size:16px}
+nav{display:flex;background:#fff;border-bottom:1px solid #e5e7eb}
+nav button{flex:1;padding:12px 4px;border:0;background:none;font-size:14px;color:var(--mut);border-bottom:3px solid transparent;cursor:pointer}
+nav button.on{color:var(--p);border-color:var(--p);font-weight:600}
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.hide{display:none!important}
+.card{background:#fff;border-radius:12px;margin:10px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.badge{background:var(--bad);color:#fff;border-radius:999px;min-width:20px;height:20px;font-size:12px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
+.chip{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--p2);color:var(--p)}
+.chip.needs_human{background:#fef3c7;color:var(--warn)}
+.chip.human{background:#d1fae5;color:var(--ok)}
+.mut{color:var(--mut);font-size:12px}
+button.act{background:var(--p);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer}
+button.ghost{background:#fff;color:var(--p);border:1px solid var(--p);border-radius:10px;padding:8px 12px;font-size:13px;cursor:pointer}
+button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);border-radius:10px;padding:8px 12px;font-size:13px;cursor:pointer}
+input,textarea{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;font-size:15px;font-family:inherit}
+#login{max-width:360px;margin:12vh auto;padding:0 16px;display:flex;flex-direction:column;gap:10px}
+#thread{display:flex;flex-direction:column;height:100%}
+#msgs{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
+.m{max-width:80%;padding:8px 12px;border-radius:14px;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.m.in{background:#fff;align-self:flex-start;border-bottom-left-radius:4px}
+.m.out{background:var(--p2);align-self:flex-end;border-bottom-right-radius:4px}
+.m img{max-width:100%;border-radius:8px;display:block}
+.m .who{font-size:10px;color:var(--mut);margin-top:3px}
+#replybar{display:flex;gap:8px;padding:10px;background:#fff;border-top:1px solid #e5e7eb;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+#replybar textarea{flex:1;resize:none;height:44px}
+.topact{display:flex;gap:6px;padding:8px 10px;background:#fff;border-bottom:1px solid #e5e7eb;align-items:center;flex-wrap:wrap}
+.appt{border-left:4px solid var(--p);padding-left:10px}
+.appt.cancelled{border-color:#d1d5db;opacity:.55}
+h3{font-size:14px;margin:14px 12px 4px;color:var(--mut);font-weight:600}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw}
+</style>
+</head>
+<body>
+<div id="login">
+  <h2 style="color:var(--p)">🏥 KC Dada Clinic Inbox</h2>
+  <p class="mut">स्टाफ़ लॉगिन / Staff login</p>
+  <input id="email" type="email" placeholder="Email" autocomplete="username">
+  <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
+  <button class="act" id="loginBtn">Login</button>
+  <p id="loginErr" class="mut" style="color:var(--bad)"></p>
+</div>
+
+<div id="app" class="hide" style="display:flex;flex-direction:column;height:100dvh">
+<header><b id="hTitle">💬 Chats</b><button class="ghost" id="backBtn" style="border-color:#fff;color:#fff;display:none">‹ वापस</button></header>
+<nav id="tabs">
+  <button data-tab="chats" class="on">💬 चैट</button>
+  <button data-tab="bookings">📅 बुकिंग</button>
+  <button data-tab="settings">⚙️ सेटिंग</button>
+</nav>
+<main>
+  <div id="chats"></div>
+  <div id="thread" class="hide">
+    <div class="topact">
+      <span id="tName" style="font-weight:600"></span>
+      <span id="tStatus" class="chip"></span>
+      <span style="flex:1"></span>
+      <button class="ghost" id="toBot">🤖 बोट को दें</button>
+      <button class="ghost" id="toClosed">✔ बंद करें</button>
+    </div>
+    <div id="msgs"></div>
+    <div id="replybar">
+      <textarea id="replyText" placeholder="जवाब लिखें… / Type a reply…"></textarea>
+      <button class="act" id="sendBtn">भेजें</button>
+    </div>
+  </div>
+  <div id="bookings" class="hide"></div>
+  <div id="settings" class="hide"></div>
+</main>
+</div>
+<div id="toast"></div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+const SUPABASE_URL = "https://tzjvxqdnktgmxweqovwc.supabase.co";
+const PUBLISHABLE_KEY = "sb_publishable_42opnFY4QP-KC2bCoNQSfw_OuHtBISF";
+const VAPID = "BKxKqzaKG39_Xf2O543johvOqr1XXP-mLrvwiuRrzZRUmS-ay8DMFDAm0EDuujytb5GRBVDZFFBjLZdgZmrkRHk";
+const sb = createClient(SUPABASE_URL, PUBLISHABLE_KEY);
+const $ = (id) => document.getElementById(id);
+let me = null, openConvo = null, channel = null;
+
+function toast(t){ const el=$("toast"); el.textContent=t; el.style.opacity=1; setTimeout(()=>el.style.opacity=0, 2600); }
+const fmtT = (s)=> new Intl.DateTimeFormat("en-IN",{timeZone:"Asia/Kolkata",hour:"numeric",minute:"2-digit",hour12:true}).format(new Date(s));
+const fmtD = (s)=> new Intl.DateTimeFormat("hi-IN",{timeZone:"Asia/Kolkata",weekday:"short",day:"numeric",month:"long"}).format(new Date(s));
+const esc = (s)=> (s??"").replace(/[&<>"]/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+$("loginBtn").onclick = async () => {
+  $("loginErr").textContent = "";
+  const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("pass").value });
+  if (error) { $("loginErr").textContent = error.message; return; }
+};
+sb.auth.onAuthStateChange((_e, session) => {
+  const wasLoggedIn = !!me;
+  me = session?.user ?? null;
+  $("login").classList.toggle("hide", !!me);
+  $("app").classList.toggle("hide", !me);
+  if (me && !wasLoggedIn) { showTab("chats"); subscribeRealtime(); }
+});
+
+document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => showTab(b.dataset.tab));
+$("backBtn").onclick = () => showTab("chats");
+function showTab(tab){
+  openConvo = null;
+  ["chats","thread","bookings","settings"].forEach((id)=>$(id).classList.add("hide"));
+  $(tab).classList.remove("hide");
+  document.querySelectorAll("#tabs button").forEach((b)=>b.classList.toggle("on", b.dataset.tab===tab));
+  $("backBtn").style.display = "none";
+  $("hTitle").textContent = tab==="chats" ? "💬 Chats" : tab==="bookings" ? "📅 Bookings" : "⚙️ Settings";
+  if (tab==="chats") loadChats();
+  if (tab==="bookings") loadBookings();
+  if (tab==="settings") loadSettings();
+}
+
+async function loadChats(){
+  const { data, error } = await sb.from("conversations")
+    .select("id,status,unread_count,updated_at,last_patient_msg_at,patients(name,wa_phone)")
+    .order("updated_at",{ascending:false}).limit(100);
+  if (error){ toast(error.message); return; }
+  $("chats").innerHTML = (data??[]).map((c)=>{
+    const p = c.patients ?? {};
+    return `<div class="card row" style="cursor:pointer" onclick="openThread('${c.id}')">
+      <div><b>${esc(p.name) || "+"+esc(p.wa_phone)}</b>
+        <div class="mut">${c.last_patient_msg_at ? fmtD(c.last_patient_msg_at)+" "+fmtT(c.last_patient_msg_at) : ""}</div></div>
+      <div style="text-align:right">
+        ${c.unread_count>0?`<span class="badge">${c.unread_count}</span> `:""}
+        <span class="chip ${c.status}">${c.status==="needs_human"?"👋 इंसान चाहिए":c.status==="human"?"🧑 स्टाफ़":c.status==="closed"?"बंद":"🤖 बोट"}</span>
+      </div></div>`;
+  }).join("") || '<p class="mut" style="padding:20px">अभी कोई बातचीत नहीं। No conversations yet.</p>';
+}
+
+window.openThread = async (id) => {
+  openConvo = id;
+  ["chats","bookings","settings"].forEach((x)=>$(x).classList.add("hide"));
+  $("thread").classList.remove("hide");
+  $("backBtn").style.display = "inline-block";
+  const { data: c } = await sb.from("conversations").select("id,status,patients(name,wa_phone)").eq("id", id).single();
+  $("tName").textContent = c?.patients?.name || "+"+(c?.patients?.wa_phone ?? "");
+  $("hTitle").textContent = "💬 " + $("tName").textContent;
+  $("tStatus").textContent = c?.status ?? "";
+  $("tStatus").className = "chip " + (c?.status ?? "");
+  await sb.from("conversations").update({ unread_count: 0 }).eq("id", id);
+  await renderMsgs();
+};
+
+async function renderMsgs(){
+  if (!openConvo) return;
+  const renderFor = openConvo;
+  const { data: msgs } = await sb.from("messages")
+    .select("direction,sender,type,body,media_path,created_at")
+    .eq("conversation_id", renderFor).order("created_at").limit(300);
+  const parts = [];
+  for (const m of (msgs??[])) {
+    let media = "";
+    if (m.media_path) {
+      const { data: s } = await sb.storage.from("media").createSignedUrl(m.media_path, 3600);
+      if (s?.signedUrl) {
+        media = /\.(jpg|png|webp)$/.test(m.media_path)
+          ? `<a href="${s.signedUrl}" target="_blank"><img src="${s.signedUrl}" loading="lazy"></a>`
+          : `<a href="${s.signedUrl}" target="_blank">📎 फ़ाइल देखें / open file</a>`;
+      }
+    }
+    parts.push(`<div class="m ${m.direction}">${media}${esc(m.body)}
+      <div class="who">${m.sender} · ${fmtT(m.created_at)}</div></div>`);
+  }
+  if (openConvo !== renderFor) return;
+  $("msgs").innerHTML = parts.join("");
+  $("msgs").scrollTop = $("msgs").scrollHeight;
+}
+
+$("sendBtn").onclick = async () => {
+  const text = $("replyText").value.trim();
+  if (!text || !openConvo) return;
+  $("sendBtn").disabled = true;
+  try {
+    const { data: session } = await sb.auth.getSession();
+    if (!session?.session) { toast("Session expired — फिर से login करें"); return; }
+    const res = await fetch(SUPABASE_URL + "/functions/v1/send-message", {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "apikey": PUBLISHABLE_KEY,
+        "Authorization": "Bearer " + session.session.access_token },
+      body: JSON.stringify({ conversation_id: openConvo, text }),
+    });
+    if (res.ok) { $("replyText").value = ""; renderMsgs(); }
+    else {
+      const e = await res.json().catch(()=>({}));
+      toast(e.error==="outside_24h_window" ? "24 घंटे की मुफ़्त विंडो बंद है — मरीज़ के अगले मैसेज का इंतज़ार करें" : "भेजना विफल: "+(e.error??res.status));
+    }
+  } catch (err) {
+    toast("Network error: " + err.message);
+  } finally {
+    $("sendBtn").disabled = false;
+  }
+};
+
+$("toBot").onclick = () => setStatus("bot");
+$("toClosed").onclick = () => setStatus("closed");
+async function setStatus(status){
+  if (!openConvo) return;
+  await sb.from("conversations").update({ status }).eq("id", openConvo);
+  $("tStatus").textContent = status; $("tStatus").className = "chip "+status;
+  toast(status==="bot" ? "बोट फिर से जवाब देगा" : "बातचीत बंद");
+}
+
+async function loadBookings(){
+  const today = new Date();
+  const days = [...Array(8)].map((_,i)=> new Date(today.getTime()+i*86400000));
+  const from = new Date(today.getTime()-86400000).toISOString();
+  const { data: appts } = await sb.from("appointments")
+    .select("id,slot_start,status,new_or_followup,note,type_code,gcal_event_id,appointment_types(name_hi),patients(name,age,wa_phone)")
+    .gte("slot_start", from).order("slot_start");
+  const { data: blocked } = await sb.from("blocked_dates").select("date,reason").order("date");
+  const byDay = {};
+  for (const a of (appts??[])) {
+    const key = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata"}).format(new Date(a.slot_start));
+    (byDay[key] ??= []).push(a);
+  }
+  let html = "";
+  for (const d of days) {
+    const key = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata"}).format(d);
+    const list = byDay[key] ?? [];
+    html += `<h3>${fmtD(d)} — ${list.filter(a=>a.status==="booked").length} बुकिंग</h3>`;
+    html += list.map((a)=>`
+      <div class="card appt ${a.status!=="booked"?"cancelled":""}">
+        <div class="row"><b>${fmtT(a.slot_start)} · ${esc(a.patients?.name??"?")} (${a.patients?.age??"?"})</b>
+          ${a.status==="booked"?`<button class="danger" onclick="cancelAppt('${a.id}')">रद्द करें</button>`:`<span class="mut">${a.status}</span>`}</div>
+        <div class="mut">${esc(a.appointment_types?.name_hi ?? a.type_code)} · ${a.new_or_followup==="new"?"पहली बार":"फॉलो-अप"} · +${esc(a.patients?.wa_phone??"")}</div>
+        ${a.note?`<div class="mut">📝 ${esc(a.note)}</div>`:""}
+      </div>`).join("");
+  }
+  html += `<h3>🚫 छुट्टी के दिन / Blocked days</h3>
+    <div class="card">
+      <div class="row"><input type="date" id="blkDate" style="max-width:170px"><input id="blkReason" placeholder="कारण (optional)"><button class="act" onclick="blockDay()">ब्लॉक</button></div>
+      ${(blocked??[]).map((b)=>`<div class="row" style="margin-top:8px"><span>${b.date} ${esc(b.reason??"")}</span><button class="ghost" onclick="unblockDay('${b.date}')">हटाएँ</button></div>`).join("")}
+    </div>`;
+  $("bookings").innerHTML = html;
+}
+
+window.cancelAppt = async (id) => {
+  if (!confirm("यह अपॉइंटमेंट रद्द करें? / Cancel this appointment?")) return;
+  const { error } = await sb.from("appointments").update({ status: "cancelled_by_clinic" }).eq("id", id);
+  if (error) toast(error.message); else { toast("रद्द किया गया — मरीज़ को खुद सूचित करें (chat/call)"); loadBookings(); }
+};
+window.blockDay = async () => {
+  const date = $("blkDate").value; if (!date) return;
+  const { error } = await sb.from("blocked_dates").insert({ date, reason: $("blkReason").value || null });
+  if (error) toast(error.message); else loadBookings();
+};
+window.unblockDay = async (date) => {
+  await sb.from("blocked_dates").delete().eq("date", date);
+  loadBookings();
+};
+
+async function loadSettings(){
+  const perm = ("Notification" in window) ? Notification.permission : "unsupported";
+  $("settings").innerHTML = `
+    <div class="card">
+      <b>🔔 सूचनाएँ / Notifications</b>
+      <p class="mut" style="margin:6px 0">हर नए मैसेज और बुकिंग पर इस डिवाइस पर सूचना आएगी। iPhone पर पहले "Add to Home Screen" करें।</p>
+      <p class="mut">Status: ${perm}</p>
+      <button class="act" id="pushBtn">इस डिवाइस पर चालू करें / Enable on this device</button>
+    </div>
+    <div class="card"><button class="danger" id="logoutBtn">Logout</button></div>`;
+  $("pushBtn").onclick = enablePush;
+  $("logoutBtn").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+}
+
+function b64ToU8(b64){
+  const pad = "=".repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64+pad).replace(/-/g,"+").replace(/_/g,"/"));
+  return Uint8Array.from([...raw].map((c)=>c.charCodeAt(0)));
+}
+async function enablePush(){
+  try {
+    if (!("serviceWorker" in navigator)) { toast("यह ब्राउज़र सपोर्ट नहीं करता"); return; }
+    const reg = await navigator.serviceWorker.register("sw.js");
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") { toast("Notification permission देनी होगी"); return; }
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(VAPID) });
+    const j = sub.toJSON();
+    const { error } = await sb.from("push_subscriptions").upsert(
+      { endpoint: j.endpoint, keys: j.keys, device_label: navigator.userAgent.slice(0,80) },
+      { onConflict: "endpoint" });
+    if (error) toast(error.message); else toast("✅ सूचनाएँ चालू हो गईं");
+    loadSettings();
+  } catch (e) { toast("Push setup failed: " + e.message); }
+}
+
+function subscribeRealtime(){
+  if (channel) return;
+  channel = sb.channel("inbox")
+    .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
+      if (openConvo) renderMsgs();
+      if (!$("chats").classList.contains("hide")) loadChats();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => {
+      if (!$("chats").classList.contains("hide")) loadChats();
+    })
+    .subscribe();
+}
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
