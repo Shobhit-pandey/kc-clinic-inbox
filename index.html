@@ -136,7 +136,16 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .searchwrap input{flex:1;padding:11px 14px;border:1px solid var(--line);border-radius:13px;font-size:16px;background:#fff}
 .npbtn{flex-shrink:0;width:42px;height:42px;border-radius:50%;background:var(--green);color:#fff;border:0;font-size:24px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,128,105,.3)}
 .npbtn:active{background:var(--green-d)}
-#sheet .body input{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:12px;font-size:16px;margin-top:8px}
+#sheet .body input,#sheet .body select{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:12px;font-size:16px;margin-top:8px;background:#fff;-webkit-appearance:none;appearance:none}
+#sheet .body .half{display:flex;gap:8px}
+#sheet .body .half input{flex:1}
+#sheet .body label.fld{display:block;color:var(--mut);font-size:12.5px;margin-top:12px}
+.wdays{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.wdays button{flex:1;min-width:38px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 0;font-size:13px;font-weight:600;color:var(--mut);cursor:pointer}
+.wdays button.off{background:#fdecec;border-color:#f3b4b4;color:var(--bad)}
+.fabrow{display:flex;justify-content:flex-end;padding:0 10px 4px}
+.fabbook{background:var(--green);color:#fff;border:0;border-radius:12px;padding:11px 16px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+.fabbook svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round}
 /* quick replies */
 #qrPanel{display:flex;gap:7px;overflow-x:auto;padding:9px 9px 2px;background:#f0f2f5}
 #qrPanel::-webkit-scrollbar{height:0}
@@ -571,7 +580,8 @@ async function loadBookings(){
   let html = `<div class="card sumtiles">
       <div style="flex:1"><div class="n" style="color:var(--green)">${todayCount}</div><div class="mut">Today</div></div>
       <div style="flex:1;border-left:1px solid var(--line)"><div class="n" style="color:var(--navy)">${upcoming.length}</div><div class="mut">Next 7 days</div></div>
-    </div>`;
+    </div>
+    <div class="fabrow"><button class="fabbook" onclick="openNewBooking()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New booking</button></div>`;
 
   for (const d of days) {
     const key = istKey(d);
@@ -635,9 +645,21 @@ async function loadSettings(){
          <p class="mut" style="margin:6px 0 10px">Get an alert on this device for every new message and booking. On iPhone, add this app to the Home Screen first, then open it from the icon.</p>
          ${perm==="denied"?`<p class="mut" style="color:var(--bad);margin-bottom:8px">Notifications are blocked in your device settings — allow them for this site, then tap below.</p>`:""}
          <button class="act" id="pushBtn" style="width:100%">Enable on this device</button></div>`;
+  const c = await loadSched(true);
+  const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const t12 = (t)=>{ let [h,m]=t.split(":").map(Number); const ap=h<12?"AM":"PM"; h=h%12||12; return `${h}:${String(m).padStart(2,"0")} ${ap}`; };
+  const fmtRange = (o,cl)=> `${t12(o)} – ${t12(cl)}`;
+  const sess = c ? (fmtRange(c.open_time,c.close_time) + (c.open_time2&&c.close_time2 ? `, ${fmtRange(c.open_time2,c.close_time2)}` : "")) : "—";
+  const offDays = c && (c.closed_weekdays||[]).length ? (c.closed_weekdays.map(d=>WD[d]).join(", ")) : "None";
+  const schedCard = `<div class="card"><b>🕑 Clinic schedule</b>
+       <p class="mut" style="margin:8px 0 2px">Hours: <b style="color:var(--ink)">${sess}</b></p>
+       <p class="mut" style="margin:2px 0">Slot length: <b style="color:var(--ink)">${c?c.slot_minutes:"—"} min</b> · Booking window: <b style="color:var(--ink)">${c?c.days_ahead:"—"} days</b></p>
+       <p class="mut" style="margin:2px 0 10px">Weekly day off: <b style="color:var(--ink)">${offDays}</b></p>
+       <button class="act" style="width:100%" onclick="openScheduleEditor()">Edit schedule</button></div>`;
   $("settings").innerHTML = notif +
     `<div class="card"><b>📚 New here?</b><p class="mut" style="margin:6px 0 10px">A quick guide to every feature and when to use it.</p>
        <button class="act" style="width:100%" onclick="openTutorial()">How to use this app</button></div>` +
+    schedCard +
     `<div class="card"><b>Signed in as</b><p class="mut" style="margin-top:4px">${esc(me?.email??"")}</p>
        <button class="danger" id="logoutBtn" style="margin-top:12px">Sign out</button></div>`;
   if (sub) $("pushOff").onclick = disablePush; else $("pushBtn").onclick = enablePush;
@@ -695,6 +717,108 @@ async function setApptStatus(id, status){
   const { error } = await sb.from("appointments").update({ status }).eq("id", id);
   if (error) toast(error.message);
   else { toast(status==="completed"?"Marked done":status==="no_show"?"Marked no-show":"Booking cancelled — please inform the patient"); loadBookings(); }
+}
+
+// --- schedule (cached) + client-side free-slot computation (mirrors the bot's slots.ts) ---
+let SCHED = null;
+async function loadSched(force){ if (SCHED && !force) return SCHED; const { data } = await sb.from("schedule_config").select("*").single(); SCHED = data; return data; }
+const hm = (t)=>{ const [h,m]=t.split(":").map(Number); return h*60+m; };
+async function computeFreeSlots(dateIso){
+  const cfg = await loadSched();
+  const wd = new Date(dateIso+"T00:00:00Z").getUTCDay();
+  if ((cfg.closed_weekdays||[]).includes(wd)) return [];
+  const { data: blk } = await sb.from("blocked_dates").select("date").eq("date", dateIso);
+  if (blk && blk.length) return [];
+  const dayStart = new Date(dateIso+"T00:00:00+05:30");
+  const wins = [[cfg.open_time, cfg.close_time]];
+  if (cfg.open_time2 && cfg.close_time2) wins.push([cfg.open_time2, cfg.close_time2]);
+  let slots = [];
+  for (const [o,c] of wins){ let t=hm(o); const end=hm(c); while (t+cfg.slot_minutes<=end){ slots.push(new Date(dayStart.getTime()+t*60000)); t+=cfg.slot_minutes; } }
+  slots.sort((a,b)=>a-b);
+  const startFrom = Date.now() + cfg.min_lead_minutes*60000;
+  const dayEnd = new Date(dayStart.getTime()+86400000);
+  const { data: appts } = await sb.from("appointments").select("slot_start").eq("status","booked").gte("slot_start",dayStart.toISOString()).lt("slot_start",dayEnd.toISOString());
+  const taken = new Set((appts||[]).map(a=>new Date(a.slot_start).getTime()));
+  return slots.filter(s=> s.getTime()>=startFrom && !taken.has(s.getTime()));
+}
+
+// --- staff-created booking ---
+window.openNewBooking = async () => {
+  const { data: types } = await sb.from("appointment_types").select("code,name_en").eq("active",true).order("sort");
+  const todayIso = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata"}).format(new Date());
+  const s = $("sheet");
+  s.querySelector(".body").innerHTML =
+    `<div class="title">New booking (on behalf of a patient)</div>
+     <input id="nbName" placeholder="Patient name">
+     <input id="nbPhone" placeholder="Mobile number" inputmode="numeric">
+     <select id="nbType">${(types||[]).map(t=>`<option value="${t.code}">${esc(t.name_en)}</option>`).join("")}</select>
+     <label class="fld">Date</label><input type="date" id="nbDate" min="${todayIso}">
+     <label class="fld">Time</label><select id="nbTime"><option value="">Pick a date first</option></select>
+     <button class="opt" id="nbSave">Book appointment</button><button class="opt plain" id="nbCancel">Cancel</button>`;
+  s.querySelector("#nbCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
+  s.querySelector("#nbDate").onchange=async()=>{
+    const d=$("nbDate").value; if(!d) return;
+    $("nbTime").innerHTML='<option value="">Loading…</option>';
+    const free=await computeFreeSlots(d);
+    $("nbTime").innerHTML = free.length ? free.map(x=>`<option value="${x.toISOString()}">${fmtT(x)}</option>`).join("") : `<option value="">No free slots (closed / blocked / full)</option>`;
+  };
+  s.querySelector("#nbSave").onclick=(e)=>{e.stopPropagation();saveNewBooking();};
+  s.classList.add("open");
+};
+async function saveNewBooking(){
+  const name=$("nbName").value.trim();
+  let digits=($("nbPhone").value||"").replace(/\D/g,""); if(digits.length===10) digits="91"+digits;
+  const type=$("nbType").value, slotIso=$("nbTime").value;
+  if(digits.length<11){ toast("Enter a valid mobile number"); return; }
+  if(!slotIso){ toast("Pick a date and time"); return; }
+  const { data: existing } = await sb.from("patients").select("id").eq("wa_phone",digits).maybeSingle();
+  let pid;
+  if(existing){ pid=existing.id; if(name) await sb.from("patients").update({name}).eq("id",pid); }
+  else { const {data:np,error}=await sb.from("patients").insert({wa_phone:digits,name:name||null}).select("id").single(); if(error){toast(error.message);return;} pid=np.id; }
+  const { data: conv } = await sb.from("conversations").select("id").eq("patient_id",pid).maybeSingle();
+  if(!conv) await sb.from("conversations").insert({patient_id:pid,status:"bot"});
+  const cfg=await loadSched(); const slot=new Date(slotIso);
+  const { error } = await sb.from("appointments").insert({ patient_id:pid, type_code:type, slot_start:slot.toISOString(), slot_end:new Date(slot.getTime()+cfg.slot_minutes*60000).toISOString(), new_or_followup: existing?"followup":"new", status:"booked" });
+  if(error){ toast(error.code==="23505" ? "That slot was just taken — pick another time" : error.message); return; }
+  closeSheet(); toast("Appointment booked"); loadBookings();
+}
+
+// --- editable clinic schedule ---
+window.openScheduleEditor = async () => {
+  const c = await loadSched(true);
+  const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const closed = new Set(c.closed_weekdays||[]);
+  const s = $("sheet");
+  s.querySelector(".body").innerHTML =
+    `<div class="title">Clinic schedule</div>
+     <label class="fld">Session 1 (open – close)</label>
+     <div class="half"><input type="time" id="o1" value="${(c.open_time||"").slice(0,5)}"><input type="time" id="c1" value="${(c.close_time||"").slice(0,5)}"></div>
+     <label class="fld">Session 2 (optional — e.g. morning)</label>
+     <div class="half"><input type="time" id="o2" value="${(c.open_time2||"").slice(0,5)}"><input type="time" id="c2" value="${(c.close_time2||"").slice(0,5)}"></div>
+     <label class="fld">Slot length (minutes)</label><input id="slen" inputmode="numeric" value="${c.slot_minutes}">
+     <label class="fld">How many days ahead patients can book</label><input id="dahead" inputmode="numeric" value="${c.days_ahead}">
+     <label class="fld">Weekly day(s) off (tap to close)</label>
+     <div class="wdays" id="wdays">${WD.map((d,i)=>`<button data-d="${i}" class="${closed.has(i)?"off":""}">${d}</button>`).join("")}</div>
+     <button class="opt" id="schSave" style="margin-top:14px">Save schedule</button><button class="opt plain" id="schCancel">Cancel</button>`;
+  s.querySelectorAll("#wdays button").forEach(b=> b.onclick=(e)=>{ e.stopPropagation(); b.classList.toggle("off"); });
+  s.querySelector("#schCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
+  s.querySelector("#schSave").onclick=(e)=>{e.stopPropagation();saveSchedule();};
+  s.classList.add("open");
+};
+async function saveSchedule(){
+  const o1=$("o1").value, c1=$("c1").value, o2=$("o2").value, c2=$("c2").value;
+  if(!o1||!c1){ toast("Session 1 open and close are required"); return; }
+  if(hm(c1)<=hm(o1)){ toast("Session 1 close must be after open"); return; }
+  if((o2&&!c2)||(!o2&&c2)){ toast("Fill both session-2 times, or leave both empty"); return; }
+  if(o2&&c2&&hm(c2)<=hm(o2)){ toast("Session 2 close must be after open"); return; }
+  const slen=parseInt($("slen").value,10), dah=parseInt($("dahead").value,10);
+  if(!(slen>=5&&slen<=60)){ toast("Slot length must be 5–60 minutes"); return; }
+  if(!(dah>=1&&dah<=30)){ toast("Days ahead must be 1–30"); return; }
+  const closed=[...document.querySelectorAll("#wdays button.off")].map(b=>+b.dataset.d);
+  const upd={ open_time:o1+":00", close_time:c1+":00", open_time2:o2?o2+":00":null, close_time2:c2?c2+":00":null, slot_minutes:slen, days_ahead:dah, closed_weekdays:closed };
+  const { error } = await sb.from("schedule_config").update(upd).eq("id",true);
+  if(error){ toast(error.message); return; }
+  SCHED=null; closeSheet(); toast("Schedule saved"); if(!$("bookings").classList.contains("hide")) loadBookings();
 }
 
 // --- new patient (walk-in / phone-in): create record + notes, NO WhatsApp message sent (free) ---
@@ -766,6 +890,8 @@ const TUTORIAL = [
   ["Private notes", "Inside any chat, switch to the 'Notes' tab. This is a private, staff-only record the patient never sees. Add timestamped notes and vitals (BP, weight) that build the patient's history over time. Edit the profile (age, blood group, allergies, ongoing conditions) at the top.", "Record history, vitals each visit, allergies — anything the doctor should remember."],
   ["New patient (no message)", "Tap ＋ on Chats to add a walk-in or phone-in patient by name and number. No WhatsApp message is sent (free). You can jot notes right away. If they later message the clinic, it links to the same record.", "For patients who visit or call without messaging first."],
   ["Bookings", "The Bookings tab shows today and the next 7 days. Tap any appointment to open that patient's chat. Tap ⋯ on a booking to Mark done, Mark no-show, or Cancel. Block a day (leave/holiday) at the bottom so the bot stops offering it.", "Check the day's schedule; block leave days in advance."],
+  ["New booking (for a patient)", "On the Bookings tab tap 'New booking' to book on someone's behalf — a walk-in or a phone call. Enter their name and number, pick the type, then a date; only genuinely free times for that day appear (the same times the bot would offer). Confirm and it's booked. If the number is new, a patient record is created automatically.", "Book appointments for patients who call or walk in."],
+  ["Clinic schedule", "In Settings, 'Edit schedule' controls everything the bot offers: opening and closing time, an optional second session (say a morning block), slot length, how many days ahead patients can book, and a weekly day off. Changes apply to the bot and to staff bookings instantly.", "Update hours, add a morning session, or set a weekly off day."],
   ["Patient ID", "Every patient gets a permanent ID like KC-2026-0001 (shown in Private notes). Use it in paper records and receipts — it never changes even if the phone number does.", "Reference it in the clinic's physical records."],
   ["Notifications", "In Settings, enable notifications on each staff device (on iPhone, add the app to the Home Screen first). You'll get an alert for every new message and booking, plus a morning summary of the day's appointments.", "Turn it on so you never miss a patient."],
   ["Emergencies", "This app and WhatsApp are not for emergencies. Patients are told to CALL the clinic number for anything urgent.", "If a chat sounds urgent, call the patient."],
