@@ -150,10 +150,17 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 #sheet .opt{width:100%;background:#fff;border:0;border-radius:13px;padding:15px;font-size:16px;margin-top:8px;cursor:pointer;color:var(--green);font-weight:600}
 #sheet .opt.danger{color:var(--bad)}
 #sheet .opt.plain{color:var(--tx);font-weight:500}
-/* per-patient note */
-#noteBar{flex-shrink:0}
-.notechip{background:#fff6df;color:#7a5e12;border-top:1px solid #efe2b6;border-bottom:1px solid #efe2b6;padding:9px 14px;font-size:13.5px;cursor:pointer;display:flex;gap:8px;align-items:center}
-.notechip .add{color:var(--mut)}
+/* chat / private-notes segmented toggle */
+.seg{display:flex;background:#e3e8ea;border-radius:11px;margin:8px 10px;padding:3px;flex-shrink:0}
+.seg button{flex:1;border:0;background:none;padding:8px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--mut);cursor:pointer}
+.seg button.on{background:#fff;color:var(--tx);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+/* private notes timeline */
+#notes{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:#fffdf3}
+#notes::-webkit-scrollbar{width:0}
+.note{background:#fff6df;border:1px solid #f0e2b8;border-radius:12px;padding:10px 12px;font-size:14.5px;line-height:1.4;white-space:pre-wrap;word-break:break-word;align-self:stretch}
+.note .nm{font-size:11px;color:#9a7d2e;margin-top:6px}
+.notes-hint{text-align:center;color:var(--mut);font-size:12px;padding:8px 6px}
+#replybar.notes .inwrap{background:#fffbe9;border:1px solid #f0e2b8}
 #toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:rgba(17,17,17,.94);color:#fff;padding:11px 18px;border-radius:22px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88vw;z-index:40;box-shadow:0 6px 20px rgba(0,0,0,.35)}
 </style>
 </head>
@@ -177,14 +184,18 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 <main>
   <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"></div><div id="chatList"></div></div>
   <div id="thread" class="hide">
-    <div class="tbar">
+    <div class="seg" id="threadSeg">
+      <button data-mode="chat" class="on">💬 Chat</button>
+      <button data-mode="notes">📝 Private notes</button>
+    </div>
+    <div class="tbar" id="tbar">
       <span id="tStatus" class="stat"></span>
       <span style="flex:1"></span>
       <button class="ghost" id="toBot">Give to bot</button>
       <button class="ghost" id="toClosed">Close</button>
     </div>
-    <div id="noteBar"></div>
     <div id="msgs"></div>
+    <div id="notes" class="hide"></div>
     <div id="qrPanel" class="hide"></div>
     <div id="replybar">
       <button class="qrtoggle" id="qrToggle" title="Quick replies"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></button>
@@ -304,35 +315,59 @@ window.openThread = async (id) => {
   $("thread").classList.remove("hide");
   $("tabs").classList.add("hide");
   $("backBtn").style.display = "flex";
-  const { data: c } = await sb.from("conversations").select("status,patient_id,patients(name,wa_phone,staff_note)").eq("id", id).single();
+  const { data: c } = await sb.from("conversations").select("status,patient_id,patients(name,wa_phone)").eq("id", id).single();
   const nm = c?.patients?.name || ("+"+(c?.patients?.wa_phone ?? ""));
   openPatientId = c?.patient_id ?? null;
-  openPatientNote = c?.patients?.staff_note ?? null;
   $("hAv").className = "av";
   $("hAv").textContent = initials(c?.patients?.name)||"•";
   $("hTitle").textContent = nm;
   $("hSub").textContent = "+"+(c?.patients?.wa_phone ?? "");
   $("tStatus").textContent = statLabel(c?.status); $("tStatus").className = "stat " + (c?.status ?? "");
-  renderNoteBar();
-  $("qrPanel").classList.add("hide");
+  setThreadMode("chat");
   await sb.from("conversations").update({ unread_count: 0 }).eq("id", id);
   await renderMsgs();
 };
 
-let openPatientId = null, openPatientNote = null;
-function renderNoteBar(){
-  $("noteBar").innerHTML = openPatientNote
-    ? `<div class="notechip" onclick="editNote()">📝 <span style="flex:1">${esc(openPatientNote)}</span><span class="add">Edit</span></div>`
-    : `<div class="notechip" onclick="editNote()"><span class="add">＋ Add a private note about this patient</span></div>`;
+let openPatientId = null;
+
+// Chat vs Private-notes toggle inside the thread.
+let threadMode = "chat";
+function setThreadMode(m){
+  threadMode = m;
+  const notes = m === "notes";
+  document.querySelectorAll("#threadSeg button").forEach(b=>b.classList.toggle("on", b.dataset.mode===m));
+  $("msgs").classList.toggle("hide", notes);
+  $("notes").classList.toggle("hide", !notes);
+  $("tbar").classList.toggle("hide", notes);       // status / bot / close are chat-only
+  $("qrPanel").classList.add("hide");
+  $("qrToggle").style.display = notes ? "none" : "flex";
+  $("attachBtn").style.display = notes ? "none" : "flex";
+  $("replybar").classList.toggle("notes", notes);
+  $("replyText").placeholder = notes ? "Add a private note (staff only)…" : "Message";
+  if (notes) renderNotes();
 }
-window.editNote = async () => {
+document.querySelectorAll("#threadSeg button").forEach(b=> b.onclick = ()=> setThreadMode(b.dataset.mode));
+
+async function renderNotes(){
   if (!openPatientId) return;
-  const v = prompt("Private note about this patient (allergies, history, reminders):", openPatientNote || "");
-  if (v === null) return;
-  const { error } = await sb.from("patients").update({ staff_note: v.trim() || null }).eq("id", openPatientId);
-  if (error) { toast(error.message); return; }
-  openPatientNote = v.trim() || null; renderNoteBar(); toast("Note saved");
-};
+  const pid = openPatientId;
+  const { data: notes } = await sb.from("patient_notes")
+    .select("body,author,created_at").eq("patient_id", pid).order("created_at").limit(300);
+  if (openPatientId !== pid) return;
+  const hint = `<div class="notes-hint">🔒 Private — only clinic staff see these. The patient never does.</div>`;
+  const items = (notes??[]).map(n=>`<div class="note">${esc(n.body)}<div class="nm">${esc(n.author||"staff")} · ${fmtDayFull(n.created_at)} ${fmtT(n.created_at)}</div></div>`).join("");
+  $("notes").innerHTML = hint + (items || `<div class="notes-hint">No notes yet. Add the first one below.</div>`);
+  $("notes").scrollTop = $("notes").scrollHeight;
+}
+async function addNote(){
+  const text = $("replyText").value.trim();
+  if (!text || !openPatientId) return;
+  const pid = openPatientId;
+  $("replyText").value = ""; autoGrow();
+  const { error } = await sb.from("patient_notes").insert({ patient_id: pid, body: text, author: me?.email || "staff" });
+  if (error) { toast(error.message); $("replyText").value = text; return; }
+  if (openPatientId === pid) renderNotes();
+}
 
 async function renderMsgs(){
   if (!openConvo) return;
@@ -375,6 +410,7 @@ async function authHeader(){
 
 // Optimistic send: the bubble appears instantly with a spinner, then resolves.
 $("sendBtn").onclick = async () => {
+  if (threadMode === "notes") return addNote();
   const text = $("replyText").value.trim();
   if (!text || !openConvo) return;
   const conv = openConvo;
@@ -548,6 +584,7 @@ function subscribeRealtime(){
   channel = sb.channel("inbox")
     .on("postgres_changes",{event:"*",schema:"public",table:"messages"},()=>{ if(openConvo)scheduleRender(); if(!$("chats").classList.contains("hide"))loadChats(); })
     .on("postgres_changes",{event:"*",schema:"public",table:"conversations"},()=>{ if(!$("chats").classList.contains("hide"))loadChats(); })
+    .on("postgres_changes",{event:"*",schema:"public",table:"patient_notes"},()=>{ if(threadMode==="notes"&&openPatientId)renderNotes(); })
     .subscribe();
 }
 // --- action sheet (iOS-style) ---
