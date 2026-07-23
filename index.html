@@ -127,7 +127,6 @@ h3{font-size:13px;margin:16px 14px 6px;color:var(--mut);font-weight:600;text-tra
   <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
   <button class="act" id="loginBtn" type="button">Sign in</button>
   <p id="loginErr" class="mut" style="color:var(--bad);white-space:pre-wrap"></p>
-  <p id="diag" class="mut" style="font-size:11px;opacity:.65"></p>
 </div>
 
 <div id="app" class="hide shell">
@@ -176,11 +175,6 @@ if (!window.supabase || !window.supabase.createClient) {
   if (el0) el0.textContent = "Could not load the app. Check your internet and reload the page.";
 }
 const createClient = window.supabase && window.supabase.createClient;
-const BUILD = "23c";
-try {
-  var dg = document.getElementById("diag");
-  if (dg) dg.textContent = "build " + BUILD + " · library " + (createClient ? "loaded ✓" : "FAILED ✗");
-} catch(_) {}
 const SUPABASE_URL = "https://tzjvxqdnktgmxweqovwc.supabase.co";
 const PUBLISHABLE_KEY = "sb_publishable_42opnFY4QP-KC2bCoNQSfw_OuHtBISF";
 const VAPID = "BKxKqzaKG39_Xf2O543johvOqr1XXP-mLrvwiuRrzZRUmS-ay8DMFDAm0EDuujytb5GRBVDZFFBjLZdgZmrkRHk";
