@@ -2,116 +2,147 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>KC Dada Women's Clinic Staff</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="KC Clinic">
 <meta name="theme-color" content="#008069">
 <style>
-/* WhatsApp-like palette */
 :root{
-  --green:#008069;--green-d:#075e54;--tick:#53bdeb;--badge:#25d366;
+  --green:#008069;--green-d:#017561;--tick:#53bdeb;--badge:#25d366;
   --chatbg:#efeae2;--in:#ffffff;--out:#d9fdd3;--tx:#111b21;--mut:#667781;
-  --line:#e9edef;--bad:#dc2626;--warn:#d97706
+  --line:#e9edef;--bad:#dc2626;--warn:#d97706;--frame:#d1d7db
 }
-*{box-sizing:border-box;margin:0}
-body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--chatbg);color:var(--tx);height:100dvh;display:flex;flex-direction:column}
-header{background:var(--green);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:10px;padding-top:calc(12px + env(safe-area-inset-top))}
-header .ttl{font-size:17px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-header .av{width:34px;height:34px;border-radius:50%;background:#0a8f76;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
-header button.icn{background:none;border:0;color:#fff;font-size:22px;cursor:pointer;padding:0 4px;line-height:1}
-nav{display:flex;background:var(--green)}
-nav button{flex:1;padding:12px 4px;border:0;background:none;font-size:13px;font-weight:600;letter-spacing:.3px;color:#cfe9e2;border-bottom:3px solid transparent;cursor:pointer;text-transform:uppercase}
-nav button.on{color:#fff;border-color:#fff}
-main{flex:1;overflow:hidden;display:flex;flex-direction:column}
-.pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--frame);color:var(--tx);
+  -webkit-font-smoothing:antialiased;overflow:hidden}
+/* Phone-style frame on desktop; full-bleed on mobile */
+.shell{width:100%;max-width:480px;margin:0 auto;height:100dvh;background:var(--chatbg);display:flex;flex-direction:column;position:relative;overflow:hidden}
+@media(min-width:520px){.shell{height:min(920px,100dvh);margin-top:max(0px,calc((100dvh - 920px)/2));border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.25);overflow:hidden}
+  body{display:flex;align-items:center;justify-content:center}}
 .hide{display:none!important}
 
+/* header */
+header{background:var(--green);color:#fff;display:flex;align-items:center;gap:10px;
+  padding:12px 12px;padding-top:calc(12px + env(safe-area-inset-top));box-shadow:0 1px 3px rgba(0,0,0,.2);z-index:5;flex-shrink:0}
+header .av{width:36px;height:36px;border-radius:50%;background:#0a9e83;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;overflow:hidden}
+header .av img{width:100%;height:100%;object-fit:cover}
+header .ttl{font-size:17px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+header .sub{font-size:12px;opacity:.85;font-weight:400}
+header button.icn{background:none;border:0;color:#fff;font-size:26px;cursor:pointer;padding:0 2px;line-height:1;width:30px}
+header button.icn:active{opacity:.6}
+
+main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.pane::-webkit-scrollbar{width:0}
+
+/* bottom tab bar */
+nav{display:flex;background:#fff;border-top:1px solid var(--line);flex-shrink:0;
+  padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;padding:7px 4px 6px;border:0;background:none;cursor:pointer;color:var(--mut);
+  display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600}
+nav button .ic{font-size:20px;line-height:1;transition:transform .12s}
+nav button.on{color:var(--green)}
+nav button.on .ic{transform:translateY(-1px)}
+nav button:active .ic{transform:scale(.88)}
+
 /* chat list */
-.crow{display:flex;gap:12px;align-items:center;padding:11px 14px;background:#fff;border-bottom:1px solid var(--line);cursor:pointer}
-.crow:active{background:#f5f6f6}
-.crow .av{width:48px;height:48px;border-radius:50%;background:#dfe5e7;color:#5a6b73;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px;flex-shrink:0}
+.crow{display:flex;gap:13px;align-items:center;padding:11px 14px;background:#fff;cursor:pointer;position:relative}
+.crow:after{content:"";position:absolute;left:70px;right:0;bottom:0;height:1px;background:var(--line)}
+.crow:active{background:#f0f2f2}
+.crow .av{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#9fb3bb,#7b929c);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px;flex-shrink:0}
 .crow .mid{flex:1;min-width:0}
-.crow .nm{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.crow .pv{font-size:13.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-.crow .rt{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.crow .nm{font-size:16.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crow .pv{font-size:14px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+.crow .rt{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
 .crow .tm{font-size:12px;color:var(--mut)}
 .badge{background:var(--badge);color:#fff;border-radius:999px;min-width:20px;height:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
-.stat{font-size:10.5px;padding:1px 7px;border-radius:999px;background:#e7f8f3;color:var(--green)}
+.stat{font-size:10.5px;padding:2px 8px;border-radius:999px;background:#e7f8f3;color:var(--green);white-space:nowrap}
 .stat.needs_human{background:#fef3c7;color:var(--warn)}
 .stat.human{background:#d9fdd3;color:#067a53}
 .stat.closed{background:#eceff1;color:var(--mut)}
-.empty{color:var(--mut);padding:30px;text-align:center}
+.empty{color:var(--mut);padding:40px 20px;text-align:center;font-size:15px}
 
 /* thread */
-#thread{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--chatbg)}
-#msgs{flex:1;overflow-y:auto;padding:12px 8px;display:flex;flex-direction:column;gap:3px}
-.m{position:relative;max-width:82%;padding:6px 9px 8px;border-radius:8px;font-size:14.2px;line-height:1.35;white-space:pre-wrap;word-break:break-word;box-shadow:0 1px .5px rgba(11,20,26,.13)}
+#thread{flex:1;display:flex;flex-direction:column;min-height:0;
+  background:var(--chatbg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ccircle cx='20' cy='20' r='1' fill='%23d9d0c4'/%3E%3C/svg%3E")}
+.tbar{display:flex;gap:6px;padding:6px 10px;background:#f6f6f6;border-bottom:1px solid var(--line);align-items:center;flex-shrink:0}
+#msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 7px;display:flex;flex-direction:column;gap:2px}
+#msgs::-webkit-scrollbar{width:0}
+.m{position:relative;max-width:85%;padding:6px 9px 8px;border-radius:8px;font-size:14.5px;line-height:1.35;white-space:pre-wrap;word-break:break-word;box-shadow:0 1px .5px rgba(11,20,26,.13);animation:pop .12s ease-out}
+@keyframes pop{from{transform:scale(.96);opacity:.4}to{transform:scale(1);opacity:1}}
 .m.in{background:var(--in);align-self:flex-start;border-top-left-radius:0}
 .m.out{background:var(--out);align-self:flex-end;border-top-right-radius:0}
 .m img{max-width:100%;border-radius:6px;display:block;margin-bottom:3px}
 .m .meta{float:right;margin:6px 0 -2px 8px;font-size:11px;color:var(--mut);white-space:nowrap}
 .m .tick.read{color:var(--tick)}
-.daysep{align-self:center;background:#fff;color:var(--mut);font-size:12px;padding:4px 10px;border-radius:8px;margin:6px 0;box-shadow:0 1px .5px rgba(11,20,26,.13)}
+.daysep{align-self:center;background:#fff;color:var(--mut);font-size:12.5px;padding:5px 12px;border-radius:8px;margin:8px 0;box-shadow:0 1px .5px rgba(11,20,26,.13)}
 
 /* reply bar */
-#replybar{display:flex;gap:6px;align-items:flex-end;padding:8px;background:#f0f2f5;border-top:1px solid var(--line);padding-bottom:calc(8px + env(safe-area-inset-bottom))}
-#replybar .inwrap{flex:1;background:#fff;border-radius:22px;display:flex;align-items:center;padding:2px 6px}
-#replybar textarea{flex:1;resize:none;border:0;outline:none;font-size:15px;font-family:inherit;padding:9px 6px;max-height:120px;background:transparent}
-.circ{width:46px;height:46px;border-radius:50%;background:var(--green);color:#fff;border:0;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.attach{background:none;border:0;color:var(--mut);font-size:22px;cursor:pointer;padding:0 4px}
+#replybar{display:flex;gap:7px;align-items:flex-end;padding:7px 8px;background:#f0f2f5;flex-shrink:0;
+  padding-bottom:calc(7px + env(safe-area-inset-bottom))}
+#replybar .inwrap{flex:1;background:#fff;border-radius:22px;display:flex;align-items:center;padding:2px 4px 2px 8px;box-shadow:0 1px .5px rgba(11,20,26,.13)}
+#replybar textarea{flex:1;resize:none;border:0;outline:none;font-size:16px;font-family:inherit;padding:9px 4px;max-height:110px;background:transparent;line-height:1.3}
+.attach{background:none;border:0;color:var(--mut);font-size:22px;cursor:pointer;padding:2px 4px}
+.attach:active{opacity:.5}
+.circ{width:48px;height:48px;border-radius:50%;background:var(--green);color:#fff;border:0;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.circ:active{background:var(--green-d);transform:scale(.94)}
+.circ:disabled{opacity:.6}
 
-/* login + generic cards (bookings/settings) */
-#login{max-width:360px;margin:14vh auto;padding:0 22px;display:flex;flex-direction:column;gap:12px;text-align:center}
-#login .logo{width:88px;height:88px;margin:0 auto 6px;border-radius:20px;display:block}
-input,textarea{font-family:inherit}
-#login input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;font-size:15px}
-.act{background:var(--green);color:#fff;border:0;border-radius:10px;padding:12px 14px;font-size:15px;cursor:pointer}
-.card{background:#fff;border-radius:12px;margin:10px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+/* login */
+#login{max-width:480px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;justify-content:center;padding:0 26px;gap:13px;text-align:center;background:var(--chatbg)}
+@media(min-width:520px){#login{height:min(920px,100dvh);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.25)}}
+#login .logo{width:96px;height:96px;margin:0 auto 6px;border-radius:22px;display:block;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+#login h2{color:var(--green)}
+#login input{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:12px;font-size:16px}
+#login input:focus{border-color:var(--green);outline:none}
+.act{background:var(--green);color:#fff;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:600;cursor:pointer}
+.act:active{background:var(--green-d)}
+
+/* bookings + settings cards */
+.card{background:#fff;border-radius:12px;margin:10px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.07)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .mut{color:var(--mut);font-size:12px}
-button.ghost{background:#fff;color:var(--green);border:1px solid var(--green);border-radius:10px;padding:8px 12px;font-size:13px;cursor:pointer}
-button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);border-radius:10px;padding:8px 12px;font-size:13px;cursor:pointer}
+button.ghost{background:#fff;color:var(--green);border:1px solid var(--green);border-radius:10px;padding:9px 13px;font-size:13px;cursor:pointer}
+button.ghost:active{background:#e7f8f3}
+button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);border-radius:10px;padding:9px 13px;font-size:13px;cursor:pointer}
 .appt{border-left:4px solid var(--green);padding-left:10px}
 .appt.cancelled{border-color:#d1d5db;opacity:.55}
-h3{font-size:14px;margin:14px 12px 4px;color:var(--mut);font-weight:600}
-.bookings input{padding:10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px}
-#toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;z-index:9}
+h3{font-size:13px;margin:16px 14px 6px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.bookings input{padding:11px;border:1px solid #d1d5db;border-radius:9px;font-size:16px}
+#toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:11px 18px;border-radius:22px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88vw;z-index:20;box-shadow:0 4px 16px rgba(0,0,0,.3)}
 </style>
 </head>
 <body>
 <div id="login">
   <img class="logo" src="icon-192.png" alt="KC">
-  <h2 style="color:var(--green);margin-bottom:0">KC Dada Women's Clinic</h2>
+  <h2 style="margin-bottom:0">KC Dada Women's Clinic</h2>
   <p class="mut">Staff sign in</p>
-  <input id="email" type="email" placeholder="Email" autocomplete="username">
+  <input id="email" type="email" placeholder="Email" autocomplete="username" autocapitalize="none">
   <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
   <button class="act" id="loginBtn">Sign in</button>
   <p id="loginErr" class="mut" style="color:var(--bad)"></p>
 </div>
 
-<div id="app" class="hide" style="display:flex;flex-direction:column;height:100dvh">
+<div id="app" class="hide shell">
 <header>
   <button class="icn" id="backBtn" style="display:none">‹</button>
-  <div class="av" id="hAv">KC</div>
-  <div class="ttl" id="hTitle">KC Clinic</div>
+  <div class="av" id="hAv"><img src="icon-192.png" alt=""></div>
+  <div style="flex:1;min-width:0"><div class="ttl" id="hTitle">KC Clinic</div><div class="sub" id="hSub">Staff inbox</div></div>
 </header>
-<nav id="tabs">
-  <button data-tab="chats" class="on">Chats</button>
-  <button data-tab="bookings">Bookings</button>
-  <button data-tab="settings">Settings</button>
-</nav>
 <main>
   <div id="chats" class="pane"></div>
   <div id="thread" class="hide">
-    <div style="display:flex;gap:6px;padding:6px 10px;background:#f6f6f6;border-bottom:1px solid var(--line);align-items:center">
+    <div class="tbar">
       <span id="tStatus" class="stat"></span>
       <span style="flex:1"></span>
-      <button class="ghost" id="toBot">Give to bot</button>
-      <button class="ghost" id="toClosed">Close</button>
+      <button class="ghost" id="toBot">🤖 Give to bot</button>
+      <button class="ghost" id="toClosed">✔ Close</button>
     </div>
     <div id="msgs"></div>
     <div id="replybar">
@@ -124,6 +155,11 @@ h3{font-size:14px;margin:14px 12px 4px;color:var(--mut);font-weight:600}
   <div id="bookings" class="pane bookings hide"></div>
   <div id="settings" class="pane hide"></div>
 </main>
+<nav id="tabs">
+  <button data-tab="chats" class="on"><span class="ic">💬</span>Chats</button>
+  <button data-tab="bookings"><span class="ic">📅</span>Bookings</button>
+  <button data-tab="settings"><span class="ic">⚙️</span>Settings</button>
+</nav>
 </div>
 <div id="toast"></div>
 
@@ -141,9 +177,7 @@ const IST = { timeZone:"Asia/Kolkata" };
 const fmtT = (s)=> new Intl.DateTimeFormat("en-IN",{...IST,hour:"numeric",minute:"2-digit",hour12:true}).format(new Date(s));
 const fmtDayFull = (s)=> new Intl.DateTimeFormat("en-IN",{...IST,weekday:"short",day:"numeric",month:"long"}).format(new Date(s));
 const istKey = (s)=> new Intl.DateTimeFormat("en-CA",IST).format(new Date(s));
-function listTime(s){ // WhatsApp-style: time if today, else short date
-  return istKey(s)===istKey(Date.now()) ? fmtT(s) : new Intl.DateTimeFormat("en-IN",{...IST,day:"numeric",month:"short"}).format(new Date(s));
-}
+function listTime(s){ return istKey(s)===istKey(Date.now()) ? fmtT(s) : new Intl.DateTimeFormat("en-IN",{...IST,day:"numeric",month:"short"}).format(new Date(s)); }
 const esc = (s)=> (s??"").replace(/[&<>"]/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const initials = (n)=> (n||"").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase() || "•";
 const statLabel = (s)=> s==="needs_human"?"👋 Needs reply":s==="human"?"🧑 Staff":s==="closed"?"Closed":"🤖 Bot";
@@ -154,6 +188,7 @@ $("loginBtn").onclick = async () => {
   const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("pass").value });
   if (error) $("loginErr").textContent = error.message;
 };
+$("pass").addEventListener("keydown", (e)=>{ if(e.key==="Enter") $("loginBtn").click(); });
 sb.auth.onAuthStateChange((_e, session) => {
   const was = !!me; me = session?.user ?? null;
   $("login").classList.toggle("hide", !!me);
@@ -170,7 +205,10 @@ function showTab(tab){
   document.querySelectorAll("#tabs button").forEach((b)=>b.classList.toggle("on", b.dataset.tab===tab));
   $("tabs").classList.remove("hide");
   $("backBtn").style.display = "none";
-  $("hAv").textContent = "KC"; $("hTitle").textContent = "KC Clinic";
+  $("hAv").innerHTML = '<img src="icon-192.png" alt="">';
+  $("hTitle").textContent = "KC Clinic";
+  $("hSub").textContent = tab==="chats" ? "Staff inbox" : tab==="bookings" ? "Appointments" : "Preferences";
+  $("hSub").style.display = "block";
   if (tab==="chats") loadChats();
   if (tab==="bookings") loadBookings();
   if (tab==="settings") loadSettings();
@@ -181,7 +219,6 @@ async function loadChats(){
     .select("id,status,unread_count,updated_at,last_patient_msg_at,patients(name,wa_phone)")
     .order("updated_at",{ascending:false}).limit(100);
   if (error){ toast(error.message); return; }
-  // one lightweight query for last-message previews
   const { data: recent } = await sb.from("messages")
     .select("conversation_id,body,type,direction,created_at").order("created_at",{ascending:false}).limit(400);
   const preview = {};
@@ -201,7 +238,7 @@ async function loadChats(){
         <span class="tm">${c.last_patient_msg_at?listTime(c.last_patient_msg_at):""}</span>
         ${c.unread_count>0?`<span class="badge">${c.unread_count}</span>`:`<span class="stat ${c.status}">${statLabel(c.status)}</span>`}
       </div></div>`;
-  }).join("") || '<div class="empty">No conversations yet.</div>';
+  }).join("") || '<div class="empty">No conversations yet.<br>When a patient messages the clinic, they will appear here.</div>';
 }
 
 window.openThread = async (id) => {
@@ -214,6 +251,7 @@ window.openThread = async (id) => {
   const nm = c?.patients?.name || ("+"+(c?.patients?.wa_phone ?? ""));
   $("hAv").textContent = initials(c?.patients?.name)||"•";
   $("hTitle").textContent = nm;
+  $("hSub").textContent = "+"+(c?.patients?.wa_phone ?? "");
   $("tStatus").textContent = statLabel(c?.status); $("tStatus").className = "stat " + (c?.status ?? "");
   await sb.from("conversations").update({ unread_count: 0 }).eq("id", id);
   await renderMsgs();
@@ -286,7 +324,7 @@ $("fileInput").onchange = async () => {
   } catch (err) { toast("Network error: " + err.message); }
 };
 
-const autoGrow = () => { const t=$("replyText"); t.style.height="auto"; t.style.height=Math.min(t.scrollHeight,120)+"px"; };
+const autoGrow = () => { const t=$("replyText"); t.style.height="auto"; t.style.height=Math.min(t.scrollHeight,110)+"px"; };
 $("replyText").addEventListener("input", autoGrow);
 
 $("toBot").onclick = () => setStatus("bot");
@@ -322,9 +360,9 @@ async function loadBookings(){
   }
   html += `<h3>🚫 Blocked days</h3>
     <div class="card">
-      <div class="row"><input type="date" id="blkDate" style="max-width:170px"><input id="blkReason" placeholder="Reason (optional)"><button class="act" onclick="blockDay()">Block</button></div>
+      <div class="row"><input type="date" id="blkDate" style="max-width:170px"><input id="blkReason" placeholder="Reason (optional)"><button class="act" style="padding:11px 14px" onclick="blockDay()">Block</button></div>
       ${(blocked??[]).map((b)=>`<div class="row" style="margin-top:8px"><span>${b.date} ${esc(b.reason??"")}</span><button class="ghost" onclick="unblockDay('${b.date}')">Remove</button></div>`).join("")}
-    </div>`;
+    </div><div style="height:12px"></div>`;
   $("bookings").innerHTML = html;
 }
 window.cancelAppt = async (id) => {
@@ -346,9 +384,9 @@ async function loadSettings(){
       <b>🔔 Notifications</b>
       <p class="mut" style="margin:6px 0">Get an alert on this device for every new message and booking. On iPhone, add this app to the Home Screen first, then open it from the icon.</p>
       <p class="mut">Status: ${perm}</p>
-      <button class="act" id="pushBtn">Enable on this device</button>
+      <button class="act" id="pushBtn" style="margin-top:8px;width:100%">Enable on this device</button>
     </div>
-    <div class="card"><b>Signed in as</b><p class="mut" style="margin-top:4px">${esc(me?.email??"")}</p><button class="danger" id="logoutBtn" style="margin-top:8px">Sign out</button></div>`;
+    <div class="card"><b>Signed in as</b><p class="mut" style="margin-top:4px">${esc(me?.email??"")}</p><button class="danger" id="logoutBtn" style="margin-top:10px">Sign out</button></div>`;
   $("pushBtn").onclick = enablePush;
   $("logoutBtn").onclick = async () => { await sb.auth.signOut(); location.reload(); };
 }
