@@ -13,43 +13,43 @@
 <meta name="theme-color" content="#008069">
 <style>
 :root{
-  --green:#008069;--green-d:#017561;--tick:#53bdeb;--badge:#25d366;
+  --green:#008069;--green-d:#017561;--tick:#34b7f1;--badge:#25d366;
   --chatbg:#efeae2;--in:#ffffff;--out:#d9fdd3;--tx:#111b21;--mut:#667781;
-  --line:#e9edef;--bad:#dc2626;--warn:#d97706;--frame:#d1d7db
+  --line:#e9edef;--bad:#dc2626;--warn:#d97706;--frame:#d1d7db;--navy:#16324f
 }
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overscroll-behavior:none}
-body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--frame);color:var(--tx);
-  -webkit-font-smoothing:antialiased;overflow:hidden}
-/* Phone-style frame on desktop; full-bleed on mobile */
+body{font-family:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;background:var(--frame);color:var(--tx);-webkit-font-smoothing:antialiased;overflow:hidden}
 .shell{width:100%;max-width:480px;margin:0 auto;height:100dvh;background:var(--chatbg);display:flex;flex-direction:column;position:relative;overflow:hidden}
-@media(min-width:520px){.shell{height:min(920px,100dvh);margin-top:max(0px,calc((100dvh - 920px)/2));border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.25);overflow:hidden}
+@media(min-width:520px){.shell{height:min(920px,100dvh);margin-top:max(0px,calc((100dvh - 920px)/2));border-radius:22px;box-shadow:0 12px 44px rgba(0,0,0,.28);overflow:hidden}
   body{display:flex;align-items:center;justify-content:center}}
 .hide{display:none!important}
+svg{display:block}
 
 /* header */
-header{background:var(--green);color:#fff;display:flex;align-items:center;gap:10px;
-  padding:12px 12px;padding-top:calc(12px + env(safe-area-inset-top));box-shadow:0 1px 3px rgba(0,0,0,.2);z-index:5;flex-shrink:0}
-header .av{width:36px;height:36px;border-radius:50%;background:#0a9e83;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;overflow:hidden}
+header{background:var(--green);color:#fff;display:flex;align-items:center;gap:11px;padding:11px 14px;padding-top:calc(11px + env(safe-area-inset-top));box-shadow:0 1px 4px rgba(0,0,0,.18);z-index:5;flex-shrink:0}
+header .av{width:38px;height:38px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:var(--navy);flex-shrink:0;overflow:hidden}
 header .av img{width:100%;height:100%;object-fit:cover}
-header .ttl{font-size:17px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-header .sub{font-size:12px;opacity:.85;font-weight:400}
-header button.icn{background:none;border:0;color:#fff;font-size:26px;cursor:pointer;padding:0 2px;line-height:1;width:30px}
-header button.icn:active{opacity:.6}
+header .ttl{font-size:17px;font-weight:600;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+header .sub{font-size:12.5px;opacity:.85;font-weight:400}
+header .ico-btn{background:none;border:0;color:#fff;cursor:pointer;padding:4px;display:flex}
+header .ico-btn svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+header .ico-btn:active{opacity:.55}
 
-main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
-.pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+main{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;position:relative}
+.pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:104px}
 .pane::-webkit-scrollbar{width:0}
 
-/* bottom tab bar */
-nav{display:flex;background:#fff;border-top:1px solid var(--line);flex-shrink:0;
-  padding-bottom:env(safe-area-inset-bottom);z-index:5}
-nav button{flex:1;padding:7px 4px 6px;border:0;background:none;cursor:pointer;color:var(--mut);
-  display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600}
-nav button .ic{font-size:20px;line-height:1;transition:transform .12s}
+/* floating iOS-style tab bar */
+nav{position:absolute;left:14px;right:14px;bottom:calc(10px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.72);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);
+  border:1px solid rgba(255,255,255,.65);border-radius:28px;box-shadow:0 10px 34px rgba(20,30,40,.18);
+  display:flex;padding:9px 8px 8px;gap:2px;z-index:6}
+nav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;color:#8a97a0;font-size:11px;font-weight:600;cursor:pointer;padding:2px}
+nav button svg{width:25px;height:25px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;transition:transform .16s}
 nav button.on{color:var(--green)}
-nav button.on .ic{transform:translateY(-1px)}
-nav button:active .ic{transform:scale(.88)}
+nav button.on svg{stroke-width:2.1}
+nav button:active svg{transform:scale(.84)}
 
 /* chat list */
 .crow{display:flex;gap:13px;align-items:center;padding:11px 14px;background:#fff;cursor:pointer;position:relative}
@@ -66,56 +66,58 @@ nav button:active .ic{transform:scale(.88)}
 .stat.needs_human{background:#fef3c7;color:var(--warn)}
 .stat.human{background:#d9fdd3;color:#067a53}
 .stat.closed{background:#eceff1;color:var(--mut)}
-.empty{color:var(--mut);padding:40px 20px;text-align:center;font-size:15px}
+.empty{color:var(--mut);padding:44px 24px;text-align:center;font-size:15px;line-height:1.5}
 
 /* thread */
-#thread{flex:1;display:flex;flex-direction:column;min-height:0;
-  background:var(--chatbg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ccircle cx='20' cy='20' r='1' fill='%23d9d0c4'/%3E%3C/svg%3E")}
+#thread{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--chatbg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ccircle cx='20' cy='20' r='1' fill='%23d9d0c4'/%3E%3C/svg%3E")}
 .tbar{display:flex;gap:6px;padding:6px 10px;background:#f6f6f6;border-bottom:1px solid var(--line);align-items:center;flex-shrink:0}
-#msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 7px;display:flex;flex-direction:column;gap:2px}
+#msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 8px;display:flex;flex-direction:column;gap:2px}
 #msgs::-webkit-scrollbar{width:0}
-.m{position:relative;max-width:85%;padding:6px 9px 8px;border-radius:8px;font-size:14.5px;line-height:1.35;white-space:pre-wrap;word-break:break-word;box-shadow:0 1px .5px rgba(11,20,26,.13);animation:pop .12s ease-out}
-@keyframes pop{from{transform:scale(.96);opacity:.4}to{transform:scale(1);opacity:1}}
-.m.in{background:var(--in);align-self:flex-start;border-top-left-radius:0}
-.m.out{background:var(--out);align-self:flex-end;border-top-right-radius:0}
-.m img{max-width:100%;border-radius:6px;display:block;margin-bottom:3px}
-.m .meta{float:right;margin:6px 0 -2px 8px;font-size:11px;color:var(--mut);white-space:nowrap}
+.m{position:relative;max-width:85%;padding:6px 9px 8px;border-radius:9px;font-size:14.6px;line-height:1.36;white-space:pre-wrap;word-break:break-word;box-shadow:0 1px .6px rgba(11,20,26,.13);animation:pop .13s ease-out}
+@keyframes pop{from{transform:translateY(4px) scale(.98);opacity:.3}to{transform:none;opacity:1}}
+.m.in{background:var(--in);align-self:flex-start;border-top-left-radius:1px}
+.m.out{background:var(--out);align-self:flex-end;border-top-right-radius:1px}
+.m img{max-width:100%;border-radius:7px;display:block;margin-bottom:3px}
+.m .meta{float:right;margin:6px 0 -2px 9px;font-size:11px;color:var(--mut);white-space:nowrap;display:inline-flex;align-items:center;gap:3px}
 .m .tick.read{color:var(--tick)}
-.daysep{align-self:center;background:#fff;color:var(--mut);font-size:12.5px;padding:5px 12px;border-radius:8px;margin:8px 0;box-shadow:0 1px .5px rgba(11,20,26,.13)}
+.m .meta .fail{color:var(--bad);font-weight:600}
+.sending{display:inline-block;width:10px;height:10px;border:1.6px solid rgba(0,0,0,.28);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.daysep{align-self:center;background:#fff;color:var(--mut);font-size:12.5px;padding:5px 12px;border-radius:9px;margin:8px 0;box-shadow:0 1px .6px rgba(11,20,26,.13)}
 
 /* reply bar */
-#replybar{display:flex;gap:7px;align-items:flex-end;padding:7px 8px;background:#f0f2f5;flex-shrink:0;
-  padding-bottom:calc(7px + env(safe-area-inset-bottom))}
-#replybar .inwrap{flex:1;background:#fff;border-radius:22px;display:flex;align-items:center;padding:2px 4px 2px 8px;box-shadow:0 1px .5px rgba(11,20,26,.13)}
+#replybar{display:flex;gap:8px;align-items:flex-end;padding:8px 9px;background:#f0f2f5;flex-shrink:0;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+#replybar .inwrap{flex:1;background:#fff;border-radius:22px;display:flex;align-items:center;padding:2px 6px 2px 10px;box-shadow:0 1px .6px rgba(11,20,26,.13)}
 #replybar textarea{flex:1;resize:none;border:0;outline:none;font-size:16px;font-family:inherit;padding:9px 4px;max-height:110px;background:transparent;line-height:1.3}
-.attach{background:none;border:0;color:var(--mut);font-size:22px;cursor:pointer;padding:2px 4px}
+.attach{background:none;border:0;color:var(--mut);cursor:pointer;padding:4px;display:flex}
+.attach svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .attach:active{opacity:.5}
-.circ{width:48px;height:48px;border-radius:50%;background:var(--green);color:#fff;border:0;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.circ:active{background:var(--green-d);transform:scale(.94)}
-.circ:disabled{opacity:.6}
+.circ{width:48px;height:48px;border-radius:50%;background:var(--green);border:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,128,105,.35)}
+.circ svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.circ:active{background:var(--green-d);transform:scale(.93)}
 
 /* login */
-#login{max-width:480px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;justify-content:center;padding:0 26px;gap:13px;text-align:center;background:var(--chatbg)}
-@media(min-width:520px){#login{height:min(920px,100dvh);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.25)}}
-#login .logo{width:96px;height:96px;margin:0 auto 6px;border-radius:22px;display:block;box-shadow:0 4px 14px rgba(0,0,0,.18)}
-#login h2{color:var(--green)}
-#login input{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:12px;font-size:16px}
+#login{max-width:480px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;justify-content:center;padding:0 28px;gap:13px;text-align:center;background:var(--chatbg)}
+@media(min-width:520px){#login{height:min(920px,100dvh);border-radius:22px;box-shadow:0 12px 44px rgba(0,0,0,.28)}}
+#login .logo{width:100px;height:100px;margin:0 auto 8px;border-radius:24px;display:block;box-shadow:0 6px 18px rgba(22,50,79,.28)}
+#login h2{color:var(--navy);letter-spacing:-.3px}
+#login input{width:100%;padding:15px;border:1px solid #d1d5db;border-radius:14px;font-size:16px;background:#fff}
 #login input:focus{border-color:var(--green);outline:none}
-.act{background:var(--green);color:#fff;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:600;cursor:pointer}
+.act{background:var(--green);color:#fff;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:600;cursor:pointer}
 .act:active{background:var(--green-d)}
 
 /* bookings + settings cards */
-.card{background:#fff;border-radius:12px;margin:10px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.07)}
+.card{background:#fff;border-radius:16px;margin:10px;padding:15px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.mut{color:var(--mut);font-size:12px}
-button.ghost{background:#fff;color:var(--green);border:1px solid var(--green);border-radius:10px;padding:9px 13px;font-size:13px;cursor:pointer}
+.mut{color:var(--mut);font-size:12.5px;line-height:1.5}
+button.ghost{background:#fff;color:var(--green);border:1px solid var(--green);border-radius:11px;padding:10px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
 button.ghost:active{background:#e7f8f3}
-button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);border-radius:10px;padding:9px 13px;font-size:13px;cursor:pointer}
-.appt{border-left:4px solid var(--green);padding-left:10px}
+button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);border-radius:11px;padding:10px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
+.appt{border-left:4px solid var(--green);padding-left:11px}
 .appt.cancelled{border-color:#d1d5db;opacity:.55}
-h3{font-size:13px;margin:16px 14px 6px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-.bookings input{padding:11px;border:1px solid #d1d5db;border-radius:9px;font-size:16px}
-#toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:11px 18px;border-radius:22px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88vw;z-index:20;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+h3{font-size:12.5px;margin:18px 16px 6px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.bookings input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:11px;font-size:16px}
+#toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:rgba(17,17,17,.94);color:#fff;padding:11px 18px;border-radius:22px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88vw;z-index:20;box-shadow:0 6px 20px rgba(0,0,0,.35)}
 </style>
 </head>
 <body>
@@ -131,7 +133,7 @@ h3{font-size:13px;margin:16px 14px 6px;color:var(--mut);font-weight:600;text-tra
 
 <div id="app" class="hide shell">
 <header>
-  <button class="icn" id="backBtn" style="display:none">‹</button>
+  <button class="ico-btn" id="backBtn" style="display:none"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
   <div class="av" id="hAv"><img src="logo.svg" alt=""></div>
   <div style="flex:1;min-width:0"><div class="ttl" id="hTitle">KC Clinic</div><div class="sub" id="hSub">Staff inbox</div></div>
 </header>
@@ -141,39 +143,32 @@ h3{font-size:13px;margin:16px 14px 6px;color:var(--mut);font-weight:600;text-tra
     <div class="tbar">
       <span id="tStatus" class="stat"></span>
       <span style="flex:1"></span>
-      <button class="ghost" id="toBot">🤖 Give to bot</button>
-      <button class="ghost" id="toClosed">✔ Close</button>
+      <button class="ghost" id="toBot">Give to bot</button>
+      <button class="ghost" id="toClosed">Close</button>
     </div>
     <div id="msgs"></div>
     <div id="replybar">
-      <button class="attach" id="attachBtn" title="Send image">📎</button>
+      <button class="attach" id="attachBtn" title="Send image"><svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
       <input type="file" id="fileInput" accept="image/*" style="display:none">
       <div class="inwrap"><textarea id="replyText" rows="1" placeholder="Message"></textarea></div>
-      <button class="circ" id="sendBtn">➤</button>
+      <button class="circ" id="sendBtn"><svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></button>
     </div>
   </div>
   <div id="bookings" class="pane bookings hide"></div>
   <div id="settings" class="pane hide"></div>
 </main>
 <nav id="tabs">
-  <button data-tab="chats" class="on"><span class="ic">💬</span>Chats</button>
-  <button data-tab="bookings"><span class="ic">📅</span>Bookings</button>
-  <button data-tab="settings"><span class="ic">⚙️</span>Settings</button>
+  <button data-tab="chats" class="on"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg><span>Chats</span></button>
+  <button data-tab="bookings"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Bookings</span></button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>Settings</span></button>
 </nav>
 </div>
 <div id="toast"></div>
 
 <script src="supabase.js"></script>
 <script>
-// Surface any load/runtime failure instead of a silently dead button.
-window.addEventListener("error", function(e){
-  var el=document.getElementById("loginErr");
-  if (el && !el.textContent) el.textContent = "App error, please reload. (" + (e.message||"") + ")";
-});
-if (!window.supabase || !window.supabase.createClient) {
-  var el0 = document.getElementById("loginErr");
-  if (el0) el0.textContent = "Could not load the app. Check your internet and reload the page.";
-}
+window.addEventListener("error", function(e){ var el=document.getElementById("loginErr"); if(el && !el.textContent) el.textContent="App error, please reload. ("+(e.message||"")+")"; });
+if (!window.supabase || !window.supabase.createClient) { var el0=document.getElementById("loginErr"); if(el0) el0.textContent="Could not load the app. Check your internet and reload."; }
 const createClient = window.supabase && window.supabase.createClient;
 const SUPABASE_URL = "https://tzjvxqdnktgmxweqovwc.supabase.co";
 const PUBLISHABLE_KEY = "sb_publishable_42opnFY4QP-KC2bCoNQSfw_OuHtBISF";
@@ -194,16 +189,13 @@ const statLabel = (s)=> s==="needs_human"?"👋 Needs reply":s==="human"?"🧑 S
 function tickHtml(s){ if(s==="read")return '<span class="tick read">✓✓</span>'; if(s==="delivered")return '<span class="tick">✓✓</span>'; return '<span class="tick">✓</span>'; }
 
 $("loginBtn").onclick = async () => {
-  $("loginErr").textContent = "";
   $("loginErr").textContent = "Signing in…";
   try {
     const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim().toLowerCase(), password: $("pass").value });
     $("loginErr").textContent = error ? ("Sign-in failed: " + error.message) : "";
-  } catch (e) {
-    $("loginErr").textContent = "Could not reach server: " + (e && e.message ? e.message : e);
-  }
+  } catch (e) { $("loginErr").textContent = "Could not reach server: " + (e && e.message ? e.message : e); }
 };
-$("pass").addEventListener("keydown", (e)=>{ if(e.key==="Enter") $("loginBtn").click(); });
+$("pass").addEventListener("keydown",(e)=>{ if(e.key==="Enter") $("loginBtn").click(); });
 sb.auth.onAuthStateChange((_e, session) => {
   const was = !!me; me = session?.user ?? null;
   $("login").classList.toggle("hide", !!me);
@@ -223,7 +215,6 @@ function showTab(tab){
   $("hAv").innerHTML = '<img src="logo.svg" alt="">';
   $("hTitle").textContent = "KC Clinic";
   $("hSub").textContent = tab==="chats" ? "Staff inbox" : tab==="bookings" ? "Appointments" : "Preferences";
-  $("hSub").style.display = "block";
   if (tab==="chats") loadChats();
   if (tab==="bookings") loadBookings();
   if (tab==="settings") loadSettings();
@@ -253,7 +244,7 @@ async function loadChats(){
         <span class="tm">${c.last_patient_msg_at?listTime(c.last_patient_msg_at):""}</span>
         ${c.unread_count>0?`<span class="badge">${c.unread_count}</span>`:`<span class="stat ${c.status}">${statLabel(c.status)}</span>`}
       </div></div>`;
-  }).join("") || '<div class="empty">No conversations yet.<br>When a patient messages the clinic, they will appear here.</div>';
+  }).join("") || '<div class="empty">No conversations yet.<br>When a patient messages the clinic on WhatsApp, they will appear here.</div>';
 }
 
 window.openThread = async (id) => {
@@ -261,7 +252,7 @@ window.openThread = async (id) => {
   ["chats","bookings","settings"].forEach((x)=>$(x).classList.add("hide"));
   $("thread").classList.remove("hide");
   $("tabs").classList.add("hide");
-  $("backBtn").style.display = "inline-block";
+  $("backBtn").style.display = "flex";
   const { data: c } = await sb.from("conversations").select("status,patients(name,wa_phone)").eq("id", id).single();
   const nm = c?.patients?.name || ("+"+(c?.patients?.wa_phone ?? ""));
   $("hAv").textContent = initials(c?.patients?.name)||"•";
@@ -303,40 +294,52 @@ async function authHeader(){
   return "Bearer " + data.session.access_token;
 }
 
+// Optimistic send: the bubble appears instantly with a spinner, then resolves.
 $("sendBtn").onclick = async () => {
   const text = $("replyText").value.trim();
   if (!text || !openConvo) return;
-  $("sendBtn").disabled = true;
+  const conv = openConvo;
+  $("replyText").value = ""; autoGrow();
+  const tmp = document.createElement("div");
+  tmp.className = "m out";
+  tmp.innerHTML = `${esc(text)}<span class="meta">${fmtT(Date.now())} <span class="sending"></span></span>`;
+  $("msgs").appendChild(tmp); $("msgs").scrollTop = $("msgs").scrollHeight;
   try {
-    const auth = await authHeader(); if (!auth) return;
+    const auth = await authHeader();
+    if (!auth) { tmp.remove(); $("replyText").value = text; return; }
     const res = await fetch(SUPABASE_URL + "/functions/v1/send-message", {
       method: "POST",
       headers: { "Content-Type":"application/json", "apikey": PUBLISHABLE_KEY, "Authorization": auth },
-      body: JSON.stringify({ conversation_id: openConvo, text }),
+      body: JSON.stringify({ conversation_id: conv, text }),
     });
-    if (res.ok) { $("replyText").value = ""; autoGrow(); renderMsgs(); }
-    else { const e = await res.json().catch(()=>({})); toast(e.error==="outside_24h_window" ? "24-hour reply window is closed — wait for the patient to message" : "Send failed: "+(e.error??res.status)); }
-  } catch (err) { toast("Network error: " + err.message); }
-  finally { $("sendBtn").disabled = false; }
+    if (res.ok) { if (openConvo === conv) renderMsgs(); }
+    else {
+      const e = await res.json().catch(()=>({}));
+      tmp.querySelector(".meta").innerHTML = '<span class="fail">not sent ⚠︎</span>';
+      toast(e.error==="outside_24h_window" ? "24-hour reply window is closed — wait for the patient to message" : "Send failed: "+(e.error??res.status));
+    }
+  } catch (err) {
+    tmp.querySelector(".meta").innerHTML = '<span class="fail">not sent ⚠︎</span>';
+    toast("Network error — check connection");
+  }
 };
 
 $("attachBtn").onclick = () => { if (openConvo) $("fileInput").click(); };
 $("fileInput").onchange = async () => {
   const f = $("fileInput").files[0]; if (!f || !openConvo) return;
-  $("fileInput").value = "";
-  toast("Sending image…");
+  $("fileInput").value = ""; const conv = openConvo;
+  const tmp = document.createElement("div");
+  tmp.className = "m out";
+  tmp.innerHTML = `📷 Photo<span class="meta">${fmtT(Date.now())} <span class="sending"></span></span>`;
+  $("msgs").appendChild(tmp); $("msgs").scrollTop = $("msgs").scrollHeight;
   try {
-    const auth = await authHeader(); if (!auth) return;
+    const auth = await authHeader(); if (!auth) { tmp.remove(); return; }
     const fd = new FormData();
-    fd.append("conversation_id", openConvo);
-    fd.append("caption", $("replyText").value.trim());
-    fd.append("file", f);
-    const res = await fetch(SUPABASE_URL + "/functions/v1/send-message", {
-      method: "POST", headers: { "apikey": PUBLISHABLE_KEY, "Authorization": auth }, body: fd,
-    });
-    if (res.ok) { $("replyText").value = ""; autoGrow(); renderMsgs(); }
-    else { const e = await res.json().catch(()=>({})); toast(e.error==="outside_24h_window" ? "24-hour reply window is closed" : "Image send failed: "+(e.error??res.status)); }
-  } catch (err) { toast("Network error: " + err.message); }
+    fd.append("conversation_id", conv); fd.append("caption", $("replyText").value.trim()); fd.append("file", f);
+    const res = await fetch(SUPABASE_URL + "/functions/v1/send-message", { method:"POST", headers:{ "apikey":PUBLISHABLE_KEY, "Authorization":auth }, body: fd });
+    if (res.ok) { $("replyText").value=""; autoGrow(); if (openConvo===conv) renderMsgs(); }
+    else { const e=await res.json().catch(()=>({})); tmp.querySelector(".meta").innerHTML='<span class="fail">not sent ⚠︎</span>'; toast(e.error==="outside_24h_window"?"24-hour reply window is closed":"Image send failed: "+(e.error??res.status)); }
+  } catch (err) { tmp.querySelector(".meta").innerHTML='<span class="fail">not sent ⚠︎</span>'; toast("Network error — check connection"); }
 };
 
 const autoGrow = () => { const t=$("replyText"); t.style.height="auto"; t.style.height=Math.min(t.scrollHeight,110)+"px"; };
@@ -373,16 +376,15 @@ async function loadBookings(){
         ${a.note?`<div class="mut">📝 ${esc(a.note)}</div>`:""}
       </div>`).join("");
   }
-  html += `<h3>🚫 Blocked days (doctor leave / holidays)</h3>
+  html += `<h3>🚫 Blocked days (leave / holidays)</h3>
     <div class="card">
-      <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;flex-direction:column;gap:9px">
         <input type="date" id="blkDate">
         <input id="blkReason" placeholder="Reason (optional), e.g. On leave">
         <button class="act" onclick="blockDay()">Block this day</button>
       </div>
-      ${(blocked??[]).length ? `<div style="height:10px"></div>` : ""}
-      ${(blocked??[]).map((b)=>`<div class="row" style="margin-top:8px;border-top:1px solid var(--line);padding-top:8px"><span>${b.date}${b.reason?" · "+esc(b.reason):""}</span><button class="ghost" onclick="unblockDay('${b.date}')">Remove</button></div>`).join("")}
-    </div><div style="height:16px"></div>`;
+      ${(blocked??[]).map((b)=>`<div class="row" style="margin-top:9px;border-top:1px solid var(--line);padding-top:9px"><span>${b.date}${b.reason?" · "+esc(b.reason):""}</span><button class="ghost" onclick="unblockDay('${b.date}')">Remove</button></div>`).join("")}
+    </div>`;
   $("bookings").innerHTML = html;
 }
 window.cancelAppt = async (id) => {
@@ -397,17 +399,26 @@ window.blockDay = async () => {
 };
 window.unblockDay = async (date) => { await sb.from("blocked_dates").delete().eq("date", date); loadBookings(); };
 
+async function currentPushSub(){
+  try { const reg = await navigator.serviceWorker.getRegistration(); if (!reg?.pushManager) return null; return await reg.pushManager.getSubscription(); }
+  catch { return null; }
+}
 async function loadSettings(){
+  const sub = await currentPushSub();
   const perm = ("Notification" in window) ? Notification.permission : "unsupported";
-  $("settings").innerHTML = `
-    <div class="card">
-      <b>🔔 Notifications</b>
-      <p class="mut" style="margin:6px 0">Get an alert on this device for every new message and booking. On iPhone, add this app to the Home Screen first, then open it from the icon.</p>
-      <p class="mut">Status: ${perm}</p>
-      <button class="act" id="pushBtn" style="margin-top:8px;width:100%">Enable on this device</button>
-    </div>
-    <div class="card"><b>Signed in as</b><p class="mut" style="margin-top:4px">${esc(me?.email??"")}</p><button class="danger" id="logoutBtn" style="margin-top:10px">Sign out</button></div>`;
-  $("pushBtn").onclick = enablePush;
+  const notif = sub
+    ? `<div class="card"><b>🔔 Notifications</b>
+         <p style="color:var(--green);font-weight:600;margin:8px 0 4px">✓ On for this device</p>
+         <p class="mut" style="margin-bottom:10px">You'll be alerted here for every new message and booking.</p>
+         <button class="ghost" id="pushOff">Turn off on this device</button></div>`
+    : `<div class="card"><b>🔔 Notifications</b>
+         <p class="mut" style="margin:6px 0 10px">Get an alert on this device for every new message and booking. On iPhone, add this app to the Home Screen first, then open it from the icon.</p>
+         ${perm==="denied"?`<p class="mut" style="color:var(--bad);margin-bottom:8px">Notifications are blocked in your device settings — allow them for this site, then tap below.</p>`:""}
+         <button class="act" id="pushBtn" style="width:100%">Enable on this device</button></div>`;
+  $("settings").innerHTML = notif +
+    `<div class="card"><b>Signed in as</b><p class="mut" style="margin-top:4px">${esc(me?.email??"")}</p>
+       <button class="danger" id="logoutBtn" style="margin-top:12px">Sign out</button></div>`;
+  if (sub) $("pushOff").onclick = disablePush; else $("pushBtn").onclick = enablePush;
   $("logoutBtn").onclick = async () => { await sb.auth.signOut(); location.reload(); };
 }
 function b64ToU8(b64){ const pad="=".repeat((4-b64.length%4)%4); const raw=atob((b64+pad).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from([...raw].map(c=>c.charCodeAt(0))); }
@@ -423,6 +434,14 @@ async function enablePush(){
     if (error) toast(error.message); else toast("✅ Notifications enabled");
     loadSettings();
   } catch (e) { toast("Push setup failed: " + e.message); }
+}
+async function disablePush(){
+  try {
+    const sub = await currentPushSub();
+    if (sub) { await sb.from("push_subscriptions").delete().eq("endpoint", sub.endpoint); await sub.unsubscribe(); }
+    toast("Notifications turned off on this device");
+    loadSettings();
+  } catch (e) { toast(e.message); }
 }
 
 function subscribeRealtime(){
