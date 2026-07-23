@@ -1,13 +1,15 @@
 {
-  "name": "KC Dada Clinic Inbox",
-  "short_name": "Clinic Inbox",
+  "name": "KC Dada Women's Clinic Staff",
+  "short_name": "KC Clinic",
+  "description": "Staff inbox for KC Dada Women's Clinic WhatsApp bookings",
   "start_url": ".",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f5f3ff",
-  "theme_color": "#7c3aed",
+  "background_color": "#efeae2",
+  "theme_color": "#008069",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
