@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512" fill="none" role="img" aria-label="Shree KC Dada Memorial Hospital — Shield of Trust (reversed)">
+  <rect width="100" height="100" rx="14" fill="#16324f"/>
+  <path d="M50 8 L84 20 V50 C84 72 69 86 50 92 C31 86 16 72 16 50 V20 Z" stroke="#faf7f2" stroke-width="4" stroke-linejoin="round"/>
+  <text x="50" y="42" text-anchor="middle" dominant-baseline="central" font-family="Georgia, 'Times New Roman', serif" font-size="25" font-weight="600" fill="#faf7f2">KC</text>
+  <path d="M50 58 V72 M43 65 H57" stroke="#e2c878" stroke-width="3" stroke-linecap="round"/>
+</svg>

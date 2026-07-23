@@ -120,7 +120,7 @@ h3{font-size:13px;margin:16px 14px 6px;color:var(--mut);font-weight:600;text-tra
 </head>
 <body>
 <div id="login">
-  <img class="logo" src="icon-192.png" alt="KC">
+  <img class="logo" src="logo.svg" alt="KC Dada Women's Clinic">
   <h2 style="margin-bottom:0">KC Dada Women's Clinic</h2>
   <p class="mut">Staff sign in</p>
   <input id="email" type="email" placeholder="Email" autocomplete="username" autocapitalize="none">
@@ -133,7 +133,7 @@ h3{font-size:13px;margin:16px 14px 6px;color:var(--mut);font-weight:600;text-tra
 <div id="app" class="hide shell">
 <header>
   <button class="icn" id="backBtn" style="display:none">‹</button>
-  <div class="av" id="hAv"><img src="icon-192.png" alt=""></div>
+  <div class="av" id="hAv"><img src="logo.svg" alt=""></div>
   <div style="flex:1;min-width:0"><div class="ttl" id="hTitle">KC Clinic</div><div class="sub" id="hSub">Staff inbox</div></div>
 </header>
 <main>
@@ -226,7 +226,7 @@ function showTab(tab){
   document.querySelectorAll("#tabs button").forEach((b)=>b.classList.toggle("on", b.dataset.tab===tab));
   $("tabs").classList.remove("hide");
   $("backBtn").style.display = "none";
-  $("hAv").innerHTML = '<img src="icon-192.png" alt="">';
+  $("hAv").innerHTML = '<img src="logo.svg" alt="">';
   $("hTitle").textContent = "KC Clinic";
   $("hSub").textContent = tab==="chats" ? "Staff inbox" : tab==="bookings" ? "Appointments" : "Preferences";
   $("hSub").style.display = "block";
@@ -379,11 +379,16 @@ async function loadBookings(){
         ${a.note?`<div class="mut">📝 ${esc(a.note)}</div>`:""}
       </div>`).join("");
   }
-  html += `<h3>🚫 Blocked days</h3>
+  html += `<h3>🚫 Blocked days (doctor leave / holidays)</h3>
     <div class="card">
-      <div class="row"><input type="date" id="blkDate" style="max-width:170px"><input id="blkReason" placeholder="Reason (optional)"><button class="act" style="padding:11px 14px" onclick="blockDay()">Block</button></div>
-      ${(blocked??[]).map((b)=>`<div class="row" style="margin-top:8px"><span>${b.date} ${esc(b.reason??"")}</span><button class="ghost" onclick="unblockDay('${b.date}')">Remove</button></div>`).join("")}
-    </div><div style="height:12px"></div>`;
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <input type="date" id="blkDate">
+        <input id="blkReason" placeholder="Reason (optional), e.g. On leave">
+        <button class="act" onclick="blockDay()">Block this day</button>
+      </div>
+      ${(blocked??[]).length ? `<div style="height:10px"></div>` : ""}
+      ${(blocked??[]).map((b)=>`<div class="row" style="margin-top:8px;border-top:1px solid var(--line);padding-top:8px"><span>${b.date}${b.reason?" · "+esc(b.reason):""}</span><button class="ghost" onclick="unblockDay('${b.date}')">Remove</button></div>`).join("")}
+    </div><div style="height:16px"></div>`;
   $("bookings").innerHTML = html;
 }
 window.cancelAppt = async (id) => {
