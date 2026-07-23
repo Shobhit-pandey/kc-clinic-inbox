@@ -155,8 +155,26 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 #sheet .opt.plain{color:var(--tx);font-weight:500}
 /* chat / private-notes segmented toggle */
 .seg{display:flex;background:#e3e8ea;border-radius:11px;margin:8px 10px;padding:3px;flex-shrink:0}
-.seg button{flex:1;border:0;background:none;padding:8px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--mut);cursor:pointer}
+.seg button{flex:1;border:0;background:none;padding:8px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--mut);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.seg button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .seg button.on{background:#fff;color:var(--tx);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.npbtn svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round}
+/* patient profile card + vitals */
+.pcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+.pcard .pid{font-weight:700;color:var(--navy);font-size:14px;margin-bottom:8px}
+.pcard .prow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:14px;border-top:1px solid #f0f2f4}
+.pcard .prow span{color:var(--mut)}
+.pcard .prow b{text-align:right;max-width:60%}
+.note.vitals{background:#e8f3ff;border-color:#bcdcff}
+.note.vitals .nm{color:#3a6ea5}
+/* tutorial overlay */
+#tut{position:absolute;inset:0;background:#fff;z-index:50;display:none;flex-direction:column}
+#tut.open{display:flex}
+#tut header{background:var(--green)}
+#tut .tbody{flex:1;overflow-y:auto;padding:16px 16px 30px}
+#tut h4{color:var(--navy);margin:18px 0 4px;font-size:16px}
+#tut p{color:var(--tx);font-size:14px;line-height:1.55;margin-bottom:2px}
+#tut .use{color:var(--mut);font-size:13px;margin-bottom:6px}
 /* private notes timeline */
 #notes{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:#fffdf3}
 #notes::-webkit-scrollbar{width:0}
@@ -185,11 +203,11 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   <div style="flex:1;min-width:0"><div class="ttl" id="hTitle">KC Clinic</div><div class="sub" id="hSub">Staff inbox</div></div>
 </header>
 <main>
-  <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"><button class="npbtn" title="New patient" onclick="openNewPatient()">＋</button></div><div id="chatList"></div></div>
+  <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"><button class="npbtn" title="New patient" onclick="openNewPatient()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div><div id="chatList"></div></div>
   <div id="thread" class="hide">
     <div class="seg" id="threadSeg">
-      <button data-mode="chat" class="on">💬 Chat</button>
-      <button data-mode="notes">📝 Private notes</button>
+      <button data-mode="chat" class="on"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg>Chat</button>
+      <button data-mode="notes"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Notes</button>
     </div>
     <div class="tbar" id="tbar">
       <span id="tStatus" class="stat"></span>
@@ -217,6 +235,10 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   <button data-tab="settings"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>Settings</span></button>
 </nav>
 <div id="sheet"><div class="body"></div></div>
+<div id="tut">
+  <header><button class="ico-btn" onclick="closeTut()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="ttl">How to use this app</div></header>
+  <div class="tbody" id="tutBody"></div>
+</div>
 </div>
 <div id="toast"></div>
 
@@ -318,9 +340,10 @@ window.openThread = async (id) => {
   $("thread").classList.remove("hide");
   $("tabs").classList.add("hide");
   $("backBtn").style.display = "flex";
-  const { data: c } = await sb.from("conversations").select("status,patient_id,patients(name,wa_phone)").eq("id", id).single();
+  const { data: c } = await sb.from("conversations").select("status,patient_id,patients(name,wa_phone,patient_code,age,blood_group,allergies,history)").eq("id", id).single();
   const nm = c?.patients?.name || ("+"+(c?.patients?.wa_phone ?? ""));
   openPatientId = c?.patient_id ?? null;
+  openPatient = c?.patients ? { id: c.patient_id, ...c.patients } : null;
   $("hAv").className = "av";
   $("hAv").textContent = initials(c?.patients?.name)||"•";
   $("hTitle").textContent = nm;
@@ -331,7 +354,7 @@ window.openThread = async (id) => {
   await renderMsgs();
 };
 
-let openPatientId = null;
+let openPatientId = null, openPatient = null;
 
 // Chat vs Private-notes toggle inside the thread.
 let threadMode = "chat";
@@ -355,13 +378,71 @@ async function renderNotes(){
   if (!openPatientId) return;
   const pid = openPatientId;
   const { data: notes } = await sb.from("patient_notes")
-    .select("body,author,created_at").eq("patient_id", pid).order("created_at").limit(300);
+    .select("body,author,created_at,kind").eq("patient_id", pid).order("created_at",{ascending:false}).limit(300);
   if (openPatientId !== pid) return;
-  const hint = `<div class="notes-hint">🔒 Private — only clinic staff see these. The patient never does.</div>`;
-  const items = (notes??[]).map(n=>`<div class="note">${esc(n.body)}<div class="nm">${esc(n.author||"staff")} · ${fmtDayFull(n.created_at)} ${fmtT(n.created_at)}</div></div>`).join("");
-  $("notes").innerHTML = hint + (items || `<div class="notes-hint">No notes yet. Add the first one below.</div>`);
-  $("notes").scrollTop = $("notes").scrollHeight;
+  const p = openPatient || {};
+  const prof = `<div class="pcard">
+      <div class="pid">Patient ID · ${esc(p.patient_code||"—")}</div>
+      <div class="prow"><span>Age</span><b>${p.age??"—"}</b></div>
+      <div class="prow"><span>Blood group</span><b>${esc(p.blood_group||"—")}</b></div>
+      <div class="prow"><span>Allergies</span><b>${esc(p.allergies||"—")}</b></div>
+      <div class="prow"><span>Ongoing / history</span><b>${esc(p.history||"—")}</b></div>
+      <div style="display:flex;gap:8px;margin-top:11px">
+        <button class="ghost" style="flex:1" onclick="editProfile()">Edit profile</button>
+        <button class="ghost" style="flex:1" onclick="addVitals()">＋ Vitals</button>
+      </div></div>`;
+  const hint = `<div class="notes-hint">🔒 Private — only clinic staff. The patient never sees this. Newest first.</div>`;
+  const items = (notes??[]).map(n=>`<div class="note ${n.kind==="vitals"?"vitals":""}">${esc(n.body)}<div class="nm">${esc(n.author||"staff")} · ${fmtDayFull(n.created_at)} ${fmtT(n.created_at)}</div></div>`).join("");
+  $("notes").innerHTML = prof + hint + (items || `<div class="notes-hint">No notes yet. Add the first one below.</div>`);
+  $("notes").scrollTop = 0;
 }
+window.editProfile = () => {
+  const p = openPatient || {};
+  const s = $("sheet");
+  s.querySelector(".body").innerHTML =
+    `<div class="title">Patient profile · ${esc(p.patient_code||"")}</div>
+     <input id="pfName" placeholder="Name" value="${esc(p.name||"")}">
+     <input id="pfAge" placeholder="Age" inputmode="numeric" value="${p.age??""}">
+     <input id="pfBlood" placeholder="Blood group (e.g. O+)" value="${esc(p.blood_group||"")}">
+     <input id="pfAllergy" placeholder="Allergies" value="${esc(p.allergies||"")}">
+     <input id="pfHistory" placeholder="Ongoing conditions / history" value="${esc(p.history||"")}">
+     <button class="opt" id="pfSave">Save profile</button><button class="opt plain" id="pfCancel">Cancel</button>`;
+  s.querySelector("#pfCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
+  s.querySelector("#pfSave").onclick=async(e)=>{
+    e.stopPropagation();
+    const ageV = parseInt($("pfAge").value,10);
+    const upd = { name:$("pfName").value.trim()||null, age: Number.isInteger(ageV)?ageV:null,
+      blood_group:$("pfBlood").value.trim()||null, allergies:$("pfAllergy").value.trim()||null, history:$("pfHistory").value.trim()||null };
+    const { error } = await sb.from("patients").update(upd).eq("id", openPatientId);
+    if (error){ toast(error.message); return; }
+    openPatient = { ...openPatient, ...upd }; closeSheet(); renderNotes(); toast("Profile saved");
+  };
+  s.classList.add("open");
+};
+window.addVitals = () => {
+  const s = $("sheet");
+  s.querySelector(".body").innerHTML =
+    `<div class="title">Add vitals — saved to the private timeline</div>
+     <input id="vBp" placeholder="BP (e.g. 120/80)" inputmode="text">
+     <input id="vWt" placeholder="Weight (kg)" inputmode="decimal">
+     <input id="vPulse" placeholder="Pulse (bpm)" inputmode="numeric">
+     <input id="vNote" placeholder="Other (e.g. LMP, notes)">
+     <button class="opt" id="vSave">Save vitals</button><button class="opt plain" id="vCancel">Cancel</button>`;
+  s.querySelector("#vCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
+  s.querySelector("#vSave").onclick=async(e)=>{
+    e.stopPropagation();
+    const parts=[];
+    if($("vBp").value.trim()) parts.push("BP "+$("vBp").value.trim());
+    if($("vWt").value.trim()) parts.push("Wt "+$("vWt").value.trim()+"kg");
+    if($("vPulse").value.trim()) parts.push("Pulse "+$("vPulse").value.trim());
+    if($("vNote").value.trim()) parts.push($("vNote").value.trim());
+    if(!parts.length){ toast("Enter at least one value"); return; }
+    const { error } = await sb.from("patient_notes").insert({ patient_id: openPatientId, kind:"vitals", body: "🩺 "+parts.join(" · "), author: me?.email||"staff" });
+    if (error){ toast(error.message); return; }
+    closeSheet(); renderNotes(); toast("Vitals saved");
+  };
+  s.classList.add("open");
+};
 async function addNote(){
   const text = $("replyText").value.trim();
   if (!text || !openPatientId) return;
@@ -555,6 +636,8 @@ async function loadSettings(){
          ${perm==="denied"?`<p class="mut" style="color:var(--bad);margin-bottom:8px">Notifications are blocked in your device settings — allow them for this site, then tap below.</p>`:""}
          <button class="act" id="pushBtn" style="width:100%">Enable on this device</button></div>`;
   $("settings").innerHTML = notif +
+    `<div class="card"><b>📚 New here?</b><p class="mut" style="margin:6px 0 10px">A quick guide to every feature and when to use it.</p>
+       <button class="act" style="width:100%" onclick="openTutorial()">How to use this app</button></div>` +
     `<div class="card"><b>Signed in as</b><p class="mut" style="margin-top:4px">${esc(me?.email??"")}</p>
        <button class="danger" id="logoutBtn" style="margin-top:12px">Sign out</button></div>`;
   if (sub) $("pushOff").onclick = disablePush; else $("pushBtn").onclick = enablePush;
@@ -674,6 +757,24 @@ $("qrToggle").onclick = () => {
 let tsx=0, tsy=0;
 $("thread").addEventListener("touchstart",(e)=>{ const t=e.touches[0]; tsx=t.clientX; tsy=t.clientY; },{passive:true});
 $("thread").addEventListener("touchend",(e)=>{ const t=e.changedTouches[0]; if (tsx<=44 && (t.clientX-tsx)>70 && Math.abs(t.clientY-tsy)<55) showTab("chats"); },{passive:true});
+
+// --- staff tutorial ---
+const TUTORIAL = [
+  ["Chats", "Every patient WhatsApp conversation appears here, newest first. Tap one to open it. Search by name or number at the top.", "Use it as your main inbox all day."],
+  ["The bot vs you", "The 🤖 bot answers new patients automatically and books appointments. When a patient asks for a person or sends a photo, the chat is flagged 👋 Needs reply and the bot goes silent. Reply yourself, then it stays with you (🧑 Staff). 'Give to bot' hands it back; 'Close' ends it.", "Reply to any chat marked 'Needs reply' as soon as you can."],
+  ["Replying", "Type and send like WhatsApp — your message appears instantly. Use 📎 to send a photo (prescription, report) and the ⚡ button for quick canned replies. Note: WhatsApp only lets you reply within 24 hours of the patient's last message; after that they must message first.", "Send reports, confirmations, or answer questions."],
+  ["Private notes", "Inside any chat, switch to the 'Notes' tab. This is a private, staff-only record the patient never sees. Add timestamped notes and vitals (BP, weight) that build the patient's history over time. Edit the profile (age, blood group, allergies, ongoing conditions) at the top.", "Record history, vitals each visit, allergies — anything the doctor should remember."],
+  ["New patient (no message)", "Tap ＋ on Chats to add a walk-in or phone-in patient by name and number. No WhatsApp message is sent (free). You can jot notes right away. If they later message the clinic, it links to the same record.", "For patients who visit or call without messaging first."],
+  ["Bookings", "The Bookings tab shows today and the next 7 days. Tap any appointment to open that patient's chat. Tap ⋯ on a booking to Mark done, Mark no-show, or Cancel. Block a day (leave/holiday) at the bottom so the bot stops offering it.", "Check the day's schedule; block leave days in advance."],
+  ["Patient ID", "Every patient gets a permanent ID like KC-2026-0001 (shown in Private notes). Use it in paper records and receipts — it never changes even if the phone number does.", "Reference it in the clinic's physical records."],
+  ["Notifications", "In Settings, enable notifications on each staff device (on iPhone, add the app to the Home Screen first). You'll get an alert for every new message and booking, plus a morning summary of the day's appointments.", "Turn it on so you never miss a patient."],
+  ["Emergencies", "This app and WhatsApp are not for emergencies. Patients are told to CALL the clinic number for anything urgent.", "If a chat sounds urgent, call the patient."],
+];
+window.openTutorial = () => {
+  $("tutBody").innerHTML = TUTORIAL.map(([h,p,u])=>`<h4>${esc(h)}</h4><p>${esc(p)}</p><p class="use">👉 ${esc(u)}</p>`).join("");
+  $("tut").classList.add("open");
+};
+window.closeTut = () => $("tut").classList.remove("open");
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
