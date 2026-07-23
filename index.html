@@ -127,7 +127,34 @@ button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);borde
 .sumtiles .n{font-size:27px;font-weight:700;line-height:1}
 h3{font-size:12.5px;margin:18px 16px 6px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .bookings input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:11px;font-size:16px}
-#toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:rgba(17,17,17,.94);color:#fff;padding:11px 18px;border-radius:22px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88vw;z-index:20;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+/* mobile-first: never allow horizontal scroll anywhere */
+.shell,.pane,#thread,#msgs,.card{overflow-x:hidden}
+.bookings input,.searchwrap input,#replybar textarea{width:100%;max-width:100%;min-width:0}
+input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100%}
+/* chat search */
+.searchwrap{position:sticky;top:0;background:var(--chatbg);padding:9px 12px;z-index:3}
+.searchwrap input{padding:11px 14px;border:1px solid var(--line);border-radius:13px;font-size:16px;background:#fff}
+/* quick replies */
+#qrPanel{display:flex;gap:7px;overflow-x:auto;padding:9px 9px 2px;background:#f0f2f5}
+#qrPanel::-webkit-scrollbar{height:0}
+#qrPanel button{flex:0 0 auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:8px 13px;font-size:13px;color:var(--tx);cursor:pointer;white-space:nowrap}
+#qrPanel button:active{background:#e7f8f3}
+.qrtoggle{background:none;border:0;color:var(--mut);cursor:pointer;padding:4px;display:flex}
+.qrtoggle svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* action sheet */
+#sheet{position:absolute;inset:0;background:rgba(0,0,0,.38);display:none;align-items:flex-end;z-index:30}
+#sheet.open{display:flex}
+#sheet .body{width:100%;background:#f2f2f7;border-radius:22px 22px 0 0;padding:10px;padding-bottom:calc(12px + env(safe-area-inset-bottom));animation:slideup .22s ease-out}
+@keyframes slideup{from{transform:translateY(100%)}to{transform:none}}
+#sheet .title{text-align:center;color:var(--mut);font-size:13px;padding:8px 8px 4px}
+#sheet .opt{width:100%;background:#fff;border:0;border-radius:13px;padding:15px;font-size:16px;margin-top:8px;cursor:pointer;color:var(--green);font-weight:600}
+#sheet .opt.danger{color:var(--bad)}
+#sheet .opt.plain{color:var(--tx);font-weight:500}
+/* per-patient note */
+#noteBar{flex-shrink:0}
+.notechip{background:#fff6df;color:#7a5e12;border-top:1px solid #efe2b6;border-bottom:1px solid #efe2b6;padding:9px 14px;font-size:13.5px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.notechip .add{color:var(--mut)}
+#toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:rgba(17,17,17,.94);color:#fff;padding:11px 18px;border-radius:22px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88vw;z-index:40;box-shadow:0 6px 20px rgba(0,0,0,.35)}
 </style>
 </head>
 <body>
@@ -148,7 +175,7 @@ h3{font-size:12.5px;margin:18px 16px 6px;color:var(--mut);font-weight:700;text-t
   <div style="flex:1;min-width:0"><div class="ttl" id="hTitle">KC Clinic</div><div class="sub" id="hSub">Staff inbox</div></div>
 </header>
 <main>
-  <div id="chats" class="pane"></div>
+  <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"></div><div id="chatList"></div></div>
   <div id="thread" class="hide">
     <div class="tbar">
       <span id="tStatus" class="stat"></span>
@@ -156,8 +183,11 @@ h3{font-size:12.5px;margin:18px 16px 6px;color:var(--mut);font-weight:700;text-t
       <button class="ghost" id="toBot">Give to bot</button>
       <button class="ghost" id="toClosed">Close</button>
     </div>
+    <div id="noteBar"></div>
     <div id="msgs"></div>
+    <div id="qrPanel" class="hide"></div>
     <div id="replybar">
+      <button class="qrtoggle" id="qrToggle" title="Quick replies"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></button>
       <button class="attach" id="attachBtn" title="Send image"><svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
       <input type="file" id="fileInput" accept="image/*" style="display:none">
       <div class="inwrap"><textarea id="replyText" rows="1" placeholder="Message"></textarea></div>
@@ -172,6 +202,7 @@ h3{font-size:12.5px;margin:18px 16px 6px;color:var(--mut);font-weight:700;text-t
   <button data-tab="bookings"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Bookings</span></button>
   <button data-tab="settings"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>Settings</span></button>
 </nav>
+<div id="sheet"><div class="body"></div></div>
 </div>
 <div id="toast"></div>
 
@@ -231,32 +262,41 @@ function showTab(tab){
   if (tab==="settings") loadSettings();
 }
 
+let allChatRows = [];
 async function loadChats(){
   const { data: convos, error } = await sb.from("conversations")
     .select("id,status,unread_count,updated_at,last_patient_msg_at,patients(name,wa_phone)")
-    .order("updated_at",{ascending:false}).limit(100);
+    .order("updated_at",{ascending:false}).limit(200);
   if (error){ toast(error.message); return; }
   const { data: recent } = await sb.from("messages")
-    .select("conversation_id,body,type,direction,created_at").order("created_at",{ascending:false}).limit(400);
+    .select("conversation_id,body,type,direction,created_at").order("created_at",{ascending:false}).limit(500);
   const preview = {};
   for (const m of (recent??[])) if (!preview[m.conversation_id]) {
     const who = m.direction==="out" ? "You: " : "";
     preview[m.conversation_id] = who + (m.type==="image" ? "📷 Photo" : (m.body||"").replace(/\n/g," "));
   }
-  $("chats").innerHTML = (convos??[]).map((c)=>{
+  allChatRows = (convos??[]).map((c)=>{
     const p = c.patients ?? {}, nm = p.name || ("+"+(p.wa_phone||""));
-    return `<div class="crow" onclick="openThread('${c.id}')">
-      <div class="av">${esc(initials(p.name)||"•")}</div>
-      <div class="mid">
-        <div class="nm">${esc(nm)}</div>
-        <div class="pv">${esc(preview[c.id]||statLabel(c.status))}</div>
-      </div>
-      <div class="rt">
-        <span class="tm">${c.last_patient_msg_at?listTime(c.last_patient_msg_at):""}</span>
-        ${c.unread_count>0?`<span class="badge">${c.unread_count}</span>`:`<span class="stat ${c.status}">${statLabel(c.status)}</span>`}
-      </div></div>`;
-  }).join("") || '<div class="empty">No conversations yet.<br>When a patient messages the clinic on WhatsApp, they will appear here.</div>';
+    return {
+      hay: (nm + " " + (p.wa_phone||"")).toLowerCase(),
+      html: `<div class="crow" onclick="openThread('${c.id}')">
+        <div class="av">${esc(initials(p.name)||"•")}</div>
+        <div class="mid"><div class="nm">${esc(nm)}</div>
+          <div class="pv">${esc(preview[c.id]||statLabel(c.status))}</div></div>
+        <div class="rt"><span class="tm">${c.last_patient_msg_at?listTime(c.last_patient_msg_at):""}</span>
+          ${c.unread_count>0?`<span class="badge">${c.unread_count}</span>`:`<span class="stat ${c.status}">${statLabel(c.status)}</span>`}
+        </div></div>`,
+    };
+  });
+  renderChatList();
 }
+function renderChatList(){
+  const q = ($("chatSearch")?.value || "").trim().toLowerCase();
+  const rows = q ? allChatRows.filter(r=>r.hay.includes(q)) : allChatRows;
+  $("chatList").innerHTML = rows.map(r=>r.html).join("") ||
+    `<div class="empty">${q ? "No matches for '"+esc(q)+"'." : "No conversations yet.<br>When a patient messages the clinic on WhatsApp, they will appear here."}</div>`;
+}
+$("chatSearch").addEventListener("input", renderChatList);
 
 window.openThread = async (id) => {
   openConvo = id;
@@ -264,15 +304,34 @@ window.openThread = async (id) => {
   $("thread").classList.remove("hide");
   $("tabs").classList.add("hide");
   $("backBtn").style.display = "flex";
-  const { data: c } = await sb.from("conversations").select("status,patients(name,wa_phone)").eq("id", id).single();
+  const { data: c } = await sb.from("conversations").select("status,patient_id,patients(name,wa_phone,staff_note)").eq("id", id).single();
   const nm = c?.patients?.name || ("+"+(c?.patients?.wa_phone ?? ""));
+  openPatientId = c?.patient_id ?? null;
+  openPatientNote = c?.patients?.staff_note ?? null;
   $("hAv").className = "av";
   $("hAv").textContent = initials(c?.patients?.name)||"•";
   $("hTitle").textContent = nm;
   $("hSub").textContent = "+"+(c?.patients?.wa_phone ?? "");
   $("tStatus").textContent = statLabel(c?.status); $("tStatus").className = "stat " + (c?.status ?? "");
+  renderNoteBar();
+  $("qrPanel").classList.add("hide");
   await sb.from("conversations").update({ unread_count: 0 }).eq("id", id);
   await renderMsgs();
+};
+
+let openPatientId = null, openPatientNote = null;
+function renderNoteBar(){
+  $("noteBar").innerHTML = openPatientNote
+    ? `<div class="notechip" onclick="editNote()">📝 <span style="flex:1">${esc(openPatientNote)}</span><span class="add">Edit</span></div>`
+    : `<div class="notechip" onclick="editNote()"><span class="add">＋ Add a private note about this patient</span></div>`;
+}
+window.editNote = async () => {
+  if (!openPatientId) return;
+  const v = prompt("Private note about this patient (allergies, history, reminders):", openPatientNote || "");
+  if (v === null) return;
+  const { error } = await sb.from("patients").update({ staff_note: v.trim() || null }).eq("id", openPatientId);
+  if (error) { toast(error.message); return; }
+  openPatientNote = v.trim() || null; renderNoteBar(); toast("Note saved");
 };
 
 async function renderMsgs(){
@@ -406,7 +465,7 @@ async function loadBookings(){
         <div class="bt">${fmtT(a.slot_start)}</div>
         <div class="bmid"><div class="bname">${esc(a.patients?.name??"?")}${a.patients?.age?" · "+a.patients.age:""}</div>
           <div class="mut">${sub}</div>${a.note?`<div class="mut">📝 ${esc(a.note)}</div>`:""}</div>
-        ${cancelled?`<span class="mut">${a.status.replace(/_/g," ")}</span>`:`<button class="bcancel" title="Cancel" onclick="event.stopPropagation();cancelAppt('${a.id}')">✕</button>`}
+        ${cancelled?`<span class="mut">${a.status.replace(/_/g," ")}</span>`:`<button class="bcancel" title="Actions" onclick="event.stopPropagation();openApptSheet('${a.id}','${esc((a.patients?.name||"Appointment")).replace(/['\\]/g,"")} · ${fmtT(a.slot_start)}')">⋯</button>`}
       </div>`;
     }).join("");
   }
@@ -491,6 +550,52 @@ function subscribeRealtime(){
     .on("postgres_changes",{event:"*",schema:"public",table:"conversations"},()=>{ if(!$("chats").classList.contains("hide"))loadChats(); })
     .subscribe();
 }
+// --- action sheet (iOS-style) ---
+function openSheet(title, actions){
+  const s = $("sheet");
+  s.querySelector(".body").innerHTML =
+    `<div class="title">${esc(title)}</div>` +
+    actions.map((a,i)=>`<button class="opt ${a.cls||""}" data-i="${i}">${a.label}</button>`).join("") +
+    `<button class="opt plain" data-i="-1">Cancel</button>`;
+  s.querySelectorAll("button").forEach((b)=> b.onclick = (ev)=>{ ev.stopPropagation(); const i=+b.dataset.i; closeSheet(); if(i>=0) actions[i].fn(); });
+  s.classList.add("open");
+}
+function closeSheet(){ $("sheet").classList.remove("open"); }
+$("sheet").onclick = (e)=>{ if (e.target.id==="sheet") closeSheet(); };
+window.openApptSheet = (id, label) => openSheet(label, [
+  { label:"✓ Mark done", fn:()=>setApptStatus(id,"completed") },
+  { label:"Mark no-show", fn:()=>setApptStatus(id,"no_show") },
+  { label:"Cancel booking", cls:"danger", fn:()=>setApptStatus(id,"cancelled_by_clinic") },
+]);
+async function setApptStatus(id, status){
+  const { error } = await sb.from("appointments").update({ status }).eq("id", id);
+  if (error) toast(error.message);
+  else { toast(status==="completed"?"Marked done":status==="no_show"?"Marked no-show":"Booking cancelled — please inform the patient"); loadBookings(); }
+}
+
+// --- quick replies ---
+const QUICK = [
+  "Please arrive 10 minutes early.",
+  "Please bring your previous reports and prescriptions.",
+  "Your appointment is confirmed. See you soon.",
+  "Sorry, the clinic is closed today.",
+  "कृपया 10 मिनट पहले आएँ।",
+  "पुरानी रिपोर्ट और पर्ची साथ लाएँ।",
+];
+$("qrToggle").onclick = () => {
+  const p = $("qrPanel");
+  if (p.classList.contains("hide")) {
+    p.innerHTML = QUICK.map((t,i)=>`<button data-q="${i}">${esc(t)}</button>`).join("");
+    p.querySelectorAll("button").forEach((b)=> b.onclick = ()=>{ $("replyText").value = QUICK[+b.dataset.q]; autoGrow(); p.classList.add("hide"); $("replyText").focus(); });
+    p.classList.remove("hide");
+  } else p.classList.add("hide");
+};
+
+// --- iOS-style swipe-from-left-edge to go back to the chat list ---
+let tsx=0, tsy=0;
+$("thread").addEventListener("touchstart",(e)=>{ const t=e.touches[0]; tsx=t.clientX; tsy=t.clientY; },{passive:true});
+$("thread").addEventListener("touchend",(e)=>{ const t=e.changedTouches[0]; if (tsx<=44 && (t.clientX-tsx)>70 && Math.abs(t.clientY-tsy)<55) showTab("chats"); },{passive:true});
+
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
