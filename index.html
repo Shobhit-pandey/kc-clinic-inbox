@@ -122,6 +122,12 @@ button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);borde
 .bcard .bmid{flex:1;min-width:0}
 .bcard .bname{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bcancel{background:none;border:0;color:var(--bad);font-size:19px;cursor:pointer;padding:4px 8px;line-height:1}
+.qrow{display:flex;align-items:center;gap:8px;margin-top:7px}
+.qbadge{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:#eef1f4;color:var(--mut)}
+.qbadge.arrived{background:#fdf1dc;color:#a2761b}
+.qbadge.consult{background:#e3f4ea;color:var(--green)}
+.qadv{border:0;border-radius:999px;padding:5px 14px;font-size:12.5px;font-weight:600;color:#fff;background:var(--navy);cursor:pointer}
+.qadv.done{background:var(--green)}
 .dayline{padding:7px 18px;color:var(--mut);font-size:13px}
 .sumtiles{display:flex;gap:14px;text-align:center}
 .sumtiles .n{font-size:27px;font-weight:700;line-height:1}
@@ -179,11 +185,23 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 /* tutorial overlay */
 #tut{position:absolute;inset:0;background:#fff;z-index:50;display:none;flex-direction:column}
 #tut.open{display:flex}
-#tut header{background:var(--green)}
-#tut .tbody{flex:1;overflow-y:auto;padding:16px 16px 30px}
-#tut h4{color:var(--navy);margin:18px 0 4px;font-size:16px}
-#tut p{color:var(--tx);font-size:14px;line-height:1.55;margin-bottom:2px}
-#tut .use{color:var(--mut);font-size:13px;margin-bottom:6px}
+#tut header{display:flex;align-items:center;justify-content:space-between;padding:max(14px,env(safe-area-inset-top)) 14px 13px 16px;background:#fff;border-bottom:1px solid var(--line)}
+#tut header .ttl{font-weight:700;color:var(--navy);font-size:16px}
+.tstage{flex:1;display:flex;overflow:hidden;touch-action:pan-y}
+.tslide{min-width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px 26px;gap:5px;animation:tslidein .28s ease}
+@keyframes tslidein{from{opacity:0;transform:translateX(var(--dir,18px))}to{opacity:1;transform:none}}
+.tillus{width:132px;height:132px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:16px;background:linear-gradient(160deg,#eaf2ff,#e6f4ec)}
+.tillus svg{width:62px;height:62px;stroke:var(--navy);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tslide h4{color:var(--navy);font-size:21px;font-weight:700;margin:0}
+.tslide p{color:var(--tx);font-size:15px;line-height:1.55;margin:0;max-width:340px}
+.tslide .use{margin-top:14px;color:var(--green);font-weight:600;font-size:14px;max-width:340px}
+.tslide .use::before{content:"When to use it";display:block;color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.tbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px calc(16px + env(safe-area-inset-bottom))}
+.tdots{display:flex;gap:6px}
+.tdots i{width:7px;height:7px;border-radius:50%;background:#d1d8de;transition:.2s}
+.tdots i.on{background:var(--navy);width:19px;border-radius:4px}
+.tback{background:none;border:0;color:var(--mut);font-size:15px;font-weight:600;cursor:pointer;padding:8px 4px;min-width:60px;text-align:left}
+.tnext{background:var(--navy);border:0;color:#fff;font-size:15px;font-weight:600;cursor:pointer;padding:10px 24px;border-radius:999px}
 /* private notes timeline */
 #notes{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:#fffdf3}
 #notes::-webkit-scrollbar{width:0}
@@ -245,8 +263,13 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 </nav>
 <div id="sheet"><div class="body"></div></div>
 <div id="tut">
-  <header><button class="ico-btn" onclick="closeTut()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="ttl">How to use this app</div></header>
-  <div class="tbody" id="tutBody"></div>
+  <header><div class="ttl">How to use this app</div><button class="ico-btn" onclick="closeTut()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></header>
+  <div class="tstage" id="tutStage"></div>
+  <div class="tbar">
+    <button class="tback" id="tutBack" onclick="tutPrev()">Skip</button>
+    <div class="tdots" id="tutDots"></div>
+    <button class="tnext" id="tutNext" onclick="tutNext()">Next</button>
+  </div>
 </div>
 </div>
 <div id="toast"></div>
@@ -286,8 +309,27 @@ sb.auth.onAuthStateChange((_e, session) => {
   const was = !!me; me = session?.user ?? null;
   $("login").classList.toggle("hide", !!me);
   $("app").classList.toggle("hide", !me);
-  if (me && !was) { showTab("chats"); subscribeRealtime(); }
+  if (me && !was) { showTab("chats"); subscribeRealtime(); handleDeepLink(); }
 });
+
+// Tapping a notification lands here (fresh open) or messages the open tab (SW).
+function routeUrl(url){
+  try {
+    const u = new URL(url, location.href);
+    const c = u.searchParams.get("c"), tab = u.searchParams.get("tab");
+    if (c) openThread(c);
+    else if (tab) showTab(tab);
+  } catch (_) {}
+}
+function handleDeepLink(){
+  const p = new URLSearchParams(location.search);
+  const c = p.get("c"), tab = p.get("tab");
+  if (c) openThread(c); else if (tab) showTab(tab);
+  if (c || tab) history.replaceState({}, "", location.pathname); // clean the address bar
+}
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", (ev) => { if (ev.data?.type === "navigate" && me) routeUrl(ev.data.url); });
+}
 
 document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => showTab(b.dataset.tab));
 $("backBtn").onclick = () => showTab("chats");
@@ -568,7 +610,7 @@ async function loadBookings(){
   const days = [...Array(8)].map((_,i)=> new Date(today.getTime()+i*86400000));
   const from = new Date(today.getTime()-86400000).toISOString();
   const { data: appts } = await sb.from("appointments")
-    .select("id,slot_start,status,new_or_followup,note,type_code,patient_id,appointment_types(name_en),patients(name,age,wa_phone)")
+    .select("id,slot_start,status,new_or_followup,note,type_code,patient_id,arrived_at,consult_at,appointment_types(name_en),patients(name,age,wa_phone)")
     .gte("slot_start", from).order("slot_start");
   const { data: blocked } = await sb.from("blocked_dates").select("date,reason").order("date");
   const byDay = {};
@@ -592,10 +634,23 @@ async function loadBookings(){
     html += list.map((a)=>{
       const cancelled = a.status!=="booked";
       const sub = `${esc(a.appointment_types?.name_en ?? a.type_code)} · ${a.new_or_followup==="new"?"First visit":"Follow-up"}`;
+      const isToday = key===todayKey;
+      // Today + still booked: show the live queue state and a one-tap advance.
+      let queue = "";
+      if (isToday && !cancelled) {
+        const vs = a.consult_at ? "consult" : a.arrived_at ? "arrived" : "waiting";
+        const badge = vs==="consult" ? `<span class="qbadge consult">In consult</span>`
+                    : vs==="arrived" ? `<span class="qbadge arrived">Arrived</span>`
+                    : `<span class="qbadge">Waiting</span>`;
+        const adv = vs==="waiting" ? `<button class="qadv" onclick="event.stopPropagation();advanceVisit('${a.id}','arrived')">Arrived</button>`
+                  : vs==="arrived" ? `<button class="qadv" onclick="event.stopPropagation();advanceVisit('${a.id}','consult')">Start</button>`
+                  : `<button class="qadv done" onclick="event.stopPropagation();advanceVisit('${a.id}','done')">Done</button>`;
+        queue = `<div class="qrow">${badge}${adv}</div>`;
+      }
       return `<div class="bcard ${cancelled?"cancelled":""}" onclick="openPatientChat('${a.patient_id}')">
         <div class="bt">${fmtT(a.slot_start)}</div>
         <div class="bmid"><div class="bname">${esc(a.patients?.name??"?")}${a.patients?.age?" · "+a.patients.age:""}</div>
-          <div class="mut">${sub}</div>${a.note?`<div class="mut">📝 ${esc(a.note)}</div>`:""}</div>
+          <div class="mut">${sub}</div>${a.note?`<div class="mut">📝 ${esc(a.note)}</div>`:""}${queue}</div>
         ${cancelled?`<span class="mut">${a.status.replace(/_/g," ")}</span>`:`<button class="bcancel" title="Actions" onclick="event.stopPropagation();openApptSheet('${a.id}','${esc((a.patients?.name||"Appointment")).replace(/['\\]/g,"")} · ${fmtT(a.slot_start)}')">⋯</button>`}
       </div>`;
     }).join("");
@@ -709,15 +764,69 @@ function openSheet(title, actions){
 function closeSheet(){ $("sheet").classList.remove("open"); }
 $("sheet").onclick = (e)=>{ if (e.target.id==="sheet") closeSheet(); };
 window.openApptSheet = (id, label) => openSheet(label, [
-  { label:"✓ Mark done", fn:()=>setApptStatus(id,"completed") },
+  { label:"Mark done", fn:()=>setApptStatus(id,"completed") },
+  { label:"Move to another time", fn:()=>moveAppt(id) },
   { label:"Mark no-show", fn:()=>setApptStatus(id,"no_show") },
   { label:"Cancel booking", cls:"danger", fn:()=>setApptStatus(id,"cancelled_by_clinic") },
 ]);
 async function setApptStatus(id, status){
   const { error } = await sb.from("appointments").update({ status }).eq("id", id);
-  if (error) toast(error.message);
-  else { toast(status==="completed"?"Marked done":status==="no_show"?"Marked no-show":"Booking cancelled — please inform the patient"); loadBookings(); }
+  if (error) { toast(error.message); return; }
+  toast(status==="completed"?"Marked done":status==="no_show"?"Marked no-show":"Booking cancelled — please inform the patient");
+  await loadBookings();
+  if (status==="completed") offerFollowUp(id); // recurring-visit clinics: prompt a next visit
 }
+
+// Reschedule: keep the same row, just pick a new free slot.
+window.moveAppt = async (id) => {
+  const { data: ap } = await sb.from("appointments").select("type_code,slot_start,patients(name)").eq("id",id).single();
+  if(!ap){ toast("Appointment not found"); return; }
+  const todayIso = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata"}).format(new Date());
+  const s=$("sheet");
+  s.querySelector(".body").innerHTML =
+    `<div class="title">Move appointment</div>
+     <p class="mut" style="margin:2px 0 4px">${esc(ap.patients?.name||"Patient")} · currently ${fmtDayFull(ap.slot_start)}, ${fmtT(ap.slot_start)}</p>
+     <label class="fld">New date</label><input type="date" id="mvDate" min="${todayIso}">
+     <label class="fld">New time</label><select id="mvTime"><option value="">Pick a date first</option></select>
+     <button class="opt" id="mvSave">Move appointment</button><button class="opt plain" id="mvCancel">Cancel</button>`;
+  s.querySelector("#mvCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
+  s.querySelector("#mvDate").onchange=()=>{ const d=$("mvDate").value; if(d) fillSlotSelect("mvTime",d); };
+  s.querySelector("#mvSave").onclick=async(e)=>{
+    e.stopPropagation();
+    const slotIso=$("mvTime").value; if(!slotIso){ toast("Pick a date and time"); return; }
+    const cfg=await loadSched(); const slot=new Date(slotIso);
+    const { error } = await sb.from("appointments").update({ slot_start:slot.toISOString(), slot_end:new Date(slot.getTime()+cfg.slot_minutes*60000).toISOString() }).eq("id",id);
+    if(error){ toast(error.code==="23505"?"That slot was just taken — pick another time":error.message); return; }
+    closeSheet(); toast("Appointment moved — please inform the patient"); loadBookings();
+  };
+  s.classList.add("open");
+};
+
+// After a visit is marked done, offer to book the next one in one tap.
+window.offerFollowUp = async (id) => {
+  const { data: ap } = await sb.from("appointments").select("patient_id,patients(name,wa_phone)").eq("id",id).single();
+  if(!ap) return;
+  const name=ap.patients?.name||"", phone=ap.patients?.wa_phone||"";
+  const inDays=(n)=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata"}).format(new Date(Date.now()+n*86400000));
+  const mk=(n)=>({name,phone,type:"follow_up",dateIso:inDays(n),title:`Follow-up for ${name||"patient"}`});
+  openSheet(`Book a follow-up for ${name||"this patient"}?`, [
+    { label:"In 1 week",  fn:()=>openNewBooking(mk(7)) },
+    { label:"In 2 weeks", fn:()=>openNewBooking(mk(14)) },
+    { label:"In 4 weeks", fn:()=>openNewBooking(mk(28)) },
+    { label:"Pick a date", fn:()=>openNewBooking({name,phone,type:"follow_up",title:`Follow-up for ${name||"patient"}`}) },
+  ]);
+};
+
+// Today's queue: Waiting -> Arrived -> In consult -> Done.
+window.advanceVisit = async (id, to) => {
+  const upd = to==="arrived" ? { arrived_at:new Date().toISOString() }
+            : to==="consult" ? { consult_at:new Date().toISOString() }
+            : { status:"completed" };
+  const { error } = await sb.from("appointments").update(upd).eq("id",id);
+  if(error){ toast(error.message); return; }
+  if(to==="done"){ toast("Marked done"); await loadBookings(); offerFollowUp(id); return; }
+  toast(to==="arrived"?"Marked arrived":"Consultation started"); loadBookings();
+};
 
 // --- schedule (cached) + client-side free-slot computation (mirrors the bot's slots.ts) ---
 let SCHED = null;
@@ -742,28 +851,33 @@ async function computeFreeSlots(dateIso){
   return slots.filter(s=> s.getTime()>=startFrom && !taken.has(s.getTime()));
 }
 
-// --- staff-created booking ---
-window.openNewBooking = async () => {
+// Repopulate a time <select> with the free slots for a chosen date.
+async function fillSlotSelect(selId, dateIso){
+  const el=$(selId); if(!el) return;
+  el.innerHTML='<option value="">Loading…</option>';
+  const free=await computeFreeSlots(dateIso);
+  el.innerHTML = free.length ? free.map(x=>`<option value="${x.toISOString()}">${fmtT(x)}</option>`).join("") : `<option value="">No free slots (closed / blocked / full)</option>`;
+}
+
+// --- staff-created booking. prefill (optional): {name, phone, type, dateIso, title} ---
+window.openNewBooking = async (prefill) => {
+  prefill = prefill || {};
   const { data: types } = await sb.from("appointment_types").select("code,name_en").eq("active",true).order("sort");
   const todayIso = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata"}).format(new Date());
   const s = $("sheet");
   s.querySelector(".body").innerHTML =
-    `<div class="title">New booking (on behalf of a patient)</div>
-     <input id="nbName" placeholder="Patient name">
-     <input id="nbPhone" placeholder="Mobile number" inputmode="numeric">
-     <select id="nbType">${(types||[]).map(t=>`<option value="${t.code}">${esc(t.name_en)}</option>`).join("")}</select>
-     <label class="fld">Date</label><input type="date" id="nbDate" min="${todayIso}">
+    `<div class="title">${esc(prefill.title || "New booking (on behalf of a patient)")}</div>
+     <input id="nbName" placeholder="Patient name" value="${esc(prefill.name||"")}">
+     <input id="nbPhone" placeholder="Mobile number" inputmode="numeric" value="${esc(prefill.phone||"")}">
+     <select id="nbType">${(types||[]).map(t=>`<option value="${t.code}" ${prefill.type===t.code?"selected":""}>${esc(t.name_en)}</option>`).join("")}</select>
+     <label class="fld">Date</label><input type="date" id="nbDate" min="${todayIso}" value="${esc(prefill.dateIso||"")}">
      <label class="fld">Time</label><select id="nbTime"><option value="">Pick a date first</option></select>
      <button class="opt" id="nbSave">Book appointment</button><button class="opt plain" id="nbCancel">Cancel</button>`;
   s.querySelector("#nbCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
-  s.querySelector("#nbDate").onchange=async()=>{
-    const d=$("nbDate").value; if(!d) return;
-    $("nbTime").innerHTML='<option value="">Loading…</option>';
-    const free=await computeFreeSlots(d);
-    $("nbTime").innerHTML = free.length ? free.map(x=>`<option value="${x.toISOString()}">${fmtT(x)}</option>`).join("") : `<option value="">No free slots (closed / blocked / full)</option>`;
-  };
+  s.querySelector("#nbDate").onchange=()=>{ const d=$("nbDate").value; if(d) fillSlotSelect("nbTime",d); };
   s.querySelector("#nbSave").onclick=(e)=>{e.stopPropagation();saveNewBooking();};
   s.classList.add("open");
+  if (prefill.dateIso) fillSlotSelect("nbTime", prefill.dateIso); // follow-up presets land on a date already
 };
 async function saveNewBooking(){
   const name=$("nbName").value.trim();
@@ -882,25 +996,55 @@ let tsx=0, tsy=0;
 $("thread").addEventListener("touchstart",(e)=>{ const t=e.touches[0]; tsx=t.clientX; tsy=t.clientY; },{passive:true});
 $("thread").addEventListener("touchend",(e)=>{ const t=e.changedTouches[0]; if (tsx<=44 && (t.clientX-tsx)>70 && Math.abs(t.clientY-tsy)<55) showTab("chats"); },{passive:true});
 
-// --- staff tutorial ---
-const TUTORIAL = [
-  ["Chats", "Every patient WhatsApp conversation appears here, newest first. Tap one to open it. Search by name or number at the top.", "Use it as your main inbox all day."],
-  ["The bot vs you", "The 🤖 bot answers new patients automatically and books appointments. When a patient asks for a person or sends a photo, the chat is flagged 👋 Needs reply and the bot goes silent. Reply yourself, then it stays with you (🧑 Staff). 'Give to bot' hands it back; 'Close' ends it.", "Reply to any chat marked 'Needs reply' as soon as you can."],
-  ["Replying", "Type and send like WhatsApp — your message appears instantly. Use 📎 to send a photo (prescription, report) and the ⚡ button for quick canned replies. Note: WhatsApp only lets you reply within 24 hours of the patient's last message; after that they must message first.", "Send reports, confirmations, or answer questions."],
-  ["Private notes", "Inside any chat, switch to the 'Notes' tab. This is a private, staff-only record the patient never sees. Add timestamped notes and vitals (BP, weight) that build the patient's history over time. Edit the profile (age, blood group, allergies, ongoing conditions) at the top.", "Record history, vitals each visit, allergies — anything the doctor should remember."],
-  ["New patient (no message)", "Tap ＋ on Chats to add a walk-in or phone-in patient by name and number. No WhatsApp message is sent (free). You can jot notes right away. If they later message the clinic, it links to the same record.", "For patients who visit or call without messaging first."],
-  ["Bookings", "The Bookings tab shows today and the next 7 days. Tap any appointment to open that patient's chat. Tap ⋯ on a booking to Mark done, Mark no-show, or Cancel. Block a day (leave/holiday) at the bottom so the bot stops offering it.", "Check the day's schedule; block leave days in advance."],
-  ["New booking (for a patient)", "On the Bookings tab tap 'New booking' to book on someone's behalf — a walk-in or a phone call. Enter their name and number, pick the type, then a date; only genuinely free times for that day appear (the same times the bot would offer). Confirm and it's booked. If the number is new, a patient record is created automatically.", "Book appointments for patients who call or walk in."],
-  ["Clinic schedule", "In Settings, 'Edit schedule' controls everything the bot offers: opening and closing time, an optional second session (say a morning block), slot length, how many days ahead patients can book, and a weekly day off. Changes apply to the bot and to staff bookings instantly.", "Update hours, add a morning session, or set a weekly off day."],
-  ["Patient ID", "Every patient gets a permanent ID like KC-2026-0001 (shown in Private notes). Use it in paper records and receipts — it never changes even if the phone number does.", "Reference it in the clinic's physical records."],
-  ["Notifications", "In Settings, enable notifications on each staff device (on iPhone, add the app to the Home Screen first). You'll get an alert for every new message and booking, plus a morning summary of the day's appointments.", "Turn it on so you never miss a patient."],
-  ["Emergencies", "This app and WhatsApp are not for emergencies. Patients are told to CALL the clinic number for anything urgent.", "If a chat sounds urgent, call the patient."],
-];
-window.openTutorial = () => {
-  $("tutBody").innerHTML = TUTORIAL.map(([h,p,u])=>`<h4>${esc(h)}</h4><p>${esc(p)}</p><p class="use">👉 ${esc(u)}</p>`).join("");
-  $("tut").classList.add("open");
+// --- staff tutorial: a swipeable, illustrated walkthrough (our own SVG art) ---
+const TIC = {
+  chats:'<svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg>',
+  bot:'<svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="3"/><line x1="12" y1="4.5" x2="12" y2="8"/><circle cx="12" cy="3.4" r="1.2"/><line x1="9" y1="13" x2="9" y2="15"/><line x1="15" y1="13" x2="15" y2="15"/><line x1="2.5" y1="12" x2="2.5" y2="16"/><line x1="21.5" y1="12" x2="21.5" y2="16"/></svg>',
+  reply:'<svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+  notes:'<svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
+  personplus:'<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19.5" y1="8" x2="19.5" y2="14"/><line x1="16.5" y1="11" x2="22.5" y2="11"/></svg>',
+  calendar:'<svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  calplus:'<svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="13" x2="12" y2="18"/><line x1="9.5" y1="15.5" x2="14.5" y2="15.5"/></svg>',
+  queue:'<svg viewBox="0 0 24 24"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg>',
+  followup:'<svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h16"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H1"/></svg>',
+  clock:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>',
+  idcard:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c0-1.7 1.3-3 3-3s3 1.3 3 3"/><line x1="14.5" y1="10" x2="18" y2="10"/><line x1="14.5" y1="14" x2="18" y2="14"/></svg>',
+  bell:'<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
+  phone:'<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg>',
 };
+const TUTORIAL = [
+  ["chats","Chats","Every patient WhatsApp conversation lands here, newest first. Tap one to open it, or search by name or number.","Your main inbox, all day."],
+  ["bot","The bot books for you","New patients are answered automatically and guided through booking. When someone asks for a person or sends a photo, the chat is flagged 'Needs reply' and the bot steps aside for you.","Jump in whenever a chat needs a human."],
+  ["reply","Replying","Type and send like WhatsApp. Use the clip to send a photo and the quick-reply button for canned answers. WhatsApp allows replies within 24 hours of the patient's last message.","Send reports, confirm details, answer questions."],
+  ["notes","Private notes","Inside any chat, switch to Notes. This is staff-only and the patient never sees it. Keep a timestamped history plus vitals like BP and weight, and edit the profile up top.","Record history, vitals and allergies for the doctor."],
+  ["personplus","Add a walk-in","Tap the plus on Chats to add someone by name and number without sending a message (free). If they message later, it links to the same record.","For patients who visit or call first."],
+  ["calendar","Bookings","See today and the next 7 days. Tap an appointment to open that chat, or the three dots to mark done, move to another time, mark no-show, or cancel.","Run the day and manage every appointment."],
+  ["queue","Today's queue","On today's appointments, tap Arrived when a patient reaches the clinic, Start when they go in, and Done when finished. Everyone sees who is waiting.","Track the waiting room at a glance."],
+  ["followup","Follow-ups","When you mark a visit done, the app offers to book the next visit in 1, 2, or 4 weeks in a single tap.","Never lose a return visit."],
+  ["calplus","Book for a patient","Tap New booking to book a phone-in or walk-in. Pick a date and only the genuinely free times appear, the same ones the bot offers.","Book on someone's behalf."],
+  ["clock","Clinic schedule","In Settings, edit opening hours, add a second session like a morning block, set slot length, and pick a weekly day off. It updates the bot instantly.","Change hours or add a day off."],
+  ["idcard","Patient ID","Every patient gets a permanent ID like KC-2026-0001, shown in Private notes. It never changes, even if the phone number does.","Use it in paper records and receipts."],
+  ["bell","Notifications","In Settings, turn on alerts for each device. On iPhone, add the app to the Home Screen first, then open it from the icon. You get every new message and booking, plus a morning summary.","Turn it on so nothing is missed."],
+  ["phone","Emergencies","This app and WhatsApp are not for emergencies. Patients are told to call the clinic for anything urgent.","If a chat sounds urgent, call the patient."],
+];
+let tutI = 0;
+window.openTutorial = () => { tutI = 0; renderTut(1); $("tut").classList.add("open"); };
 window.closeTut = () => $("tut").classList.remove("open");
+function renderTut(dir){
+  const [icon,h,p,u] = TUTORIAL[tutI];
+  const stage = $("tutStage");
+  stage.style.setProperty("--dir", (dir<0?-18:18)+"px");
+  stage.innerHTML = `<div class="tslide"><div class="tillus">${TIC[icon]||""}</div><h4>${esc(h)}</h4><p>${esc(p)}</p><p class="use">${esc(u)}</p></div>`;
+  $("tutDots").innerHTML = TUTORIAL.map((_,k)=>`<i class="${k===tutI?"on":""}"></i>`).join("");
+  $("tutBack").textContent = tutI===0 ? "Skip" : "Back";
+  $("tutNext").textContent = tutI===TUTORIAL.length-1 ? "Done" : "Next";
+}
+window.tutPrev = () => { if(tutI===0){ closeTut(); return; } tutI--; renderTut(-1); };
+window.tutNext = () => { if(tutI>=TUTORIAL.length-1){ closeTut(); return; } tutI++; renderTut(1); };
+(function(){ let x0=null; const st=$("tutStage");
+  st.addEventListener("touchstart",(e)=>{ x0=e.touches[0].clientX; },{passive:true});
+  st.addEventListener("touchend",(e)=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0; if(dx<-45) tutNext(); else if(dx>45) tutPrev(); x0=null; },{passive:true});
+})();
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
