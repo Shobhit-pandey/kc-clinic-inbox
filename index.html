@@ -180,6 +180,10 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .pcard .prow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:14px;border-top:1px solid #f0f2f4}
 .pcard .prow span{color:var(--mut)}
 .pcard .prow b{text-align:right;max-width:60%}
+.phist{display:flex;gap:8px;margin-bottom:10px}
+.phist>div{flex:1;text-align:center;background:#f5f8fb;border-radius:11px;padding:9px 4px}
+.phist>div b{display:block;color:var(--navy);font-size:16px;font-weight:700;line-height:1.2}
+.phist>div span{color:var(--mut);font-size:11px}
 .note.vitals{background:#e8f3ff;border-color:#bcdcff}
 .note.vitals .nm{color:#3a6ea5}
 /* tutorial overlay */
@@ -190,8 +194,24 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .tstage{flex:1;display:flex;overflow:hidden;touch-action:pan-y}
 .tslide{min-width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px 26px;gap:5px;animation:tslidein .28s ease}
 @keyframes tslidein{from{opacity:0;transform:translateX(var(--dir,18px))}to{opacity:1;transform:none}}
-.tillus{width:132px;height:132px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:16px;background:linear-gradient(160deg,#eaf2ff,#e6f4ec)}
-.tillus svg{width:62px;height:62px;stroke:var(--navy);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+/* annotated mini-screen mockups in the tutorial */
+.tmock{width:206px;height:250px;margin-bottom:16px;filter:drop-shadow(0 8px 22px rgba(22,50,79,.18))}
+.tmock svg{width:100%;height:100%;display:block}
+.mk-screen{fill:#fff;stroke:#e6e9ee;stroke-width:1}
+.mk-hd{fill:var(--navy)}
+.mk-title{fill:#fff;font:600 12px system-ui,sans-serif}
+.mk-row{fill:#f2f5f8}
+.mk-rowln{fill:#dfe4ea}
+.mk-accent{fill:var(--green)}
+.mk-accent-t{fill:#fff;font:700 9px system-ui,sans-serif}
+.mk-pill{fill:#fdecea}
+.mk-pill-t{fill:#c0392b;font:700 8px system-ui,sans-serif}
+.mk-id{fill:var(--navy);font:700 11px system-ui,sans-serif}
+.mk-tab{fill:#cdd4db}
+.mk-tab.on{fill:var(--navy)}
+.mk-ring{fill:none;stroke:#e0a516;stroke-width:3}
+.mk-leader{stroke:#e0a516;stroke-width:2.5;fill:none;stroke-linecap:round}
+.mk-lab{font:800 14px system-ui,sans-serif;fill:var(--navy);paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round}
 .tslide h4{color:var(--navy);font-size:21px;font-weight:700;margin:0}
 .tslide p{color:var(--tx);font-size:15px;line-height:1.55;margin:0;max-width:340px}
 .tslide .use{margin-top:14px;color:var(--green);font-weight:600;font-size:14px;max-width:340px}
@@ -428,12 +448,28 @@ document.querySelectorAll("#threadSeg button").forEach(b=> b.onclick = ()=> setT
 async function renderNotes(){
   if (!openPatientId) return;
   const pid = openPatientId;
-  const { data: notes } = await sb.from("patient_notes")
-    .select("body,author,created_at,kind").eq("patient_id", pid).order("created_at",{ascending:false}).limit(300);
+  const [{ data: notes }, { data: appts }] = await Promise.all([
+    sb.from("patient_notes").select("body,author,created_at,kind").eq("patient_id", pid).order("created_at",{ascending:false}).limit(300),
+    sb.from("appointments").select("slot_start,status,type_code,new_or_followup,appointment_types(name_en)").eq("patient_id", pid).order("slot_start",{ascending:false}),
+  ]);
   if (openPatientId !== pid) return;
   const p = openPatient || {};
+  // Visits at a glance: past completed count, last visit, next upcoming.
+  const nowMs = Date.now();
+  const done = (appts??[]).filter(a=>a.status==="completed");
+  const lastVisit = done[0]?.slot_start || null;
+  const upcoming = (appts??[]).filter(a=>a.status==="booked" && new Date(a.slot_start).getTime()>=nowMs)
+                              .sort((a,b)=>new Date(a.slot_start)-new Date(b.slot_start));
+  const nextAppt = upcoming[0]?.slot_start || null;
+  const short = (s)=> new Intl.DateTimeFormat("en-IN",{...IST,day:"numeric",month:"short"}).format(new Date(s));
+  const hist = `<div class="phist">
+      <div><b>${done.length}</b><span>Visits</span></div>
+      <div><b>${lastVisit?short(lastVisit):"—"}</b><span>Last visit</span></div>
+      <div><b>${nextAppt?short(nextAppt):"—"}</b><span>Next</span></div>
+    </div>`;
   const prof = `<div class="pcard">
       <div class="pid">Patient ID · ${esc(p.patient_code||"—")}</div>
+      ${hist}
       <div class="prow"><span>Age</span><b>${p.age??"—"}</b></div>
       <div class="prow"><span>Blood group</span><b>${esc(p.blood_group||"—")}</b></div>
       <div class="prow"><span>Allergies</span><b>${esc(p.allergies||"—")}</b></div>
@@ -996,27 +1032,68 @@ let tsx=0, tsy=0;
 $("thread").addEventListener("touchstart",(e)=>{ const t=e.touches[0]; tsx=t.clientX; tsy=t.clientY; },{passive:true});
 $("thread").addEventListener("touchend",(e)=>{ const t=e.changedTouches[0]; if (tsx<=44 && (t.clientX-tsx)>70 && Math.abs(t.clientY-tsy)<55) showTab("chats"); },{passive:true});
 
-// --- staff tutorial: a swipeable, illustrated walkthrough (our own SVG art) ---
-const TIC = {
-  chats:'<svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg>',
-  bot:'<svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="3"/><line x1="12" y1="4.5" x2="12" y2="8"/><circle cx="12" cy="3.4" r="1.2"/><line x1="9" y1="13" x2="9" y2="15"/><line x1="15" y1="13" x2="15" y2="15"/><line x1="2.5" y1="12" x2="2.5" y2="16"/><line x1="21.5" y1="12" x2="21.5" y2="16"/></svg>',
-  reply:'<svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
-  notes:'<svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
-  personplus:'<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19.5" y1="8" x2="19.5" y2="14"/><line x1="16.5" y1="11" x2="22.5" y2="11"/></svg>',
-  calendar:'<svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
-  calplus:'<svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="13" x2="12" y2="18"/><line x1="9.5" y1="15.5" x2="14.5" y2="15.5"/></svg>',
-  queue:'<svg viewBox="0 0 24 24"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg>',
-  followup:'<svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h16"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H1"/></svg>',
-  clock:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>',
-  idcard:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c0-1.7 1.3-3 3-3s3 1.3 3 3"/><line x1="14.5" y1="10" x2="18" y2="10"/><line x1="14.5" y1="14" x2="18" y2="14"/></svg>',
-  bell:'<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
-  phone:'<svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg>',
+// --- staff tutorial: swipeable walkthrough. Each slide shows an annotated
+// mini-mockup of the real screen (our own SVG), with the key control circled
+// in gold and a bold label, so staff see exactly where each feature lives. ---
+const mkR=(x,y,w,h,c,rx=6)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" class="${c}"/>`;
+const mkC=(x,y,r,c)=>`<circle cx="${x}" cy="${y}" r="${r}" class="${c}"/>`;
+const mkT=(x,y,s,c,anc)=>`<text x="${x}" y="${y}" class="${c}"${anc?` text-anchor="${anc}"`:""}>${s}</text>`;
+const mkRing=(cx,cy,rx,ry)=>`<ellipse class="mk-ring" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(-5 ${cx} ${cy})"/>`;
+const mkBtn=(x,y,w,h,cls,txt,tcls)=>mkR(x,y,w,h,cls,h/2)+mkT(x+w/2,y+h/2+3,txt,tcls||"mk-accent-t","middle");
+const mkTabs=(a)=>[70,120,170].map((x,i)=>`<rect class="mk-tab ${i===a?"on":""}" x="${x-10}" y="266" width="20" height="8" rx="4"/>`).join("");
+const mkFrame=(title,tab,body,annot)=>`<svg viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg"><rect class="mk-screen" x="8" y="6" width="224" height="288" rx="22"/><path class="mk-hd" d="M8 30 Q8 6 32 6 H208 Q232 6 232 30 V44 H8 Z"/>${mkT(20,30,title,"mk-title")}${body}<line x1="8" y1="250" x2="232" y2="250" stroke="#eef1f4" stroke-width="1"/>${mkTabs(tab)}${annot||""}</svg>`;
+const mkChatRow=(y,pill)=>mkR(20,y,200,34,"mk-row",10)+mkC(41,y+17,11,"mk-rowln")+mkR(60,y+9,92,6,"mk-rowln",3)+mkR(60,y+21,66,5,"mk-rowln",3)+(pill?mkR(166,y+10,46,14,"mk-pill",7)+mkT(189,y+20,"Reply","mk-pill-t","middle"):"");
+const MOCKS = {
+  chats: ()=> mkFrame("Chats",0, mkChatRow(58)+mkChatRow(100)+mkChatRow(142),
+    mkRing(120,75,100,19)+mkT(120,128,"Tap a chat to open","mk-lab","middle")),
+  bot: ()=> mkFrame("Chats",0, mkChatRow(58,true)+mkChatRow(100)+mkChatRow(142),
+    mkRing(189,75,34,15)+mkT(120,132,"“Needs reply” = your turn","mk-lab","middle")),
+  reply: ()=> mkFrame("Chat",-1,
+    mkR(20,58,118,26,"mk-row",12)+mkR(102,94,118,26,"mk-accent",12)+
+    mkR(20,206,164,28,"mk-row",14)+mkC(205,220,16,"mk-accent")+`<path d="M199 220 h11 M205 215 l5 5 -5 5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`+mkC(33,220,8,"mk-rowln"),
+    mkRing(118,220,106,22)+mkT(120,180,"Type and send","mk-lab","middle")),
+  notes: ()=> mkFrame("Chat",-1,
+    mkR(44,56,152,26,"mk-row",13)+mkT(84,73,"Chat","mk-pill-t","middle")+mkR(120,59,72,20,"mk-accent",10)+mkT(156,73,"Notes","mk-accent-t","middle")+
+    mkR(24,98,192,34,"mk-row",9)+mkR(24,138,192,34,"mk-row",9),
+    mkRing(156,69,44,16)+mkT(120,162,"Private, staff-only","mk-lab","middle")),
+  personplus: ()=> mkFrame("Chats",0, mkChatRow(66)+mkChatRow(108)+mkChatRow(150),
+    mkT(120,132,"Add a walk-in","mk-lab","middle")+mkC(203,27,13,"mk-accent")+`<path d="M203 21 v12 M197 27 h12" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>`+mkRing(203,27,20,19)),
+  calendar: ()=> mkFrame("Bookings",1,
+    mkR(20,58,200,40,"mk-row",10)+mkT(34,74,"5:00 PM","mk-id")+mkR(34,80,80,5,"mk-rowln",2.5)+mkC(200,72,2,"mk-rowln")+mkC(200,78,2,"mk-rowln")+mkC(200,84,2,"mk-rowln")+
+    mkR(20,108,200,40,"mk-row",10)+mkR(20,158,200,40,"mk-row",10),
+    mkRing(200,78,16,18)+mkT(120,225,"Tap ⋯ for actions","mk-lab","middle")),
+  queue: ()=> mkFrame("Bookings · Today",1,
+    mkR(20,58,200,52,"mk-row",10)+mkT(34,78,"5:00 PM · Seema","mk-id")+mkR(34,86,70,12,"mk-pill",6)+mkT(69,95,"Waiting","mk-pill-t","middle")+mkBtn(150,82,58,20,"mk-accent","Arrived")+
+    mkR(20,120,200,40,"mk-row",10),
+    mkRing(179,92,36,16)+mkT(120,200,"Arrived → Start → Done","mk-lab","middle")),
+  followup: ()=> mkFrame("Chat",-1,
+    mkR(20,52,200,26,"mk-row",10)+
+    mkR(14,110,212,130,"mk-screen",16)+mkT(120,132,"Book a follow-up?","mk-id","middle")+
+    mkBtn(34,146,172,26,"mk-row","In 1 week","mk-id")+mkBtn(34,180,172,26,"mk-accent","In 2 weeks")+mkBtn(34,214,172,26,"mk-row","In 4 weeks","mk-id"),
+    mkRing(120,193,92,18)+mkT(120,100,"One tap after “Done”","mk-lab","middle")),
+  calplus: ()=> mkFrame("Bookings",1,
+    mkBtn(112,56,108,26,"mk-accent","+ New booking")+
+    mkR(20,98,200,36,"mk-row",10)+mkR(20,142,200,36,"mk-row",10),
+    mkRing(166,69,62,18)+mkT(120,205,"Book for a patient","mk-lab","middle")),
+  clock: ()=> mkFrame("Settings",2,
+    mkR(20,58,200,80,"mk-row",12)+mkT(34,82,"Clinic schedule","mk-id")+mkR(34,92,120,5,"mk-rowln",2.5)+mkBtn(40,104,160,24,"mk-accent","Edit schedule"),
+    mkRing(120,116,88,17)+mkT(120,175,"Hours, sessions, day off","mk-lab","middle")),
+  idcard: ()=> mkFrame("Chat · Notes",-1,
+    mkR(20,58,200,64,"mk-row",12)+mkC(44,88,15,"mk-rowln")+mkT(70,84,"Seema Devi","mk-id")+mkT(70,106,"KC-2026-0001","mk-id"),
+    mkRing(112,101,58,14)+mkT(120,165,"Permanent Patient ID","mk-lab","middle")),
+  bell: ()=> mkFrame("Settings",2,
+    mkR(20,58,200,70,"mk-row",12)+mkT(34,84,"Notifications","mk-id")+mkBtn(36,98,168,28,"mk-accent","Enable on this device"),
+    mkRing(120,112,90,20)+mkT(120,170,"Turn on per device","mk-lab","middle")),
+  phone: ()=> mkFrame("Emergency",-1,
+    mkC(120,96,34,"mk-row")+mkR(80,142,80,7,"mk-rowln",3)+mkR(96,158,48,5,"mk-rowln",2.5)+mkC(120,196,26,"mk-accent")+`<path d="M112 189c0 9 6 15 15 15 1 0 2-1 2-2v-3c0-1-1-2-2-2-1 0-2 0-3-1-1 0-1 1-2 1-2-1-4-3-5-5 0-1 1-1 1-2 0-1 0-2-1-3-1-1-2-1-3-1-1 0-2 1-2 2z" fill="#fff"/>`,
+    mkRing(120,196,34,33)+mkT(120,245,"Call for emergencies","mk-lab","middle")),
 };
+const buildMock = (k)=> MOCKS[k] ? MOCKS[k]() : "";
 const TUTORIAL = [
   ["chats","Chats","Every patient WhatsApp conversation lands here, newest first. Tap one to open it, or search by name or number.","Your main inbox, all day."],
-  ["bot","The bot books for you","New patients are answered automatically and guided through booking. When someone asks for a person or sends a photo, the chat is flagged 'Needs reply' and the bot steps aside for you.","Jump in whenever a chat needs a human."],
+  ["bot","The bot books for you","New patients are answered automatically and guided through booking. When someone asks for a person or sends a photo, the chat is flagged 'Needs reply' and the bot steps aside for you. Outside clinic hours it says we're closed but still lets them book.","Jump in whenever a chat needs a human."],
   ["reply","Replying","Type and send like WhatsApp. Use the clip to send a photo and the quick-reply button for canned answers. WhatsApp allows replies within 24 hours of the patient's last message.","Send reports, confirm details, answer questions."],
-  ["notes","Private notes","Inside any chat, switch to Notes. This is staff-only and the patient never sees it. Keep a timestamped history plus vitals like BP and weight, and edit the profile up top.","Record history, vitals and allergies for the doctor."],
+  ["notes","Private notes","Inside any chat, switch to Notes. This is staff-only and the patient never sees it. Keep a timestamped history plus vitals like BP and weight, and edit the profile up top. The card also shows visits, last visit and next appointment at a glance.","Record history, vitals and allergies for the doctor."],
   ["personplus","Add a walk-in","Tap the plus on Chats to add someone by name and number without sending a message (free). If they message later, it links to the same record.","For patients who visit or call first."],
   ["calendar","Bookings","See today and the next 7 days. Tap an appointment to open that chat, or the three dots to mark done, move to another time, mark no-show, or cancel.","Run the day and manage every appointment."],
   ["queue","Today's queue","On today's appointments, tap Arrived when a patient reaches the clinic, Start when they go in, and Done when finished. Everyone sees who is waiting.","Track the waiting room at a glance."],
@@ -1034,7 +1111,7 @@ function renderTut(dir){
   const [icon,h,p,u] = TUTORIAL[tutI];
   const stage = $("tutStage");
   stage.style.setProperty("--dir", (dir<0?-18:18)+"px");
-  stage.innerHTML = `<div class="tslide"><div class="tillus">${TIC[icon]||""}</div><h4>${esc(h)}</h4><p>${esc(p)}</p><p class="use">${esc(u)}</p></div>`;
+  stage.innerHTML = `<div class="tslide"><div class="tmock">${buildMock(icon)}</div><h4>${esc(h)}</h4><p>${esc(p)}</p><p class="use">${esc(u)}</p></div>`;
   $("tutDots").innerHTML = TUTORIAL.map((_,k)=>`<i class="${k===tutI?"on":""}"></i>`).join("");
   $("tutBack").textContent = tutI===0 ? "Skip" : "Back";
   $("tutNext").textContent = tutI===TUTORIAL.length-1 ? "Done" : "Next";
