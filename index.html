@@ -757,6 +757,24 @@ window.unblockNumber = async (phone) => {
   await sb.from("blocked_numbers").delete().eq("wa_phone", phone);
   toast("Number unblocked"); loadSettings();
 };
+// --- developer / test numbers (admin) ---
+window.addDevNumber = async () => {
+  let d = ($("devNum").value || "").replace(/\D/g, ""); if (d.length === 10) d = "91" + d;
+  if (d.length < 11) { toast("Enter a valid mobile number"); return; }
+  const { error } = await sb.from("dev_numbers").upsert({ wa_phone: d, label: "manual" }, { onConflict: "wa_phone" });
+  if (error) { toast(error.message); return; }
+  toast("Added as a test number"); loadSettings();
+};
+window.removeDevNumber = async (phone) => {
+  await sb.from("dev_numbers").delete().eq("wa_phone", phone);
+  toast("Removed from test numbers"); loadSettings();
+};
+window.wipeTestData = async () => {
+  if (!confirm("Wipe ALL test data? This permanently deletes every chat, booking, and note for developer/test numbers. Real patient data is untouched.")) return;
+  const { data, error } = await sb.rpc("wipe_test_data");
+  if (error) { toast(error.message); return; }
+  toast(`Test data wiped (${data ?? 0} patient records)`); loadSettings();
+};
 
 async function loadBookings(){
   const today = new Date();
@@ -882,6 +900,12 @@ async function loadSettings(){
        <p class="mut" style="margin:2px 0 10px">Weekly day off: <b style="color:var(--ink)">${offDays}</b></p>
        <button class="act" style="width:100%" onclick="openScheduleEditor()">Edit schedule</button></div>`;
   const statsCard = await buildStatsCard();
+  const { data: devs } = await sb.from("dev_numbers").select("wa_phone,label").order("added_at",{ascending:false});
+  const devCard = `<div class="card"><b>🧪 Developer / test numbers</b>
+       <p class="mut" style="margin:6px 0 10px">These numbers work normally but are kept out of the real stats and can be wiped. Add your own phone while testing.</p>
+       <div style="display:flex;gap:8px"><input id="devNum" placeholder="Mobile number" inputmode="numeric" style="flex:1;padding:12px;border:1px solid #d1d5db;border-radius:11px;font-size:15px"><button class="act" style="width:auto;padding:12px 16px" onclick="addDevNumber()">Add</button></div>
+       ${(devs??[]).map(d=>`<div class="row" style="margin-top:9px;border-top:1px solid var(--line);padding-top:9px"><span>+${esc(d.wa_phone)}${d.label?` · ${esc(d.label)}`:""}</span><button class="ghost" onclick="removeDevNumber('${esc(d.wa_phone)}')">Remove</button></div>`).join("")||`<p class="mut" style="margin-top:8px">No developer numbers yet.</p>`}
+       <button class="danger" style="width:100%;margin-top:12px" onclick="wipeTestData()">Wipe all test data</button></div>`;
   const { data: blocked } = await sb.from("blocked_numbers").select("wa_phone,reason,blocked_at").order("blocked_at",{ascending:false});
   const blockedCard = `<div class="card"><b>🚫 Blocked numbers</b>` +
     ((blocked??[]).length
@@ -894,6 +918,7 @@ async function loadSettings(){
     statsCard +
     schedCard +
     blockedCard +
+    devCard +
     `<div class="card"><b>Signed in as</b><p class="mut" style="margin-top:4px">${esc(me?.email??"")}</p>
        <button class="danger" id="logoutBtn" style="margin-top:12px">Sign out</button></div>`;
   if (sub) $("pushOff").onclick = disablePush; else $("pushBtn").onclick = enablePush;
