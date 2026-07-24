@@ -197,6 +197,15 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .phist>div span{color:var(--mut);font-size:11px}
 .srow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:14px;border-top:1px solid #f0f2f4}
 .srow span{color:var(--mut)}
+.vhead{font-weight:700;color:var(--navy);font-size:13px;margin:16px 4px 4px}
+.vrow{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin:6px 0}
+.vrow .vd{font-weight:700;color:var(--navy);font-size:13px;min-width:50px}
+.vrow .vt{flex:1;min-width:0;color:var(--tx);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:#eef1f4;color:var(--mut);white-space:nowrap;flex-shrink:0}
+.vs.done{background:#e3f4ea;color:var(--ok)}
+.vs.miss{background:#fdecec;color:var(--bad)}
+.vs.arr{background:#fdf1dc;color:#a2761b}
+.vs.up{background:#e3e9f0;color:var(--brand)}
 .note.vitals{background:#e8f3ff;border-color:#bcdcff}
 .note.vitals .nm{color:#3a6ea5}
 /* tutorial overlay */
@@ -498,7 +507,7 @@ async function renderNotes(){
   const pid = openPatientId;
   const [{ data: notes }, { data: appts }] = await Promise.all([
     sb.from("patient_notes").select("body,author,created_at,kind").eq("patient_id", pid).order("created_at",{ascending:false}).limit(300),
-    sb.from("appointments").select("slot_start,status,type_code,new_or_followup,appointment_types(name_en)").eq("patient_id", pid).order("slot_start",{ascending:false}),
+    sb.from("appointments").select("slot_start,status,type_code,new_or_followup,arrived_at,consult_at,appointment_types(name_en)").eq("patient_id", pid).order("slot_start",{ascending:false}),
   ]);
   if (openPatientId !== pid) return;
   const p = openPatient || {};
@@ -525,12 +534,55 @@ async function renderNotes(){
       <div style="display:flex;gap:8px;margin-top:11px">
         <button class="ghost" style="flex:1" onclick="editProfile()">Edit profile</button>
         <button class="ghost" style="flex:1" onclick="addVitals()">＋ Vitals</button>
-      </div></div>`;
+      </div>
+      <button class="ghost" style="width:100%;margin-top:8px" onclick="logWalkIn()">＋ Log walk-in visit</button></div>`;
+  // Visit history: every appointment is a distinct visit (date · type · outcome),
+  // so repeat visits by the same patient are each recorded and differentiated.
+  const vchip = (a)=>{
+    if (a.status==="completed") return '<span class="vs done">Done</span>';
+    if (a.status==="no_show") return '<span class="vs miss">No-show</span>';
+    if (a.consult_at) return '<span class="vs done">In consult</span>';
+    if (a.arrived_at) return '<span class="vs arr">Arrived</span>';
+    return new Date(a.slot_start).getTime()>=nowMs ? '<span class="vs up">Upcoming</span>' : '<span class="vs">Booked</span>';
+  };
+  const visits = (appts??[]).filter(a=>a.status!=="cancelled_by_clinic" && a.status!=="cancelled_by_patient");
+  const vlist = visits.length
+    ? `<div class="vhead">Visit history · ${visits.length}</div>` + visits.map(a=>
+        `<div class="vrow"><span class="vd">${short(a.slot_start)}</span><span class="vt">${esc(a.appointment_types?.name_en ?? a.type_code)}${a.new_or_followup==="new"?" · First visit":""}</span>${vchip(a)}</div>`).join("")
+    : "";
   const hint = `<div class="notes-hint">🔒 Private — only clinic staff. The patient never sees this. Newest first.</div>`;
   const items = (notes??[]).map(n=>`<div class="note ${n.kind==="vitals"?"vitals":""}">${esc(n.body)}<div class="nm">${esc(n.author||"staff")} · ${fmtDayFull(n.created_at)} ${fmtT(n.created_at)}</div></div>`).join("");
-  $("notes").innerHTML = prof + hint + (items || `<div class="notes-hint">No notes yet. Add the first one below.</div>`);
+  $("notes").innerHTML = prof + vlist + hint + (items || `<div class="notes-hint">No notes yet. Add the first one below.</div>`);
   $("notes").scrollTop = 0;
 }
+// Log a visit for a patient who walked in without an appointment. Creates an
+// appointment at the current time (marked arrived) so it joins today's queue
+// and the visit history; staff mark Done when finished.
+window.logWalkIn = async () => {
+  if (!openPatientId) return;
+  const pid = openPatientId;
+  const { data: types } = await sb.from("appointment_types").select("code,name_en").eq("active",true).order("sort");
+  const s = $("sheet");
+  s.querySelector(".body").innerHTML =
+    `<div class="title">Log a walk-in visit now</div>
+     <p class="mut" style="margin:2px 2px 0">Records a visit at the current time — no appointment needed. It joins today's queue; mark Done when finished.</p>
+     <select id="wvType">${(types||[]).map(t=>`<option value="${t.code}">${esc(t.name_en)}</option>`).join("")}</select>
+     <button class="opt primary" id="wvSave">Log visit</button><button class="opt plain" id="wvCancel">Cancel</button>`;
+  s.querySelector("#wvCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
+  s.querySelector("#wvSave").onclick=async(e)=>{
+    e.stopPropagation();
+    const cfg = await loadSched(); const now = new Date();
+    const { count } = await sb.from("appointments").select("id",{count:"exact",head:true}).eq("patient_id",pid).eq("status","completed");
+    const { error } = await sb.from("appointments").insert({
+      patient_id: pid, type_code: $("wvType").value,
+      slot_start: now.toISOString(), slot_end: new Date(now.getTime()+cfg.slot_minutes*60000).toISOString(),
+      new_or_followup: (count||0)>0 ? "followup" : "new", status: "booked", arrived_at: now.toISOString(),
+    });
+    if (error) { toast(error.code==="23505" ? "A visit is already logged for this moment" : error.message); return; }
+    closeSheet(); toast("Walk-in visit logged — mark Done when finished"); renderNotes();
+  };
+  s.classList.add("open");
+};
 window.editProfile = () => {
   const p = openPatient || {};
   const s = $("sheet");
@@ -1287,7 +1339,7 @@ const TUTORIAL = [
   ["chats","Chats","Every patient WhatsApp conversation lands here, newest first. Tap one to open it, search by name or number, or use the filters to show only chats that need a reply or are unread.","Your main inbox, all day."],
   ["bot","The bot books for you","New patients are answered automatically and guided through booking. When someone asks for a person or sends a photo, the chat is flagged 'Needs reply' and the bot steps aside for you. Outside clinic hours it says we're closed but still lets them book.","Jump in whenever a chat needs a human."],
   ["reply","Replying","Type and send like WhatsApp. Use the clip to send a photo or a file (a prescription or report PDF), and the quick-reply button for canned answers. Tap the phone icon at the top to call the patient. WhatsApp allows replies within 24 hours of the patient's last message.","Send reports, confirm details, answer questions."],
-  ["notes","Private notes","Inside any chat, switch to Notes. This is staff-only and the patient never sees it. Keep a timestamped history plus vitals like BP and weight, and edit the profile up top. The card also shows visits, last visit and next appointment at a glance.","Record history, vitals and allergies for the doctor."],
+  ["notes","Private notes","Inside any chat, switch to Notes. This is staff-only and the patient never sees it. Keep a timestamped history plus vitals like BP and weight, and edit the profile up top. You'll see every visit listed with its date and outcome, and if a patient walks in without an appointment, tap 'Log walk-in visit' to record it.","Record history, vitals, and every visit."],
   ["personplus","Add a walk-in","Tap the plus on Chats to add someone by name and number without sending a message (free). If they message later, it links to the same record.","For patients who visit or call first."],
   ["calendar","Bookings","See today and the next 7 days. Tap an appointment to open that chat, or the three dots to mark done, move to another time, mark no-show, or cancel.","Run the day and manage every appointment."],
   ["queue","Today's queue","On today's appointments, tap Arrived when a patient reaches the clinic, Start when they go in, and Done when finished. Everyone sees who is waiting.","Track the waiting room at a glance."],
