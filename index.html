@@ -13,9 +13,13 @@
 <meta name="theme-color" content="#008069">
 <style>
 :root{
-  --green:#008069;--green-d:#017561;--tick:#34b7f1;--badge:#25d366;
-  --chatbg:#efeae2;--in:#ffffff;--out:#d9fdd3;--tx:#111b21;--mut:#667781;
-  --line:#e9edef;--bad:#dc2626;--warn:#d97706;--frame:#d1d7db;--navy:#16324f
+  /* Brand accent — change these two to re-theme the whole app. */
+  --brand:#16324f;--brand-d:#0f2438;
+  /* App accent follows the brand; success stays green. */
+  --green:var(--brand);--green-d:var(--brand-d);--ok:#0a7d55;
+  --navy:#16324f;--tick:#34b7f1;--badge:var(--brand);
+  --chatbg:#eef1f4;--in:#ffffff;--out:#e7eef7;--tx:#111b21;--mut:#667781;
+  --line:#e9edef;--bad:#dc2626;--warn:#d97706;--frame:#d1d7db
 }
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overscroll-behavior:none}
@@ -65,7 +69,7 @@ nav button:active svg{transform:scale(.84)}
 .crow .rt{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
 .crow .tm{font-size:12px;color:var(--mut)}
 .badge{background:var(--badge);color:#fff;border-radius:999px;min-width:20px;height:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
-.stat{font-size:10.5px;padding:2px 8px;border-radius:999px;background:#e7f8f3;color:var(--green);white-space:nowrap}
+.stat{font-size:10.5px;padding:2px 8px;border-radius:999px;background:#e9edf4;color:var(--green);white-space:nowrap}
 .stat.needs_human{background:#fef3c7;color:var(--warn)}
 .stat.human{background:#d9fdd3;color:#067a53}
 .stat.closed{background:#eceff1;color:var(--mut)}
@@ -94,7 +98,7 @@ nav button:active svg{transform:scale(.84)}
 .attach{background:none;border:0;color:var(--mut);cursor:pointer;padding:4px;display:flex}
 .attach svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .attach:active{opacity:.5}
-.circ{width:48px;height:48px;border-radius:50%;background:var(--green);border:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,128,105,.35)}
+.circ{width:48px;height:48px;border-radius:50%;background:var(--green);border:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(22,50,79,.32)}
 .circ svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
 .circ:active{background:var(--green-d);transform:scale(.93)}
 
@@ -113,7 +117,7 @@ nav button:active svg{transform:scale(.84)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .mut{color:var(--mut);font-size:12.5px;line-height:1.5}
 button.ghost{background:#fff;color:var(--green);border:1px solid var(--green);border-radius:11px;padding:10px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
-button.ghost:active{background:#e7f8f3}
+button.ghost:active{background:#e9edf4}
 button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);border-radius:11px;padding:10px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
 .bcard{display:flex;align-items:center;gap:12px;background:#fff;border-radius:15px;margin:8px 10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer}
 .bcard:active{background:#f5f7f8}
@@ -125,9 +129,9 @@ button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);borde
 .qrow{display:flex;align-items:center;gap:8px;margin-top:7px}
 .qbadge{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:#eef1f4;color:var(--mut)}
 .qbadge.arrived{background:#fdf1dc;color:#a2761b}
-.qbadge.consult{background:#e3f4ea;color:var(--green)}
+.qbadge.consult{background:#e3f4ea;color:var(--ok)}
 .qadv{border:0;border-radius:999px;padding:5px 14px;font-size:12.5px;font-weight:600;color:#fff;background:var(--navy);cursor:pointer}
-.qadv.done{background:var(--green)}
+.qadv.done{background:var(--ok)}
 .dayline{padding:7px 18px;color:var(--mut);font-size:13px}
 .sumtiles{display:flex;gap:14px;text-align:center}
 .sumtiles .n{font-size:27px;font-weight:700;line-height:1}
@@ -140,7 +144,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 /* chat search + new-patient */
 .searchwrap{position:sticky;top:0;background:var(--chatbg);padding:9px 12px;z-index:3;display:flex;gap:8px;align-items:center}
 .searchwrap input{flex:1;padding:11px 14px;border:1px solid var(--line);border-radius:13px;font-size:16px;background:#fff}
-.npbtn{flex-shrink:0;width:42px;height:42px;border-radius:50%;background:var(--green);color:#fff;border:0;font-size:24px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,128,105,.3)}
+.npbtn{flex-shrink:0;width:42px;height:42px;border-radius:50%;background:var(--green);color:#fff;border:0;font-size:24px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(22,50,79,.28)}
 .npbtn:active{background:var(--green-d)}
 #sheet .body input,#sheet .body select{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:12px;font-size:16px;margin-top:8px;background:#fff;-webkit-appearance:none;appearance:none}
 #sheet .body .half{display:flex;gap:8px}
@@ -156,7 +160,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 #qrPanel{display:flex;gap:7px;overflow-x:auto;padding:9px 9px 2px;background:#f0f2f5}
 #qrPanel::-webkit-scrollbar{height:0}
 #qrPanel button{flex:0 0 auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:8px 13px;font-size:13px;color:var(--tx);cursor:pointer;white-space:nowrap}
-#qrPanel button:active{background:#e7f8f3}
+#qrPanel button:active{background:#e9edf4}
 .qrtoggle{background:none;border:0;color:var(--mut);cursor:pointer;padding:4px;display:flex}
 .qrtoggle svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 /* action sheet */
@@ -195,26 +199,44 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .tslide{min-width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px 26px;gap:5px;animation:tslidein .28s ease}
 @keyframes tslidein{from{opacity:0;transform:translateX(var(--dir,18px))}to{opacity:1;transform:none}}
 /* annotated mini-screen mockups in the tutorial */
-.tmock{width:206px;height:250px;margin-bottom:16px;filter:drop-shadow(0 8px 22px rgba(22,50,79,.18))}
+.tmock{width:214px;height:268px;margin-bottom:16px;filter:drop-shadow(0 10px 26px rgba(22,50,79,.22))}
 .tmock svg{width:100%;height:100%;display:block}
-.mk-screen{fill:#fff;stroke:#e6e9ee;stroke-width:1}
-.mk-hd{fill:var(--navy)}
-.mk-title{fill:#fff;font:600 12px system-ui,sans-serif}
+.mk-screen{fill:#fff}
+.mk-hd{fill:var(--brand)}
+.mk-title{fill:#fff;font:700 11px system-ui,sans-serif}
+.mk-sub{fill:rgba(255,255,255,.72);font:400 8px system-ui,sans-serif}
+.mk-av{fill:#c6d0d8}
+.mk-nm{fill:#1f2a33;font:600 10px system-ui,sans-serif}
+.mk-pv{fill:#8a97a2;font:400 8.5px system-ui,sans-serif}
+.mk-tm{fill:#9aa6b0;font:400 7.5px system-ui,sans-serif}
+.mk-ph{fill:#9aa6b0;font:400 8.5px system-ui,sans-serif}
+.mk-statpill{fill:#fdecea}
+.mk-statpill-t{fill:#c0392b;font:700 7px system-ui,sans-serif}
+.mk-badge{fill:var(--brand)}
+.mk-badge-t{fill:#fff;font:700 8px system-ui,sans-serif}
+.mk-search{fill:#eef1f4}
 .mk-row{fill:#f2f5f8}
 .mk-rowln{fill:#dfe4ea}
-.mk-accent{fill:var(--green)}
+.mk-sheet{fill:#fff;stroke:#e6e9ee;stroke-width:1}
+.mk-in{fill:#fff;stroke:#e9edf1;stroke-width:1}
+.mk-out{fill:#e7eef7}
+.mk-comp{fill:#eef1f4}
+.mk-seg{fill:#eef1f4}
+.mk-segsel{fill:var(--brand)}
+.mk-accent{fill:var(--brand)}
 .mk-accent-t{fill:#fff;font:700 9px system-ui,sans-serif}
-.mk-pill{fill:#fdecea}
-.mk-pill-t{fill:#c0392b;font:700 8px system-ui,sans-serif}
-.mk-id{fill:var(--navy);font:700 11px system-ui,sans-serif}
-.mk-tab{fill:#cdd4db}
-.mk-tab.on{fill:var(--navy)}
+.mk-ok{fill:var(--ok)}
+.mk-id{fill:var(--brand);font:700 10px system-ui,sans-serif}
+.mk-tabico *{stroke:#b8c0c8;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mk-tabico.on *{stroke:var(--brand)}
+.mk-tablab{fill:#b8c0c8;font:600 8px system-ui,sans-serif}
+.mk-tablab.on{fill:var(--brand)}
 .mk-ring{fill:none;stroke:#e0a516;stroke-width:3}
 .mk-leader{stroke:#e0a516;stroke-width:2.5;fill:none;stroke-linecap:round}
-.mk-lab{font:800 14px system-ui,sans-serif;fill:var(--navy);paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round}
+.mk-lab{font:800 13px system-ui,sans-serif;fill:var(--brand);paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round}
 .tslide h4{color:var(--navy);font-size:21px;font-weight:700;margin:0}
 .tslide p{color:var(--tx);font-size:15px;line-height:1.55;margin:0;max-width:340px}
-.tslide .use{margin-top:14px;color:var(--green);font-weight:600;font-size:14px;max-width:340px}
+.tslide .use{margin-top:14px;color:var(--ok);font-weight:600;font-size:14px;max-width:340px}
 .tslide .use::before{content:"When to use it";display:block;color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
 .tbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px calc(16px + env(safe-area-inset-bottom))}
 .tdots{display:flex;gap:6px}
@@ -729,7 +751,7 @@ async function loadSettings(){
   const perm = ("Notification" in window) ? Notification.permission : "unsupported";
   const notif = sub
     ? `<div class="card"><b>🔔 Notifications</b>
-         <p style="color:var(--green);font-weight:600;margin:8px 0 4px">✓ On for this device</p>
+         <p style="color:var(--ok);font-weight:600;margin:8px 0 4px">✓ On for this device</p>
          <p class="mut" style="margin-bottom:10px">You'll be alerted here for every new message and booking.</p>
          <button class="ghost" id="pushOff">Turn off on this device</button></div>`
     : `<div class="card"><b>🔔 Notifications</b>
@@ -1038,55 +1060,93 @@ $("thread").addEventListener("touchend",(e)=>{ const t=e.changedTouches[0]; if (
 const mkR=(x,y,w,h,c,rx=6)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" class="${c}"/>`;
 const mkC=(x,y,r,c)=>`<circle cx="${x}" cy="${y}" r="${r}" class="${c}"/>`;
 const mkT=(x,y,s,c,anc)=>`<text x="${x}" y="${y}" class="${c}"${anc?` text-anchor="${anc}"`:""}>${s}</text>`;
-const mkRing=(cx,cy,rx,ry)=>`<ellipse class="mk-ring" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(-5 ${cx} ${cy})"/>`;
-const mkBtn=(x,y,w,h,cls,txt,tcls)=>mkR(x,y,w,h,cls,h/2)+mkT(x+w/2,y+h/2+3,txt,tcls||"mk-accent-t","middle");
-const mkTabs=(a)=>[70,120,170].map((x,i)=>`<rect class="mk-tab ${i===a?"on":""}" x="${x-10}" y="266" width="20" height="8" rx="4"/>`).join("");
-const mkFrame=(title,tab,body,annot)=>`<svg viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg"><rect class="mk-screen" x="8" y="6" width="224" height="288" rx="22"/><path class="mk-hd" d="M8 30 Q8 6 32 6 H208 Q232 6 232 30 V44 H8 Z"/>${mkT(20,30,title,"mk-title")}${body}<line x1="8" y1="250" x2="232" y2="250" stroke="#eef1f4" stroke-width="1"/>${mkTabs(tab)}${annot||""}</svg>`;
-const mkChatRow=(y,pill)=>mkR(20,y,200,34,"mk-row",10)+mkC(41,y+17,11,"mk-rowln")+mkR(60,y+9,92,6,"mk-rowln",3)+mkR(60,y+21,66,5,"mk-rowln",3)+(pill?mkR(166,y+10,46,14,"mk-pill",7)+mkT(189,y+20,"Reply","mk-pill-t","middle"):"");
+const mkRing=(cx,cy,rx,ry)=>`<ellipse class="mk-ring" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(-4 ${cx} ${cy})"/>`;
+const mkArrow=(x1,y1,x2,y2)=>{const mx=((x1+x2)/2).toFixed(0),my=(Math.min(y1,y2)-7).toFixed(0);return `<path class="mk-leader" d="M${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}" marker-end="url(#mkar)"/>`;};
+const mkBtn=(x,y,w,h,cls,txt,tcls)=>mkR(x,y,w,h,cls,h/2)+mkT(x+w/2,y+h/2+3.5,txt,tcls||"mk-accent-t","middle");
+const mkAv=(x,y)=>mkC(x,y,14,"mk-av")+mkC(x,y-4,4.5,"mk-screen")+`<path d="M${x-6} ${y+9} a6 6 0 0 1 12 0" fill="none" stroke="#fff" stroke-width="2.4"/>`;
+const mkRow=(y,o)=>{
+  const right = o.badge ? mkC(210,y+27,8,"mk-badge")+mkT(210,y+30,o.badge,"mk-badge-t","middle")
+              : o.stat ? mkR(172,y+21,48,14,"mk-statpill",7)+mkT(196,y+31,o.stat,"mk-statpill-t","middle") : "";
+  return mkAv(40,y+21)+mkT(62,y+18,o.nm,"mk-nm")+mkT(62,y+32,o.pv,"mk-pv")
+    +(o.time?mkT(220,y+15,o.time,"mk-tm","end"):"")+right
+    +`<line x1="62" y1="${y+43}" x2="222" y2="${y+43}" stroke="#eef1f4" stroke-width="1"/>`;
+};
+const mkSearch=(y,plus)=>mkR(22,y,plus?162:200,28,"mk-search",9)+mkT(34,y+18,"🔍  Search name or number","mk-ph")
+  +(plus?mkC(206,y+14,15,"mk-accent")+`<path d="M206 ${y+7} v14 M199 ${y+14} h14" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>`:"");
+const TAB_ICO=[
+  `<path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/>`,
+  `<rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/>`,
+  `<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>`,
+];
+const TAB_LAB=["Chats","Bookings","Settings"];
+const mkTabBar=(active)=>`<line x1="10" y1="248" x2="230" y2="248" stroke="#eef1f4" stroke-width="1"/>`+
+  [56,120,184].map((x,i)=>`<g class="mk-tabico ${i===active?"on":""}" transform="translate(${(x-8).toFixed(0)},254) scale(0.68)">${TAB_ICO[i]}</g>`+mkT(x,282,TAB_LAB[i],"mk-tablab "+(i===active?"on":""),"middle")).join("");
+// o: {title, sub, tab (-1 = no tab bar), back, body, annot}
+const mkFrame=(o)=>{
+  const head = o.back
+    ? `<path d="M28 27 l-7 -6 7 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
+    : `<rect x="20" y="16" width="21" height="21" rx="6" fill="#fff"/><text x="30.5" y="30" text-anchor="middle" style="fill:var(--brand);font:700 8px system-ui,sans-serif">KC</text>`;
+  const tx = o.back ? 40 : 50;
+  return `<svg viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg">`
+    +`<defs><marker id="mkar" markerWidth="7" markerHeight="7" refX="4" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#e0a516"/></marker></defs>`
+    +`<rect x="2" y="2" width="236" height="296" rx="28" fill="#d7dce2"/>`
+    +`<rect class="mk-screen" x="10" y="8" width="220" height="284" rx="20"/>`
+    +`<path class="mk-hd" d="M10 28 Q10 8 30 8 H210 Q230 8 230 28 V46 H10 Z"/>`
+    +`<rect x="102" y="8" width="36" height="6" rx="3" fill="#d7dce2"/>`
+    + head + mkT(tx,26,o.title,"mk-title") + (o.sub?mkT(tx,38,o.sub,"mk-sub"):"")
+    + o.body + (o.tab>=0?mkTabBar(o.tab):"") + (o.annot||"") + `</svg>`;
+};
 const MOCKS = {
-  chats: ()=> mkFrame("Chats",0, mkChatRow(58)+mkChatRow(100)+mkChatRow(142),
-    mkRing(120,75,100,19)+mkT(120,128,"Tap a chat to open","mk-lab","middle")),
-  bot: ()=> mkFrame("Chats",0, mkChatRow(58,true)+mkChatRow(100)+mkChatRow(142),
-    mkRing(189,75,34,15)+mkT(120,132,"“Needs reply” = your turn","mk-lab","middle")),
-  reply: ()=> mkFrame("Chat",-1,
-    mkR(20,58,118,26,"mk-row",12)+mkR(102,94,118,26,"mk-accent",12)+
-    mkR(20,206,164,28,"mk-row",14)+mkC(205,220,16,"mk-accent")+`<path d="M199 220 h11 M205 215 l5 5 -5 5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`+mkC(33,220,8,"mk-rowln"),
-    mkRing(118,220,106,22)+mkT(120,180,"Type and send","mk-lab","middle")),
-  notes: ()=> mkFrame("Chat",-1,
-    mkR(44,56,152,26,"mk-row",13)+mkT(84,73,"Chat","mk-pill-t","middle")+mkR(120,59,72,20,"mk-accent",10)+mkT(156,73,"Notes","mk-accent-t","middle")+
-    mkR(24,98,192,34,"mk-row",9)+mkR(24,138,192,34,"mk-row",9),
-    mkRing(156,69,44,16)+mkT(120,162,"Private, staff-only","mk-lab","middle")),
-  personplus: ()=> mkFrame("Chats",0, mkChatRow(66)+mkChatRow(108)+mkChatRow(150),
-    mkT(120,132,"Add a walk-in","mk-lab","middle")+mkC(203,27,13,"mk-accent")+`<path d="M203 21 v12 M197 27 h12" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>`+mkRing(203,27,20,19)),
-  calendar: ()=> mkFrame("Bookings",1,
-    mkR(20,58,200,40,"mk-row",10)+mkT(34,74,"5:00 PM","mk-id")+mkR(34,80,80,5,"mk-rowln",2.5)+mkC(200,72,2,"mk-rowln")+mkC(200,78,2,"mk-rowln")+mkC(200,84,2,"mk-rowln")+
-    mkR(20,108,200,40,"mk-row",10)+mkR(20,158,200,40,"mk-row",10),
-    mkRing(200,78,16,18)+mkT(120,225,"Tap ⋯ for actions","mk-lab","middle")),
-  queue: ()=> mkFrame("Bookings · Today",1,
-    mkR(20,58,200,52,"mk-row",10)+mkT(34,78,"5:00 PM · Seema","mk-id")+mkR(34,86,70,12,"mk-pill",6)+mkT(69,95,"Waiting","mk-pill-t","middle")+mkBtn(150,82,58,20,"mk-accent","Arrived")+
-    mkR(20,120,200,40,"mk-row",10),
-    mkRing(179,92,36,16)+mkT(120,200,"Arrived → Start → Done","mk-lab","middle")),
-  followup: ()=> mkFrame("Chat",-1,
-    mkR(20,52,200,26,"mk-row",10)+
-    mkR(14,110,212,130,"mk-screen",16)+mkT(120,132,"Book a follow-up?","mk-id","middle")+
-    mkBtn(34,146,172,26,"mk-row","In 1 week","mk-id")+mkBtn(34,180,172,26,"mk-accent","In 2 weeks")+mkBtn(34,214,172,26,"mk-row","In 4 weeks","mk-id"),
-    mkRing(120,193,92,18)+mkT(120,100,"One tap after “Done”","mk-lab","middle")),
-  calplus: ()=> mkFrame("Bookings",1,
-    mkBtn(112,56,108,26,"mk-accent","+ New booking")+
-    mkR(20,98,200,36,"mk-row",10)+mkR(20,142,200,36,"mk-row",10),
-    mkRing(166,69,62,18)+mkT(120,205,"Book for a patient","mk-lab","middle")),
-  clock: ()=> mkFrame("Settings",2,
-    mkR(20,58,200,80,"mk-row",12)+mkT(34,82,"Clinic schedule","mk-id")+mkR(34,92,120,5,"mk-rowln",2.5)+mkBtn(40,104,160,24,"mk-accent","Edit schedule"),
-    mkRing(120,116,88,17)+mkT(120,175,"Hours, sessions, day off","mk-lab","middle")),
-  idcard: ()=> mkFrame("Chat · Notes",-1,
-    mkR(20,58,200,64,"mk-row",12)+mkC(44,88,15,"mk-rowln")+mkT(70,84,"Seema Devi","mk-id")+mkT(70,106,"KC-2026-0001","mk-id"),
-    mkRing(112,101,58,14)+mkT(120,165,"Permanent Patient ID","mk-lab","middle")),
-  bell: ()=> mkFrame("Settings",2,
-    mkR(20,58,200,70,"mk-row",12)+mkT(34,84,"Notifications","mk-id")+mkBtn(36,98,168,28,"mk-accent","Enable on this device"),
-    mkRing(120,112,90,20)+mkT(120,170,"Turn on per device","mk-lab","middle")),
-  phone: ()=> mkFrame("Emergency",-1,
-    mkC(120,96,34,"mk-row")+mkR(80,142,80,7,"mk-rowln",3)+mkR(96,158,48,5,"mk-rowln",2.5)+mkC(120,196,26,"mk-accent")+`<path d="M112 189c0 9 6 15 15 15 1 0 2-1 2-2v-3c0-1-1-2-2-2-1 0-2 0-3-1-1 0-1 1-2 1-2-1-4-3-5-5 0-1 1-1 1-2 0-1 0-2-1-3-1-1-2-1-3-1-1 0-2 1-2 2z" fill="#fff"/>`,
-    mkRing(120,196,34,33)+mkT(120,245,"Call for emergencies","mk-lab","middle")),
+  chats: ()=> mkFrame({title:"KC Clinic",sub:"Staff inbox",tab:0,
+    body: mkSearch(54)+mkRow(90,{nm:"Priya Sharma",pv:"Thank you, doctor 🙏",time:"9:41"})+mkRow(136,{nm:"Anjali Verma",pv:"Photo",time:"8:15",badge:"2"}),
+    annot: mkRing(120,111,104,20)+mkT(120,214,"Tap a patient to open","mk-lab","middle")+mkArrow(120,205,150,132)}),
+  bot: ()=> mkFrame({title:"KC Clinic",sub:"Staff inbox",tab:0,
+    body: mkRow(58,{nm:"Priya Sharma",pv:"Thank you 🙏",time:"9:41"})+mkRow(104,{nm:"Anjali",pv:"Photo",time:"8:15"})+mkRow(150,{nm:"Ritu Singh",pv:"Can I talk to someone?",time:"Tue",stat:"Needs reply"}),
+    annot: mkRing(196,178,30,13)+mkT(116,224,"“Needs reply” = your turn","mk-lab","middle")+mkArrow(150,216,192,184)}),
+  reply: ()=> mkFrame({title:"Priya Sharma",sub:"Patient",back:true,tab:-1,
+    body: mkR(22,60,120,26,"mk-in",13)+mkR(100,94,118,26,"mk-out",13)
+      +mkR(18,252,168,28,"mk-comp",14)+mkC(35,266,9,"mk-rowln")+mkT(58,270,"Message","mk-ph")
+      +mkC(206,266,15,"mk-accent")+`<path d="M199 266 h12 M205 260 l6 6 -6 6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+    annot: mkRing(118,266,110,20)+mkT(120,214,"Type here, tap to send","mk-lab","middle")+mkArrow(120,222,120,252)}),
+  notes: ()=> mkFrame({title:"Priya Sharma",sub:"Private notes",back:true,tab:-1,
+    body: mkR(44,60,152,26,"mk-seg",13)+mkT(80,77,"Chat","mk-ph","middle")+mkR(120,63,72,20,"mk-segsel",10)+mkT(156,77,"Notes","mk-accent-t","middle")
+      +mkR(24,100,192,40,"mk-row",10)+mkR(24,148,192,40,"mk-row",10),
+    annot: mkRing(156,73,44,15)+mkT(120,196,"Staff-only notes tab","mk-lab","middle")+mkArrow(150,188,158,86)}),
+  personplus: ()=> mkFrame({title:"KC Clinic",sub:"Staff inbox",tab:0,
+    body: mkSearch(54,true)+mkRow(90,{nm:"Priya Sharma",pv:"Thank you 🙏",time:"9:41"})+mkRow(136,{nm:"Anjali",pv:"Photo",time:"8:15"}),
+    annot: mkRing(206,68,20,20)+mkT(118,214,"Add a walk-in patient","mk-lab","middle")+mkArrow(150,205,204,80)}),
+  calendar: ()=> mkFrame({title:"KC Clinic",sub:"Appointments",tab:1,
+    body: mkR(22,56,196,44,"mk-row",11)+mkT(36,76,"5:00 PM","mk-id")+mkT(36,90,"Priya · First visit","mk-pv")+mkC(202,70,2,"mk-rowln")+mkC(202,77,2,"mk-rowln")+mkC(202,84,2,"mk-rowln")
+      +mkR(22,108,196,44,"mk-row",11)+mkT(36,128,"5:15 PM","mk-id")+mkT(36,142,"Anjali · Follow-up","mk-pv"),
+    annot: mkRing(202,77,15,17)+mkT(120,204,"Tap ⋯ for actions","mk-lab","middle")+mkArrow(150,196,202,90)}),
+  queue: ()=> mkFrame({title:"KC Clinic",sub:"Appointments",tab:1,
+    body: mkT(24,68,"Today","mk-id")+mkR(22,76,196,52,"mk-row",11)+mkT(36,96,"5:00 PM · Seema","mk-id")+mkR(36,104,60,13,"mk-statpill",6)+mkT(66,114,"Waiting","mk-statpill-t","middle")+mkBtn(150,98,60,22,"mk-accent","Arrived"),
+    annot: mkRing(180,109,36,15)+mkT(120,186,"Arrived → Start → Done","mk-lab","middle")+mkArrow(150,178,180,120)}),
+  followup: ()=> mkFrame({title:"Priya Sharma",sub:"Chat",back:true,tab:-1,
+    body: mkR(16,104,208,150,"mk-sheet",18)+mkT(120,128,"Book a follow-up?","mk-id","middle")
+      +mkR(34,140,172,26,"mk-row",13)+mkT(120,157,"In 1 week","mk-id","middle")
+      +mkR(34,174,172,26,"mk-accent",13)+mkT(120,191,"In 2 weeks","mk-accent-t","middle")
+      +mkR(34,208,172,26,"mk-row",13)+mkT(120,225,"In 4 weeks","mk-id","middle"),
+    annot: mkRing(120,187,92,17)+mkT(120,90,"One tap after “Done”","mk-lab","middle")+mkArrow(120,96,120,176)}),
+  calplus: ()=> mkFrame({title:"KC Clinic",sub:"Appointments",tab:1,
+    body: mkBtn(112,56,110,26,"mk-accent","+ New booking")
+      +mkR(22,98,196,42,"mk-row",11)+mkT(36,118,"5:00 PM","mk-id")+mkT(36,132,"Priya · First visit","mk-pv")
+      +mkR(22,148,196,42,"mk-row",11)+mkT(36,168,"5:15 PM","mk-id"),
+    annot: mkRing(167,69,63,18)+mkT(120,214,"Book for a patient","mk-lab","middle")+mkArrow(150,205,167,82)}),
+  clock: ()=> mkFrame({title:"KC Clinic",sub:"Preferences",tab:2,
+    body: mkR(22,56,196,80,"mk-row",12)+mkT(36,78,"Clinic schedule","mk-id")+mkT(36,94,"4:00 PM – 9:00 PM","mk-pv")+mkBtn(40,104,160,24,"mk-accent","Edit schedule"),
+    annot: mkRing(120,116,86,16)+mkT(120,182,"Hours, sessions, day off","mk-lab","middle")+mkArrow(120,174,120,128)}),
+  idcard: ()=> mkFrame({title:"Seema Devi",sub:"Private notes",back:true,tab:-1,
+    body: mkR(22,60,196,68,"mk-row",12)+mkAv(46,92)+mkT(72,86,"Seema Devi","mk-id")+mkT(72,108,"KC-2026-0001","mk-id"),
+    annot: mkRing(114,103,58,14)+mkT(120,168,"Permanent Patient ID","mk-lab","middle")+mkArrow(120,160,114,112)}),
+  bell: ()=> mkFrame({title:"KC Clinic",sub:"Preferences",tab:2,
+    body: mkR(22,56,196,74,"mk-row",12)+mkT(36,80,"Notifications","mk-id")+mkT(36,96,"Alerts on this device","mk-pv")+mkBtn(36,104,168,26,"mk-accent","Enable on this device"),
+    annot: mkRing(120,117,90,18)+mkT(120,178,"Turn on per device","mk-lab","middle")+mkArrow(120,170,120,130)}),
+  phone: ()=> mkFrame({title:"Emergency",sub:"",tab:-1,
+    body: mkC(120,94,32,"mk-row")+mkC(120,88,10,"mk-screen")+`<path d="M108 108 a12 12 0 0 1 24 0" fill="none" stroke="#c6d0d8" stroke-width="5"/>`
+      +mkR(84,140,72,7,"mk-rowln",3)+mkR(100,154,40,5,"mk-rowln",2.5)
+      +mkC(120,196,27,"mk-ok")+`<path d="M111 188c0 10 7 17 17 17 1 0 2-1 2-2v-3c0-1-1-2-2-2-1 0-3 0-4-1-1 0-2 1-2 2-2-1-5-4-6-6 1 0 2-1 2-2 0-1 0-3-1-4-1-1-2-2-3-2-1 0-3 1-3 3z" fill="#fff"/>`,
+    annot: mkRing(120,196,35,34)+mkT(120,244,"Call for anything urgent","mk-lab","middle")+mkArrow(120,236,120,222)}),
 };
 const buildMock = (k)=> MOCKS[k] ? MOCKS[k]() : "";
 const TUTORIAL = [
