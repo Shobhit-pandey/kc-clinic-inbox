@@ -117,6 +117,7 @@ nav button:active svg{transform:scale(.84)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .mut{color:var(--mut);font-size:12.5px;line-height:1.5}
 button.ghost{background:#fff;color:var(--green);border:1px solid var(--green);border-radius:11px;padding:10px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
+button.ghost.danger{color:var(--bad);border-color:#e9b8b8}
 button.ghost:active{background:#e9edf4}
 button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);border-radius:11px;padding:10px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
 .bcard{display:flex;align-items:center;gap:12px;background:#fff;border-radius:15px;margin:8px 10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer}
@@ -302,6 +303,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
       <span style="flex:1"></span>
       <button class="ghost" id="toBot">Give to bot</button>
       <button class="ghost" id="toClosed">Close</button>
+      <button class="ghost danger" id="blockBtn">Block</button>
     </div>
     <div id="msgs"></div>
     <div id="notes" class="hide"></div>
@@ -475,6 +477,7 @@ window.openThread = async (id) => {
   $("hTitle").textContent = nm;
   $("hSub").textContent = "+"+(c?.patients?.wa_phone ?? "");
   const phone = c?.patients?.wa_phone;
+  openPatientPhone = phone || null;
   if (phone) { $("hCall").href = "tel:+"+phone; $("hCall").style.display = "flex"; } else $("hCall").style.display = "none";
   $("tStatus").textContent = statLabel(c?.status); $("tStatus").className = "stat " + (c?.status ?? "");
   setThreadMode("chat");
@@ -482,7 +485,7 @@ window.openThread = async (id) => {
   await renderMsgs();
 };
 
-let openPatientId = null, openPatient = null;
+let openPatientId = null, openPatient = null, openPatientPhone = null;
 
 // Chat vs Private-notes toggle inside the thread.
 let threadMode = "chat";
@@ -741,6 +744,19 @@ async function setStatus(status){
   $("tStatus").textContent = statLabel(status); $("tStatus").className = "stat "+status;
   toast(status==="bot" ? "Bot will reply again" : "Conversation closed");
 }
+// Block the current number: no further messages from it reach the clinic.
+$("blockBtn").onclick = async () => {
+  const phone = openPatientPhone; if (!phone) return;
+  if (!confirm(`Block +${phone}? You will stop receiving any messages from this number. You can unblock it later in Settings.`)) return;
+  const { error } = await sb.from("blocked_numbers").upsert({ wa_phone: phone, blocked_by: me?.email || "staff" }, { onConflict: "wa_phone" });
+  if (error) { toast(error.message); return; }
+  if (openConvo) await sb.from("conversations").update({ status: "closed" }).eq("id", openConvo);
+  toast("Number blocked"); showTab("chats");
+};
+window.unblockNumber = async (phone) => {
+  await sb.from("blocked_numbers").delete().eq("wa_phone", phone);
+  toast("Number unblocked"); loadSettings();
+};
 
 async function loadBookings(){
   const today = new Date();
@@ -866,11 +882,18 @@ async function loadSettings(){
        <p class="mut" style="margin:2px 0 10px">Weekly day off: <b style="color:var(--ink)">${offDays}</b></p>
        <button class="act" style="width:100%" onclick="openScheduleEditor()">Edit schedule</button></div>`;
   const statsCard = await buildStatsCard();
+  const { data: blocked } = await sb.from("blocked_numbers").select("wa_phone,reason,blocked_at").order("blocked_at",{ascending:false});
+  const blockedCard = `<div class="card"><b>🚫 Blocked numbers</b>` +
+    ((blocked??[]).length
+      ? (blocked.map(b=>`<div class="row" style="margin-top:9px;border-top:1px solid var(--line);padding-top:9px"><span>+${esc(b.wa_phone)}</span><button class="ghost" onclick="unblockNumber('${esc(b.wa_phone)}')">Unblock</button></div>`).join(""))
+      : `<p class="mut" style="margin-top:6px">No blocked numbers. Block a nuisance number from its chat (the Block button).</p>`) +
+    `</div>`;
   $("settings").innerHTML = notif +
     `<div class="card"><b>📚 New here?</b><p class="mut" style="margin:6px 0 10px">A quick guide to every feature and when to use it.</p>
        <button class="act" style="width:100%" onclick="openTutorial()">How to use this app</button></div>` +
     statsCard +
     schedCard +
+    blockedCard +
     `<div class="card"><b>Signed in as</b><p class="mut" style="margin-top:4px">${esc(me?.email??"")}</p>
        <button class="danger" id="logoutBtn" style="margin-top:12px">Sign out</button></div>`;
   if (sub) $("pushOff").onclick = disablePush; else $("pushBtn").onclick = enablePush;
@@ -1333,6 +1356,12 @@ const MOCKS = {
       +mkR(156,84,50,38,"mk-search",8)+mkT(181,103,"6%","mk-id","middle")+mkT(181,115,"No-show","mk-tm","middle")
       +mkR(34,130,170,9,"mk-rowln",3)+mkR(34,144,116,9,"mk-rowln",3),
     annot: mkRing(120,103,94,26)+mkT(120,192,"Your clinic at a glance","mk-lab","middle")+mkArrow(120,184,120,126)}),
+  block: ()=> mkFrame({title:"Unknown +9199…",sub:"Chat",back:true,call:true,tab:-1,
+    body: mkR(20,64,150,26,"mk-in",13)+mkT(30,80,"…random spam message","mk-ph")
+      +mkR(20,110,90,26,"mk-search",13)+mkT(65,127,"Give to bot","mk-ph","middle")
+      +mkR(116,110,44,26,"mk-search",13)+mkT(138,127,"Close","mk-ph","middle")
+      +mkR(166,110,54,26,"mk-search",13)+mkT(193,127,"Block","mk-statpill-t","middle"),
+    annot: mkRing(193,123,33,17)+mkT(120,182,"Block a nuisance number","mk-lab","middle")+mkArrow(150,174,193,138)}),
 };
 const buildMock = (k)=> MOCKS[k] ? MOCKS[k]() : "";
 const TUTORIAL = [
@@ -1340,6 +1369,7 @@ const TUTORIAL = [
   ["bot","The bot books for you","New patients are answered automatically and guided through booking. When someone asks for a person or sends a photo, the chat is flagged 'Needs reply' and the bot steps aside for you. Outside clinic hours it says we're closed but still lets them book.","Jump in whenever a chat needs a human."],
   ["reply","Replying","Type and send like WhatsApp. Use the clip to send a photo or a file (a prescription or report PDF), and the quick-reply button for canned answers. Tap the phone icon at the top to call the patient. WhatsApp allows replies within 24 hours of the patient's last message.","Send reports, confirm details, answer questions."],
   ["notes","Private notes","Inside any chat, switch to Notes. This is staff-only and the patient never sees it. Keep a timestamped history plus vitals like BP and weight, and edit the profile up top. You'll see every visit listed with its date and outcome, and if a patient walks in without an appointment, tap 'Log walk-in visit' to record it.","Record history, vitals, and every visit."],
+  ["block","Block a number","If someone messages the clinic wrongly or keeps sending nuisance messages, open their chat and tap Block. You'll stop receiving any messages from that number. Unblock any time from Settings › Blocked numbers.","Stop unwanted or spam messages."],
   ["personplus","Add a walk-in","Tap the plus on Chats to add someone by name and number without sending a message (free). If they message later, it links to the same record.","For patients who visit or call first."],
   ["calendar","Bookings","See today and the next 7 days. Tap an appointment to open that chat, or the three dots to mark done, move to another time, mark no-show, or cancel.","Run the day and manage every appointment."],
   ["queue","Today's queue","On today's appointments, tap Arrived when a patient reaches the clinic, Start when they go in, and Done when finished. Everyone sees who is waiting.","Track the waiting room at a glance."],
