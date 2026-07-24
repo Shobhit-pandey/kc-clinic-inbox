@@ -71,7 +71,7 @@ nav button:active svg{transform:scale(.84)}
 .badge{background:var(--badge);color:#fff;border-radius:999px;min-width:20px;height:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
 .stat{font-size:10.5px;padding:2px 8px;border-radius:999px;background:#e9edf4;color:var(--green);white-space:nowrap}
 .stat.needs_human{background:#fef3c7;color:var(--warn)}
-.stat.human{background:#d9fdd3;color:#067a53}
+.stat.human{background:#e3e9f0;color:var(--brand)}
 .stat.closed{background:#eceff1;color:var(--mut)}
 .empty{color:var(--mut);padding:44px 24px;text-align:center;font-size:15px;line-height:1.5}
 
@@ -125,7 +125,8 @@ button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);borde
 .bcard .bt{font-weight:700;color:var(--green);font-size:14px;min-width:66px;line-height:1.2}
 .bcard .bmid{flex:1;min-width:0}
 .bcard .bname{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bcancel{background:none;border:0;color:var(--bad);font-size:19px;cursor:pointer;padding:4px 8px;line-height:1}
+.bcancel{background:none;border:0;color:var(--mut);font-size:19px;cursor:pointer;padding:4px 8px;line-height:1}
+.bcancel.rm{color:var(--bad);font-size:16px}
 .qrow{display:flex;align-items:center;gap:8px;margin-top:7px}
 .qbadge{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:#eef1f4;color:var(--mut)}
 .qbadge.arrived{background:#fdf1dc;color:#a2761b}
@@ -144,9 +145,13 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 /* chat search + new-patient */
 .searchwrap{position:sticky;top:0;background:var(--chatbg);padding:9px 12px;z-index:3;display:flex;gap:8px;align-items:center}
 .searchwrap input{flex:1;padding:11px 14px;border:1px solid var(--line);border-radius:13px;font-size:16px;background:#fff}
+.chips{display:flex;gap:8px;padding:0 12px 10px;background:var(--chatbg);overflow-x:auto}
+.chips button{border:1px solid var(--line);background:#fff;color:var(--mut);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;flex-shrink:0}
+.chips button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
 .npbtn{flex-shrink:0;width:42px;height:42px;border-radius:50%;background:var(--green);color:#fff;border:0;font-size:24px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(22,50,79,.28)}
 .npbtn:active{background:var(--green-d)}
 #sheet .body input,#sheet .body select{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:12px;font-size:16px;margin-top:8px;background:#fff;-webkit-appearance:none;appearance:none}
+#sheet .body select{padding-right:38px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2316324f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 #sheet .body .half{display:flex;gap:8px}
 #sheet .body .half input{flex:1}
 #sheet .body label.fld{display:block;color:var(--mut);font-size:12.5px;margin-top:12px}
@@ -172,6 +177,8 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 #sheet .opt{width:100%;background:#fff;border:0;border-radius:13px;padding:15px;font-size:16px;margin-top:8px;cursor:pointer;color:var(--green);font-weight:600}
 #sheet .opt.danger{color:var(--bad)}
 #sheet .opt.plain{color:var(--tx);font-weight:500}
+#sheet .opt.primary{background:var(--brand);color:#fff}
+#sheet .opt.primary:active{background:var(--brand-d)}
 /* chat / private-notes segmented toggle */
 .seg{display:flex;background:#e3e8ea;border-radius:11px;margin:8px 10px;padding:3px;flex-shrink:0}
 .seg button{flex:1;border:0;background:none;padding:8px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--mut);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
@@ -188,6 +195,8 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .phist>div{flex:1;text-align:center;background:#f5f8fb;border-radius:11px;padding:9px 4px}
 .phist>div b{display:block;color:var(--navy);font-size:16px;font-weight:700;line-height:1.2}
 .phist>div span{color:var(--mut);font-size:11px}
+.srow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:14px;border-top:1px solid #f0f2f4}
+.srow span{color:var(--mut)}
 .note.vitals{background:#e8f3ff;border-color:#bcdcff}
 .note.vitals .nm{color:#3a6ea5}
 /* tutorial overlay */
@@ -270,9 +279,10 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   <button class="ico-btn" id="backBtn" style="display:none"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
   <div class="av" id="hAv"><img src="logo.svg" alt=""></div>
   <div style="flex:1;min-width:0"><div class="ttl" id="hTitle">KC Clinic</div><div class="sub" id="hSub">Staff inbox</div></div>
+  <a class="ico-btn" id="hCall" href="#" style="display:none" title="Call patient"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg></a>
 </header>
 <main>
-  <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"><button class="npbtn" title="New patient" onclick="openNewPatient()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div><div id="chatList"></div></div>
+  <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"><button class="npbtn" title="New patient" onclick="openNewPatient()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div><div class="chips" id="chatChips"><button data-f="all" class="on">All</button><button data-f="needs_human">Needs reply</button><button data-f="unread">Unread</button></div><div id="chatList"></div></div>
   <div id="thread" class="hide">
     <div class="seg" id="threadSeg">
       <button data-mode="chat" class="on"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg>Chat</button>
@@ -289,8 +299,8 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
     <div id="qrPanel" class="hide"></div>
     <div id="replybar">
       <button class="qrtoggle" id="qrToggle" title="Quick replies"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></button>
-      <button class="attach" id="attachBtn" title="Send image"><svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-      <input type="file" id="fileInput" accept="image/*" style="display:none">
+      <button class="attach" id="attachBtn" title="Send photo or file"><svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+      <input type="file" id="fileInput" accept="image/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx" style="display:none">
       <div class="inwrap"><textarea id="replyText" rows="1" placeholder="Message"></textarea></div>
       <button class="circ" id="sendBtn"><svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></button>
     </div>
@@ -336,7 +346,7 @@ const istKey = (s)=> new Intl.DateTimeFormat("en-CA",IST).format(new Date(s));
 function listTime(s){ return istKey(s)===istKey(Date.now()) ? fmtT(s) : new Intl.DateTimeFormat("en-IN",{...IST,day:"numeric",month:"short"}).format(new Date(s)); }
 const esc = (s)=> (s??"").replace(/[&<>"]/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const initials = (n)=> (n||"").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase() || "•";
-const statLabel = (s)=> s==="needs_human"?"👋 Needs reply":s==="human"?"🧑 Staff":s==="closed"?"Closed":"🤖 Bot";
+const statLabel = (s)=> s==="needs_human"?"Needs reply":s==="human"?"Staff":s==="closed"?"Closed":"Bot";
 function tickHtml(s){ if(s==="read")return '<span class="tick read">✓✓</span>'; if(s==="delivered")return '<span class="tick">✓✓</span>'; return '<span class="tick">✓</span>'; }
 
 $("loginBtn").onclick = async () => {
@@ -382,6 +392,7 @@ function showTab(tab){
   document.querySelectorAll("#tabs button").forEach((b)=>b.classList.toggle("on", b.dataset.tab===tab));
   $("tabs").classList.remove("hide");
   $("backBtn").style.display = "none";
+  $("hCall").style.display = "none";
   $("hAv").className = "av logo-sq";
   $("hAv").innerHTML = '<img src="logo.svg" alt="">';
   $("hTitle").textContent = "KC Clinic";
@@ -402,12 +413,13 @@ async function loadChats(){
   const preview = {};
   for (const m of (recent??[])) if (!preview[m.conversation_id]) {
     const who = m.direction==="out" ? "You: " : "";
-    preview[m.conversation_id] = who + (m.type==="image" ? "📷 Photo" : (m.body||"").replace(/\n/g," "));
+    preview[m.conversation_id] = who + (m.type==="image" ? "📷 Photo" : m.type==="document" ? ("📄 "+((m.body||"").replace(/\n/g," ")||"Document")) : (m.body||"").replace(/\n/g," "));
   }
   allChatRows = (convos??[]).map((c)=>{
     const p = c.patients ?? {}, nm = p.name || ("+"+(p.wa_phone||""));
     return {
       hay: (nm + " " + (p.wa_phone||"")).toLowerCase(),
+      status: c.status, unread: c.unread_count>0,
       html: `<div class="crow" onclick="openThread('${c.id}')">
         <div class="av">${esc(initials(p.name)||"•")}</div>
         <div class="mid"><div class="nm">${esc(nm)}</div>
@@ -419,13 +431,25 @@ async function loadChats(){
   });
   renderChatList();
 }
+let chatFilter = "all";
 function renderChatList(){
   const q = ($("chatSearch")?.value || "").trim().toLowerCase();
-  const rows = q ? allChatRows.filter(r=>r.hay.includes(q)) : allChatRows;
-  $("chatList").innerHTML = rows.map(r=>r.html).join("") ||
-    `<div class="empty">${q ? "No matches for '"+esc(q)+"'." : "No conversations yet.<br>When a patient messages the clinic on WhatsApp, they will appear here."}</div>`;
+  let rows = allChatRows;
+  if (chatFilter==="needs_human") rows = rows.filter(r=>r.status==="needs_human");
+  else if (chatFilter==="unread") rows = rows.filter(r=>r.unread);
+  if (q) rows = rows.filter(r=>r.hay.includes(q));
+  const emptyMsg = q ? "No matches for '"+esc(q)+"'."
+    : chatFilter==="needs_human" ? "No chats need a reply right now. 🎉"
+    : chatFilter==="unread" ? "No unread chats."
+    : "No conversations yet.<br>When a patient messages the clinic on WhatsApp, they will appear here.";
+  $("chatList").innerHTML = rows.map(r=>r.html).join("") || `<div class="empty">${emptyMsg}</div>`;
 }
 $("chatSearch").addEventListener("input", renderChatList);
+document.querySelectorAll("#chatChips button").forEach((b)=> b.onclick = ()=>{
+  chatFilter = b.dataset.f;
+  document.querySelectorAll("#chatChips button").forEach((x)=>x.classList.toggle("on", x===b));
+  renderChatList();
+});
 
 window.openThread = async (id) => {
   openConvo = id;
@@ -441,6 +465,8 @@ window.openThread = async (id) => {
   $("hAv").textContent = initials(c?.patients?.name)||"•";
   $("hTitle").textContent = nm;
   $("hSub").textContent = "+"+(c?.patients?.wa_phone ?? "");
+  const phone = c?.patients?.wa_phone;
+  if (phone) { $("hCall").href = "tel:+"+phone; $("hCall").style.display = "flex"; } else $("hCall").style.display = "none";
   $("tStatus").textContent = statLabel(c?.status); $("tStatus").className = "stat " + (c?.status ?? "");
   setThreadMode("chat");
   await sb.from("conversations").update({ unread_count: 0 }).eq("id", id);
@@ -515,7 +541,7 @@ window.editProfile = () => {
      <input id="pfBlood" placeholder="Blood group (e.g. O+)" value="${esc(p.blood_group||"")}">
      <input id="pfAllergy" placeholder="Allergies" value="${esc(p.allergies||"")}">
      <input id="pfHistory" placeholder="Ongoing conditions / history" value="${esc(p.history||"")}">
-     <button class="opt" id="pfSave">Save profile</button><button class="opt plain" id="pfCancel">Cancel</button>`;
+     <button class="opt primary" id="pfSave">Save profile</button><button class="opt plain" id="pfCancel">Cancel</button>`;
   s.querySelector("#pfCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
   s.querySelector("#pfSave").onclick=async(e)=>{
     e.stopPropagation();
@@ -536,7 +562,7 @@ window.addVitals = () => {
      <input id="vWt" placeholder="Weight (kg)" inputmode="decimal">
      <input id="vPulse" placeholder="Pulse (bpm)" inputmode="numeric">
      <input id="vNote" placeholder="Other (e.g. LMP, notes)">
-     <button class="opt" id="vSave">Save vitals</button><button class="opt plain" id="vCancel">Cancel</button>`;
+     <button class="opt primary" id="vSave">Save vitals</button><button class="opt plain" id="vCancel">Cancel</button>`;
   s.querySelector("#vCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
   s.querySelector("#vSave").onclick=async(e)=>{
     e.stopPropagation();
@@ -637,9 +663,10 @@ $("attachBtn").onclick = () => { if (openConvo) $("fileInput").click(); };
 $("fileInput").onchange = async () => {
   const f = $("fileInput").files[0]; if (!f || !openConvo) return;
   $("fileInput").value = ""; const conv = openConvo;
+  const isImg = f.type.startsWith("image/");
   const tmp = document.createElement("div");
   tmp.className = "m out";
-  tmp.innerHTML = `📷 Photo<span class="meta">${fmtT(Date.now())} <span class="sending"></span></span>`;
+  tmp.innerHTML = `${isImg?"📷 Photo":"📄 "+esc(f.name)}<span class="meta">${fmtT(Date.now())} <span class="sending"></span></span>`;
   $("msgs").appendChild(tmp); $("msgs").scrollTop = $("msgs").scrollHeight;
   try {
     const auth = await authHeader(); if (!auth) { tmp.remove(); return; }
@@ -647,7 +674,7 @@ $("fileInput").onchange = async () => {
     fd.append("conversation_id", conv); fd.append("caption", $("replyText").value.trim()); fd.append("file", f);
     const res = await fetch(SUPABASE_URL + "/functions/v1/send-message", { method:"POST", headers:{ "apikey":PUBLISHABLE_KEY, "Authorization":auth }, body: fd });
     if (res.ok) { $("replyText").value=""; autoGrow(); if (openConvo===conv) scheduleRender(); }
-    else { const e=await res.json().catch(()=>({})); tmp.querySelector(".meta").innerHTML='<span class="fail">not sent ⚠︎</span>'; toast(e.error==="outside_24h_window"?"24-hour reply window is closed":"Image send failed: "+(e.error??res.status)); }
+    else { const e=await res.json().catch(()=>({})); tmp.querySelector(".meta").innerHTML='<span class="fail">not sent ⚠︎</span>'; toast(e.error==="outside_24h_window"?"24-hour reply window is closed":"Send failed: "+(e.error??res.status)); }
   } catch (err) { tmp.querySelector(".meta").innerHTML='<span class="fail">not sent ⚠︎</span>'; toast("Network error — check connection"); }
 };
 
@@ -726,7 +753,7 @@ async function loadBookings(){
         <div class="bmid"><div class="bname">${esc(nm)}</div><div class="mut">${meta}</div></div>
         <div style="display:flex;gap:6px;flex-shrink:0">
           <button class="qadv" onclick="event.stopPropagation();bookFromWait('${w.id}')">Book</button>
-          <button class="bcancel" title="Remove" onclick="event.stopPropagation();removeWait('${w.id}')">✕</button>
+          <button class="bcancel rm" title="Remove" onclick="event.stopPropagation();removeWait('${w.id}')">✕</button>
         </div></div>`;
     }).join("");
   }
@@ -816,7 +843,7 @@ async function buildStatsCard(){
   const counts = {};
   rows.filter(a=>a.status==="booked"||a.status==="completed").forEach(a=>{ const n=a.appointment_types?.name_en||a.type_code||"Other"; counts[n]=(counts[n]||0)+1; });
   const top = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,4);
-  const typeRows = top.length ? top.map(([n,c])=>`<div class="prow"><span>${esc(n)}</span><b>${c}</b></div>`).join("") : `<p class="mut" style="margin-top:6px">No bookings yet.</p>`;
+  const typeRows = top.length ? top.map(([n,c])=>`<div class="srow"><span>${esc(n)}</span><b>${c}</b></div>`).join("") : `<p class="mut" style="margin-top:6px">No bookings yet.</p>`;
   return `<div class="card"><b>📊 Clinic stats</b>
       <div class="phist" style="margin-top:10px">
         <div><b>${next7}</b><span>Next 7 days</span></div>
@@ -927,7 +954,7 @@ window.moveAppt = async (id) => {
      <p class="mut" style="margin:2px 0 4px">${esc(ap.patients?.name||"Patient")} · currently ${fmtDayFull(ap.slot_start)}, ${fmtT(ap.slot_start)}</p>
      <label class="fld">New date</label><input type="date" id="mvDate" min="${todayIso}">
      <label class="fld">New time</label><select id="mvTime"><option value="">Pick a date first</option></select>
-     <button class="opt" id="mvSave">Move appointment</button><button class="opt plain" id="mvCancel">Cancel</button>`;
+     <button class="opt primary" id="mvSave">Move appointment</button><button class="opt plain" id="mvCancel">Cancel</button>`;
   s.querySelector("#mvCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
   s.querySelector("#mvDate").onchange=()=>{ const d=$("mvDate").value; if(d) fillSlotSelect("mvTime",d); };
   s.querySelector("#mvSave").onclick=async(e)=>{
@@ -1016,7 +1043,7 @@ window.openNewBooking = async (prefill) => {
      <select id="nbType">${(types||[]).map(t=>`<option value="${t.code}" ${prefill.type===t.code?"selected":""}>${esc(t.name_en)}</option>`).join("")}</select>
      <label class="fld">Date</label><input type="date" id="nbDate" min="${todayIso}" value="${esc(prefill.dateIso||"")}">
      <label class="fld">Time</label><select id="nbTime"><option value="">Pick a date first</option></select>
-     <button class="opt" id="nbSave">Book appointment</button>
+     <button class="opt primary" id="nbSave">Book appointment</button>
      <button class="opt plain" id="nbWait" style="display:none;color:var(--ok)">Day full — add to waitlist</button>
      <button class="opt plain" id="nbCancel">Cancel</button>`;
   s.querySelector("#nbCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
@@ -1061,7 +1088,7 @@ window.openScheduleEditor = async () => {
      <label class="fld">How many days ahead patients can book</label><input id="dahead" inputmode="numeric" value="${c.days_ahead}">
      <label class="fld">Weekly day(s) off (tap to close)</label>
      <div class="wdays" id="wdays">${WD.map((d,i)=>`<button data-d="${i}" class="${closed.has(i)?"off":""}">${d}</button>`).join("")}</div>
-     <button class="opt" id="schSave" style="margin-top:14px">Save schedule</button><button class="opt plain" id="schCancel">Cancel</button>`;
+     <button class="opt primary" id="schSave" style="margin-top:14px">Save schedule</button><button class="opt plain" id="schCancel">Cancel</button>`;
   s.querySelectorAll("#wdays button").forEach(b=> b.onclick=(e)=>{ e.stopPropagation(); b.classList.toggle("off"); });
   s.querySelector("#schCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
   s.querySelector("#schSave").onclick=(e)=>{e.stopPropagation();saveSchedule();};
@@ -1090,7 +1117,7 @@ window.openNewPatient = () => {
     `<div class="title">New patient — no WhatsApp message is sent</div>
      <input id="npName" placeholder="Patient name" autocapitalize="words">
      <input id="npPhone" placeholder="Mobile number (e.g. 98765 43210)" inputmode="numeric">
-     <button class="opt" id="npSave">Save &amp; add notes</button>
+     <button class="opt primary" id="npSave">Save &amp; add notes</button>
      <button class="opt plain" id="npCancel">Cancel</button>`;
   s.querySelector("#npCancel").onclick = (e)=>{ e.stopPropagation(); closeSheet(); };
   s.querySelector("#npSave").onclick = (e)=>{ e.stopPropagation(); saveNewPatient(); };
@@ -1252,9 +1279,9 @@ const MOCKS = {
 };
 const buildMock = (k)=> MOCKS[k] ? MOCKS[k]() : "";
 const TUTORIAL = [
-  ["chats","Chats","Every patient WhatsApp conversation lands here, newest first. Tap one to open it, or search by name or number.","Your main inbox, all day."],
+  ["chats","Chats","Every patient WhatsApp conversation lands here, newest first. Tap one to open it, search by name or number, or use the filters to show only chats that need a reply or are unread.","Your main inbox, all day."],
   ["bot","The bot books for you","New patients are answered automatically and guided through booking. When someone asks for a person or sends a photo, the chat is flagged 'Needs reply' and the bot steps aside for you. Outside clinic hours it says we're closed but still lets them book.","Jump in whenever a chat needs a human."],
-  ["reply","Replying","Type and send like WhatsApp. Use the clip to send a photo and the quick-reply button for canned answers. WhatsApp allows replies within 24 hours of the patient's last message.","Send reports, confirm details, answer questions."],
+  ["reply","Replying","Type and send like WhatsApp. Use the clip to send a photo or a file (a prescription or report PDF), and the quick-reply button for canned answers. Tap the phone icon at the top to call the patient. WhatsApp allows replies within 24 hours of the patient's last message.","Send reports, confirm details, answer questions."],
   ["notes","Private notes","Inside any chat, switch to Notes. This is staff-only and the patient never sees it. Keep a timestamped history plus vitals like BP and weight, and edit the profile up top. The card also shows visits, last visit and next appointment at a glance.","Record history, vitals and allergies for the doctor."],
   ["personplus","Add a walk-in","Tap the plus on Chats to add someone by name and number without sending a message (free). If they message later, it links to the same record.","For patients who visit or call first."],
   ["calendar","Bookings","See today and the next 7 days. Tap an appointment to open that chat, or the three dots to mark done, move to another time, mark no-show, or cancel.","Run the day and manage every appointment."],
