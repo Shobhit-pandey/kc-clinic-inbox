@@ -882,9 +882,9 @@ async function buildStatsCard(){
   const since = new Date(now - 30*86400000).toISOString();
   const until = new Date(now + 8*86400000).toISOString();
   const { data: ap } = await sb.from("appointments")
-    .select("status,type_code,slot_start,appointment_types(name_en)")
+    .select("status,type_code,slot_start,appointment_types(name_en),patients(is_test)")
     .gte("slot_start", since).lt("slot_start", until);
-  const rows = ap || [];
+  const rows = (ap || []).filter(a=>!a.patients?.is_test); // exclude developer/test numbers from real stats
   const t = (s)=> new Date(s).getTime();
   const next7 = rows.filter(a=>a.status==="booked" && t(a.slot_start)>=now && t(a.slot_start)<now+7*86400000).length;
   const past30 = rows.filter(a=> t(a.slot_start) < now);
