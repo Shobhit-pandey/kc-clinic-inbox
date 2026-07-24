@@ -1190,6 +1190,10 @@ const mkRow=(y,o)=>{
 };
 const mkSearch=(y,plus)=>mkR(22,y,plus?162:200,28,"mk-search",9)+mkT(34,y+18,"🔍  Search name or number","mk-ph")
   +(plus?mkC(206,y+14,15,"mk-accent")+`<path d="M206 ${y+7} v14 M199 ${y+14} h14" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>`:"");
+// Chats triage filter chips (All active).
+const mkChips=(y)=>mkR(22,y,44,20,"mk-accent",10)+mkT(44,y+14,"All","mk-accent-t","middle")
+  +mkR(72,y,86,20,"mk-search",10)+mkT(115,y+14,"Needs reply","mk-ph","middle")
+  +mkR(164,y,56,20,"mk-search",10)+mkT(192,y+14,"Unread","mk-ph","middle");
 const TAB_ICO=[
   `<path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/>`,
   `<rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/>`,
@@ -1211,21 +1215,22 @@ const mkFrame=(o)=>{
     +`<path class="mk-hd" d="M10 28 Q10 8 30 8 H210 Q230 8 230 28 V46 H10 Z"/>`
     +`<rect x="102" y="8" width="36" height="6" rx="3" fill="#d7dce2"/>`
     + head + mkT(tx,26,o.title,"mk-title") + (o.sub?mkT(tx,38,o.sub,"mk-sub"):"")
+    + (o.call?`<g transform="translate(205,14) scale(0.6)" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></g>`:"")
     + o.body + (o.tab>=0?mkTabBar(o.tab):"") + (o.annot||"") + `</svg>`;
 };
 const MOCKS = {
   chats: ()=> mkFrame({title:"KC Clinic",sub:"Staff inbox",tab:0,
-    body: mkSearch(54)+mkRow(90,{nm:"Priya Sharma",pv:"Thank you, doctor 🙏",time:"9:41"})+mkRow(136,{nm:"Anjali Verma",pv:"Photo",time:"8:15",badge:"2"}),
-    annot: mkRing(120,111,104,20)+mkT(120,214,"Tap a patient to open","mk-lab","middle")+mkArrow(120,205,150,132)}),
+    body: mkSearch(52)+mkChips(86)+mkRow(114,{nm:"Priya Sharma",pv:"Thank you, doctor 🙏",time:"9:41"})+mkRow(160,{nm:"Anjali Verma",pv:"Photo",time:"8:15",badge:"2"}),
+    annot: mkRing(120,181,104,19)+mkT(120,228,"Tap a patient to open","mk-lab","middle")+mkArrow(120,220,132,198)}),
   bot: ()=> mkFrame({title:"KC Clinic",sub:"Staff inbox",tab:0,
     body: mkRow(58,{nm:"Priya Sharma",pv:"Thank you 🙏",time:"9:41"})+mkRow(104,{nm:"Anjali",pv:"Photo",time:"8:15"})+mkRow(150,{nm:"Ritu Singh",pv:"Can I talk to someone?",time:"Tue",stat:"Needs reply"}),
     annot: mkRing(196,178,30,13)+mkT(116,224,"“Needs reply” = your turn","mk-lab","middle")+mkArrow(150,216,192,184)}),
-  reply: ()=> mkFrame({title:"Priya Sharma",sub:"Patient",back:true,tab:-1,
+  reply: ()=> mkFrame({title:"Priya Sharma",sub:"Patient",back:true,call:true,tab:-1,
     body: mkR(22,60,120,26,"mk-in",13)+mkR(100,94,118,26,"mk-out",13)
       +mkR(18,252,168,28,"mk-comp",14)+mkC(35,266,9,"mk-rowln")+mkT(58,270,"Message","mk-ph")
       +mkC(206,266,15,"mk-accent")+`<path d="M199 266 h12 M205 260 l6 6 -6 6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
     annot: mkRing(118,266,110,20)+mkT(120,214,"Type here, tap to send","mk-lab","middle")+mkArrow(120,222,120,252)}),
-  notes: ()=> mkFrame({title:"Priya Sharma",sub:"Private notes",back:true,tab:-1,
+  notes: ()=> mkFrame({title:"Priya Sharma",sub:"Private notes",back:true,call:true,tab:-1,
     body: mkR(44,60,152,26,"mk-seg",13)+mkT(80,77,"Chat","mk-ph","middle")+mkR(120,63,72,20,"mk-segsel",10)+mkT(156,77,"Notes","mk-accent-t","middle")
       +mkR(24,100,192,40,"mk-row",10)+mkR(24,148,192,40,"mk-row",10),
     annot: mkRing(156,73,44,15)+mkT(120,196,"Staff-only notes tab","mk-lab","middle")+mkArrow(150,188,158,86)}),
@@ -1239,7 +1244,7 @@ const MOCKS = {
   queue: ()=> mkFrame({title:"KC Clinic",sub:"Appointments",tab:1,
     body: mkT(24,68,"Today","mk-id")+mkR(22,76,196,52,"mk-row",11)+mkT(36,96,"5:00 PM · Seema","mk-id")+mkR(36,104,60,13,"mk-statpill",6)+mkT(66,114,"Waiting","mk-statpill-t","middle")+mkBtn(150,98,60,22,"mk-accent","Arrived"),
     annot: mkRing(180,109,36,15)+mkT(120,186,"Arrived → Start → Done","mk-lab","middle")+mkArrow(150,178,180,120)}),
-  followup: ()=> mkFrame({title:"Priya Sharma",sub:"Chat",back:true,tab:-1,
+  followup: ()=> mkFrame({title:"Priya Sharma",sub:"Chat",back:true,call:true,tab:-1,
     body: mkR(16,104,208,150,"mk-sheet",18)+mkT(120,128,"Book a follow-up?","mk-id","middle")
       +mkR(34,140,172,26,"mk-row",13)+mkT(120,157,"In 1 week","mk-id","middle")
       +mkR(34,174,172,26,"mk-accent",13)+mkT(120,191,"In 2 weeks","mk-accent-t","middle")
@@ -1253,7 +1258,7 @@ const MOCKS = {
   clock: ()=> mkFrame({title:"KC Clinic",sub:"Preferences",tab:2,
     body: mkR(22,56,196,80,"mk-row",12)+mkT(36,78,"Clinic schedule","mk-id")+mkT(36,94,"4:00 PM – 9:00 PM","mk-pv")+mkBtn(40,104,160,24,"mk-accent","Edit schedule"),
     annot: mkRing(120,116,86,16)+mkT(120,182,"Hours, sessions, day off","mk-lab","middle")+mkArrow(120,174,120,128)}),
-  idcard: ()=> mkFrame({title:"Seema Devi",sub:"Private notes",back:true,tab:-1,
+  idcard: ()=> mkFrame({title:"Seema Devi",sub:"Private notes",back:true,call:true,tab:-1,
     body: mkR(22,60,196,68,"mk-row",12)+mkAv(46,92)+mkT(72,86,"Seema Devi","mk-id")+mkT(72,108,"KC-2026-0001","mk-id"),
     annot: mkRing(114,103,58,14)+mkT(120,168,"Permanent Patient ID","mk-lab","middle")+mkArrow(120,160,114,112)}),
   bell: ()=> mkFrame({title:"KC Clinic",sub:"Preferences",tab:2,
