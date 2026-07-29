@@ -122,6 +122,9 @@ nav button:active svg{transform:scale(.84)}
 
 /* bookings + settings cards */
 .card{background:#fff;border-radius:16px;margin:10px;padding:15px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card>b.ch{display:flex;align-items:center;gap:9px;font-size:15px}
+.card>b.ch .chic{flex:none;width:30px;height:30px;border-radius:9px;background:rgba(22,50,79,.08);display:flex;align-items:center;justify-content:center}
+.card>b.ch .chic svg{width:17px;height:17px;stroke:var(--brand);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .mut{color:var(--mut);font-size:12.5px;line-height:1.5}
 button.ghost{background:#fff;color:var(--green);border:1px solid var(--green);border-radius:11px;padding:10px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
@@ -324,6 +327,46 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .notes-hint{text-align:center;color:var(--mut);font-size:12px;padding:8px 6px}
 #replybar.notes .inwrap{background:#fffbe9;border:1px solid #f0e2b8}
 #toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:rgba(17,17,17,.94);color:#fff;padding:11px 18px;border-radius:22px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88vw;z-index:40;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+
+/* ---------- motion & tactile polish (native-app feel) ---------- */
+@media (prefers-reduced-motion: no-preference){
+  .act,.ghost,.qadv,.fabbook,.npbtn,.opt,.chips button,.circ,.acctbtn,.bcancel,.rxadd{transition:transform .08s ease, background .18s ease, opacity .18s ease, box-shadow .18s ease}
+  .act:active,.ghost:active,.qadv:active,.fabbook:active,.opt:active,.chips button:active,.rxadd:active{transform:scale(.97)}
+  .npbtn:active,.circ:active,.acctbtn:active{transform:scale(.9)}
+  .crow:active,.bcard:active,.vrow:active,.teamrow:active,.note:active{background:#eef1f4}
+  .pane,#thread{animation:paneIn .24s ease both}
+  .crow,.bcard,.vrow{animation:rowIn .22s ease both}
+  #sheet.open .body{will-change:transform}
+}
+@keyframes paneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes rowIn{from{opacity:0}to{opacity:1}}
+.chips button{transition:background .18s ease,color .18s ease,border-color .18s ease}
+
+/* ---------- desktop layout (proper app on laptop) ---------- */
+@media (min-width:900px){
+  body{display:block;background:#e7ebf0}
+  .shell{max-width:1200px;width:100%;height:100dvh;margin:0 auto;border-radius:0;box-shadow:none;overflow:hidden;
+    display:grid;grid-template-columns:236px 1fr;grid-template-rows:auto 1fr;grid-template-areas:"nav header" "nav main"}
+  header{grid-area:header}
+  main{grid-area:main;min-height:0}
+  .pane{padding-bottom:28px}
+  /* nav → left sidebar */
+  nav#tabs{grid-area:nav;position:static;left:auto;right:auto;bottom:auto;margin:0;width:auto;
+    flex-direction:column;align-items:stretch;gap:4px;padding:16px 12px;border:0;border-right:1px solid var(--line);
+    border-radius:0;background:#fff;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+  nav#tabs .navbrand{display:flex;align-items:center;gap:10px;padding:6px 10px 16px;font-weight:700;color:var(--navy);font-size:16px}
+  nav#tabs .navbrand img{width:30px;height:30px}
+  nav#tabs button{flex:0 0 auto;flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px;border-radius:12px;font-size:15px;color:var(--mut)}
+  nav#tabs button svg{width:22px;height:22px}
+  nav#tabs button span{font-size:15px}
+  nav#tabs button.on{background:#eef2f7;color:var(--brand)}
+  nav#tabs button:hover{background:#f4f6f9}
+  /* comfortable reading widths on wide screens */
+  #chats,#bookings,#settings{max-width:860px;margin:0 auto;width:100%}
+  .m{max-width:64%}
+  #replybar,.tbar,.seg,.searchwrap,.chips{max-width:900px;margin-left:auto;margin-right:auto}
+}
+.navbrand{display:none}
 </style>
 </head>
 <body>
@@ -374,6 +417,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   <div id="settings" class="pane hide"></div>
 </main>
 <nav id="tabs">
+  <div class="navbrand"><img src="logo.svg" alt="">KC Clinic</div>
   <button data-tab="chats" class="on"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg><span>Chats</span></button>
   <button data-tab="bookings"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Bookings</span></button>
   <button data-tab="settings"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>Settings</span></button>
@@ -1092,15 +1136,27 @@ async function currentPushSub(){
   try { const reg = await navigator.serviceWorker.getRegistration(); if (!reg?.pushManager) return null; return await reg.pushManager.getSubscription(); }
   catch { return null; }
 }
+// Card-header SVG icons (never emoji-as-icon). 24x24 stroke paths, tinted via CSS.
+const CHIC = {
+  bell:'<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+  book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  chart:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/>',
+  rx:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  flask:'<path d="M9 3h6"/><path d="M10 3v6.5L4.8 18a2 2 0 0 0 1.8 3h10.8a2 2 0 0 0 1.8-3L14 9.5V3"/><line x1="8" y1="15" x2="16" y2="15"/>',
+  ban:'<circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/>',
+};
+const chead = (name,label)=>`<b class="ch"><span class="chic"><svg viewBox="0 0 24 24">${CHIC[name]||""}</svg></span>${label}</b>`;
 async function loadSettings(){
   const sub = await currentPushSub();
   const perm = ("Notification" in window) ? Notification.permission : "unsupported";
   const notif = sub
-    ? `<div class="card"><b>🔔 Notifications</b>
+    ? `<div class="card">${chead('bell','Notifications')}
          <p style="color:var(--ok);font-weight:600;margin:8px 0 4px">✓ On for this device</p>
          <p class="mut" style="margin-bottom:10px">You'll be alerted here for every new message and booking.</p>
          <button class="ghost" id="pushOff">Turn off on this device</button></div>`
-    : `<div class="card"><b>🔔 Notifications</b>
+    : `<div class="card">${chead('bell','Notifications')}
          <p class="mut" style="margin:6px 0 10px">Get an alert on this device for every new message and booking. On iPhone, add this app to the Home Screen first, then open it from the icon.</p>
          ${perm==="denied"?`<p class="mut" style="color:var(--bad);margin-bottom:8px">Notifications are blocked in your device settings — allow them for this site, then tap below.</p>`:""}
          <button class="act" id="pushBtn" style="width:100%">Enable on this device</button></div>`;
@@ -1110,21 +1166,21 @@ async function loadSettings(){
   const fmtRange = (o,cl)=> `${t12(o)} – ${t12(cl)}`;
   const sess = c ? (fmtRange(c.open_time,c.close_time) + (c.open_time2&&c.close_time2 ? `, ${fmtRange(c.open_time2,c.close_time2)}` : "")) : "—";
   const offDays = c && (c.closed_weekdays||[]).length ? (c.closed_weekdays.map(d=>WD[d]).join(", ")) : "None";
-  const schedCard = `<div class="card"><b>🕑 Clinic schedule</b>
+  const schedCard = `<div class="card">${chead('clock','Clinic schedule')}
        <p class="mut" style="margin:8px 0 2px">Hours: <b style="color:var(--ink)">${sess}</b></p>
        <p class="mut" style="margin:2px 0">Slot length: <b style="color:var(--ink)">${c?c.slot_minutes:"—"} min</b> · Booking window: <b style="color:var(--ink)">${c?c.days_ahead:"—"} days</b></p>
        <p class="mut" style="margin:2px 0 10px">Weekly day off: <b style="color:var(--ink)">${offDays}</b></p>
        <button class="act" style="width:100%" onclick="openScheduleEditor()">Edit schedule</button></div>`;
   const statsCard = await buildStatsCard();
   const cp = await loadClinic(true);
-  const clinicCard = (myRole!=="staff") ? `<div class="card"><b>℞ Clinic & doctor details</b>
+  const clinicCard = (myRole!=="staff") ? `<div class="card">${chead('rx','Clinic & doctor details')}
        <p class="mut" style="margin:6px 0 2px">Printed on prescriptions. Fill the doctor's registration number and mobile.</p>
        <p class="mut" style="margin:2px 0"><b style="color:var(--ink)">${esc(cp.doctor_name||"—")}</b>${cp.doctor_reg_no?` · Reg ${esc(cp.doctor_reg_no)}`:" · Reg —"}</p>
        <button class="act" style="width:100%;margin-top:10px" onclick="openClinicEditor()">Edit details</button></div>` : "";
   let teamCard = "";
   if (myRole === "admin") {
     const { data: team } = await sb.from("profiles").select("id,email,display_name,role,active").order("role");
-    teamCard = `<div class="card"><b>👥 Team</b>
+    teamCard = `<div class="card">${chead('users','Team')}
        <p class="mut" style="margin:6px 0 10px">Create doctor and staff accounts and manage access.</p>
        ${(team||[]).map(t=>`<div class="teamrow">
            <div style="flex:1;min-width:0"><div class="bname">${esc(t.display_name||t.email)}${t.id===me.id?" (you)":""}</div><div class="mut">${esc(t.email||"")}${t.active?"":" · inactive"}</div></div>
@@ -1134,19 +1190,19 @@ async function loadSettings(){
        <button class="act" style="width:100%;margin-top:12px" onclick="openAddAccount()">＋ Add account</button></div>`;
   }
   const { data: devs } = myRole==="admin" ? await sb.from("dev_numbers").select("wa_phone,label").order("added_at",{ascending:false}) : { data: [] };
-  const devCard = myRole!=="admin" ? "" : `<div class="card"><b>🧪 Developer / test numbers</b>
+  const devCard = myRole!=="admin" ? "" : `<div class="card">${chead('flask','Developer / test numbers')}
        <p class="mut" style="margin:6px 0 10px">These numbers work normally but are kept out of the real stats and can be wiped. Add your own phone while testing.</p>
        <div style="display:flex;gap:8px"><input id="devNum" placeholder="Mobile number" inputmode="numeric" style="flex:1;padding:12px;border:1px solid #d1d5db;border-radius:11px;font-size:15px"><button class="act" style="width:auto;padding:12px 16px" onclick="addDevNumber()">Add</button></div>
        ${(devs??[]).map(d=>`<div class="row" style="margin-top:9px;border-top:1px solid var(--line);padding-top:9px"><span>+${esc(d.wa_phone)}${d.label?` · ${esc(d.label)}`:""}</span><button class="ghost" onclick="removeDevNumber('${esc(d.wa_phone)}')">Remove</button></div>`).join("")||`<p class="mut" style="margin-top:8px">No developer numbers yet.</p>`}
        <button class="danger" style="width:100%;margin-top:12px" onclick="wipeTestData()">Wipe all test data</button></div>`;
   const { data: blocked } = await sb.from("blocked_numbers").select("wa_phone,reason,blocked_at").order("blocked_at",{ascending:false});
-  const blockedCard = `<div class="card"><b>🚫 Blocked numbers</b>` +
+  const blockedCard = `<div class="card">${chead('ban','Blocked numbers')}` +
     ((blocked??[]).length
       ? (blocked.map(b=>`<div class="row" style="margin-top:9px;border-top:1px solid var(--line);padding-top:9px"><span>+${esc(b.wa_phone)}</span><button class="ghost" onclick="unblockNumber('${esc(b.wa_phone)}')">Unblock</button></div>`).join(""))
       : `<p class="mut" style="margin-top:6px">No blocked numbers. Block a nuisance number from its chat (the Block button).</p>`) +
     `</div>`;
   $("settings").innerHTML = notif +
-    `<div class="card"><b>📚 New here?</b><p class="mut" style="margin:6px 0 10px">A quick guide to every feature and when to use it.</p>
+    `<div class="card">${chead('book','New here?')}<p class="mut" style="margin:6px 0 10px">A quick guide to every feature and when to use it.</p>
        <button class="act" style="width:100%" onclick="openTutorial()">How to use this app</button></div>` +
     statsCard +
     schedCard +
@@ -1179,7 +1235,7 @@ async function buildStatsCard(){
   rows.filter(a=>a.status==="booked"||a.status==="completed").forEach(a=>{ const n=a.appointment_types?.name_en||a.type_code||"Other"; counts[n]=(counts[n]||0)+1; });
   const top = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,4);
   const typeRows = top.length ? top.map(([n,c])=>`<div class="srow"><span>${esc(n)}</span><b>${c}</b></div>`).join("") : `<p class="mut" style="margin-top:6px">No bookings yet.</p>`;
-  return `<div class="card"><b>📊 Clinic stats</b>
+  return `<div class="card">${chead('chart','Clinic stats')}
       <div class="phist" style="margin-top:10px">
         <div><b>${next7}</b><span>Next 7 days</span></div>
         <div><b>${completed}</b><span>Seen (30d)</span></div>
