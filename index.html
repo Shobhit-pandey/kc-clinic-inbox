@@ -42,6 +42,12 @@ header .sub{font-size:12.5px;opacity:.85;font-weight:400}
 header .ico-btn{background:none;border:0;color:#fff;cursor:pointer;padding:4px;display:flex}
 .acctbtn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;border:0;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .rolebadge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:#e3e9f0;color:var(--brand);text-transform:capitalize}
+.linklike{background:none;border:0;color:var(--brand);font-size:14px;font-weight:600;cursor:pointer;padding:10px 0;display:block;margin:2px auto 0}
+.teamrow{display:flex;align-items:center;gap:10px;margin-top:9px;border-top:1px solid var(--line);padding-top:9px}
+#setpw{position:absolute;inset:0;background:var(--chatbg);z-index:70;display:none;align-items:center;justify-content:center;padding:22px}
+#setpw.open{display:flex}
+.setpw-card{background:#fff;border-radius:18px;padding:26px 20px;width:100%;max-width:360px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+.setpw-card input{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:12px;font-size:16px}
 header .ico-btn svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 header .ico-btn:active{opacity:.55}
 
@@ -391,6 +397,16 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   <header class="noprint"><button class="ico-btn" onclick="closeRxPrint()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="ttl">Prescription</div><button class="act" id="rxSendBtn" style="width:auto;padding:9px 13px;background:#fff;color:var(--brand)" onclick="sendRxToPatient()">Send</button><button class="act" style="width:auto;padding:9px 13px" onclick="window.print()">Print</button></header>
   <div class="rxsheet" id="rxSheet"></div>
 </div>
+<div id="setpw">
+  <div class="setpw-card">
+    <div class="av logo-sq" style="margin:0 auto 12px"><img src="logo.svg" alt=""></div>
+    <h2 style="color:var(--navy);text-align:center;margin-bottom:4px">Set your password</h2>
+    <p class="mut" style="text-align:center;margin-bottom:16px">Welcome to KC Clinic. Choose a password to finish setting up your account.</p>
+    <input id="spwInput" type="password" placeholder="New password (min 8)">
+    <button class="act" style="width:100%;margin-top:10px" onclick="saveSetPw()">Set password & continue</button>
+    <p id="spwErr" class="mut" style="color:var(--bad);margin-top:8px"></p>
+  </div>
+</div>
 </div>
 <div id="toast"></div>
 
@@ -425,13 +441,19 @@ $("loginBtn").onclick = async () => {
   } catch (e) { $("loginErr").textContent = "Could not reach server: " + (e && e.message ? e.message : e); }
 };
 $("pass").addEventListener("keydown",(e)=>{ if(e.key==="Enter") $("loginBtn").click(); });
-sb.auth.onAuthStateChange(async (_e, session) => {
+sb.auth.onAuthStateChange(async (ev, session) => {
   const was = !!me; me = session?.user ?? null;
   $("login").classList.toggle("hide", !!me);
   $("app").classList.toggle("hide", !me);
   if (me && !was) {
-    const { data: pr } = await sb.from("profiles").select("role,display_name").eq("id", me.id).maybeSingle();
+    const { data: pr } = await sb.from("profiles").select("role,display_name,active,must_change_pw").eq("id", me.id).maybeSingle();
+    if (pr && pr.active === false) {
+      await sb.auth.signOut();
+      const el = $("loginErr"); if (el) el.textContent = "Your account has been deactivated. Please contact the clinic admin.";
+      return;
+    }
     myRole = pr?.role || "staff"; myName = pr?.display_name || (me.email || "").split("@")[0];
+    if (pr?.must_change_pw) { showSetPw(); return; }   // temp password → must set a new one
     showTab("chats"); subscribeRealtime(); handleDeepLink();
   }
 });
@@ -1089,6 +1111,18 @@ async function loadSettings(){
        <p class="mut" style="margin:6px 0 2px">Printed on prescriptions. Fill the doctor's registration number and mobile.</p>
        <p class="mut" style="margin:2px 0"><b style="color:var(--ink)">${esc(cp.doctor_name||"—")}</b>${cp.doctor_reg_no?` · Reg ${esc(cp.doctor_reg_no)}`:" · Reg —"}</p>
        <button class="act" style="width:100%;margin-top:10px" onclick="openClinicEditor()">Edit details</button></div>` : "";
+  let teamCard = "";
+  if (myRole === "admin") {
+    const { data: team } = await sb.from("profiles").select("id,email,display_name,role,active").order("role");
+    teamCard = `<div class="card"><b>👥 Team</b>
+       <p class="mut" style="margin:6px 0 10px">Create doctor and staff accounts and manage access.</p>
+       ${(team||[]).map(t=>`<div class="teamrow">
+           <div style="flex:1;min-width:0"><div class="bname">${esc(t.display_name||t.email)}${t.id===me.id?" (you)":""}</div><div class="mut">${esc(t.email||"")}${t.active?"":" · inactive"}</div></div>
+           <span class="rolebadge">${esc(t.role)}</span>
+           ${t.id===me.id?"":`<button class="bcancel" style="color:var(--mut)" onclick="teamMenu('${t.id}','${esc((t.display_name||t.email||'').replace(/['\\]/g,''))}','${t.role}',${!!t.active})">⋯</button>`}
+         </div>`).join("")}
+       <button class="act" style="width:100%;margin-top:12px" onclick="openAddAccount()">＋ Add account</button></div>`;
+  }
   const { data: devs } = myRole==="admin" ? await sb.from("dev_numbers").select("wa_phone,label").order("added_at",{ascending:false}) : { data: [] };
   const devCard = myRole!=="admin" ? "" : `<div class="card"><b>🧪 Developer / test numbers</b>
        <p class="mut" style="margin:6px 0 10px">These numbers work normally but are kept out of the real stats and can be wiped. Add your own phone while testing.</p>
@@ -1107,6 +1141,7 @@ async function loadSettings(){
     statsCard +
     schedCard +
     clinicCard +
+    teamCard +
     blockedCard +
     devCard +
     `<div class="card"><b>Signed in as</b><p class="mut" style="margin-top:4px">${esc(me?.email??"")}</p>
@@ -1185,12 +1220,84 @@ window.openAccount = () => {
        <div class="mut">${esc(me?.email||"")}</div>
        <div style="margin-top:8px"><span class="rolebadge">${esc(myRole)}</span></div>
      </div>
+     <button class="opt" onclick="openChangePw()">Change password</button>
      <button class="opt" onclick="closeSheet();showTab('settings')">Open Settings</button>
      <button class="opt danger" id="acctOut">Sign out</button>
      <button class="opt plain" id="acctCancel">Cancel</button>`;
   s.querySelector("#acctCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
   s.querySelector("#acctOut").onclick=async(e)=>{e.stopPropagation();await sb.auth.signOut();location.reload();};
   s.classList.add("open");
+};
+window.openChangePw = () => {
+  const s = $("sheet");
+  s.querySelector(".body").innerHTML =
+    `<div class="title">Change password</div>
+     <input id="cpw" type="password" placeholder="New password (min 8 characters)">
+     <button class="opt primary" id="cpwSave">Update password</button><button class="opt plain" id="cpwCancel">Cancel</button>`;
+  s.querySelector("#cpwCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
+  s.querySelector("#cpwSave").onclick=async(e)=>{
+    e.stopPropagation();
+    const pw=$("cpw").value; if(pw.length<8){ toast("Password must be at least 8 characters"); return; }
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if(error){ toast(error.message); return; }
+    if(me?.id) await sb.from("profiles").update({ must_change_pw: false }).eq("id", me.id);
+    closeSheet(); toast("Password updated");
+  };
+  s.classList.add("open");
+};
+// Admin account management (calls the manage-account edge function).
+async function callManage(body){
+  const auth = await authHeader(); if(!auth) return { error:"no session" };
+  const res = await fetch(SUPABASE_URL + "/functions/v1/manage-account", { method:"POST", headers:{ "apikey":PUBLISHABLE_KEY, "Authorization":auth, "Content-Type":"application/json" }, body: JSON.stringify(body) });
+  const j = await res.json().catch(()=>({}));
+  if(!res.ok){ toast(j.error || ("Error " + res.status)); return { error: j.error||res.status }; }
+  return j;
+}
+const genPassword = ()=>"kc-" + Math.random().toString(36).slice(2,8) + Math.floor(10+Math.random()*89);
+window.openAddAccount = () => {
+  const s = $("sheet");
+  s.querySelector(".body").innerHTML =
+    `<div class="title">Add team account</div>
+     <p class="mut" style="margin:2px 2px 0">Share the email + temporary password with the person. They'll set their own password on first login.</p>
+     <input id="acEmail" placeholder="Email" inputmode="email" autocapitalize="none">
+     <input id="acName" placeholder="Name (optional)">
+     <select id="acRole"><option value="staff">Staff</option><option value="doctor">Doctor</option><option value="admin">Admin</option></select>
+     <input id="acPass" value="${genPassword()}">
+     <button class="opt primary" id="acCreate">Create account</button>
+     <button class="opt plain" id="acCancel">Cancel</button>`;
+  s.querySelector("#acCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
+  s.querySelector("#acCreate").onclick=async(e)=>{
+    e.stopPropagation();
+    const email=$("acEmail").value.trim().toLowerCase(), pass=$("acPass").value;
+    const r = await callManage({ action:"create", email, display_name:$("acName").value.trim(), role:$("acRole").value, password:pass });
+    if(!r.error){ closeSheet(); alert(`Account created.\n\nEmail: ${email}\nTemporary password: ${pass}\n\nShare these. They'll be asked to set a new password when they first sign in.`); loadSettings(); }
+  };
+  s.classList.add("open");
+};
+window.teamMenu = (id, name, role, active) => openSheet("Manage " + name, [
+  ...(role!=="admin"?[{ label:"Make admin", fn:()=>teamRole(id,"admin") }]:[]),
+  ...(role!=="doctor"?[{ label:"Make doctor", fn:()=>teamRole(id,"doctor") }]:[]),
+  ...(role!=="staff"?[{ label:"Make staff", fn:()=>teamRole(id,"staff") }]:[]),
+  { label:"Reset password", fn:()=>teamResetPw(id,name) },
+  { label: active?"Deactivate":"Activate", fn:()=>teamActive(id,!active) },
+  { label:"Delete account", cls:"danger", fn:()=>{ if(confirm("Delete this account permanently?")) teamDelete(id); } },
+]);
+async function teamResetPw(id,name){
+  const pw = genPassword();
+  const r = await callManage({ action:"reset_pw", user_id:id, password:pw });
+  if(!r.error) alert(`New temporary password for ${name}:\n\n${pw}\n\nShare it. They'll set their own password on next login.`);
+}
+async function teamRole(id,role){ const r=await callManage({action:"set_role",user_id:id,role}); if(!r.error){ toast("Role updated"); loadSettings(); } }
+async function teamActive(id,active){ const r=await callManage({action:"set_active",user_id:id,active}); if(!r.error){ toast(active?"Activated":"Deactivated"); loadSettings(); } }
+async function teamDelete(id){ const r=await callManage({action:"delete",user_id:id}); if(!r.error){ toast("Account deleted"); loadSettings(); } }
+// Forced set-password on first login / after an admin reset.
+function showSetPw(){ $("login")?.classList.add("hide"); $("app")?.classList.add("hide"); $("setpw").classList.add("open"); }
+window.saveSetPw = async () => {
+  const pw = $("spwInput").value; if(pw.length<8){ $("spwErr").textContent="Password must be at least 8 characters"; return; }
+  const { error } = await sb.auth.updateUser({ password: pw });
+  if(error){ $("spwErr").textContent=error.message; return; }
+  if(me?.id) await sb.from("profiles").update({ must_change_pw: false }).eq("id", me.id);
+  location.reload();
 };
 function b64ToU8(b64){ const pad="=".repeat((4-b64.length%4)%4); const raw=atob((b64+pad).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from([...raw].map(c=>c.charCodeAt(0))); }
 async function enablePush(){
@@ -1620,7 +1727,7 @@ const TUTORIAL = [
   ["clock","Clinic schedule","In Settings, edit opening hours, add a second session like a morning block, set slot length, and pick a weekly day off. It updates the bot instantly.","Change hours or add a day off."],
   ["stats","Clinic stats","Settings shows a quick read: appointments in the coming week, patients seen in the last 30 days, your no-show rate, and the most common appointment types.","A quick pulse on how the clinic is doing."],
   ["idcard","Patient ID","Every patient gets a permanent ID like KC-2026-0001, shown in Private notes. It never changes, even if the phone number does.","Use it in paper records and receipts."],
-  ["account","Your account & roles","Tap your initials at the top right for your account and to sign out. Accounts come in three roles: admin (manages everything), doctor (full clinical access), and staff (day-to-day, but cannot see the doctor's private notes and cannot write prescriptions). This keeps patient privacy protected.","Sign out; roles protect privacy."],
+  ["account","Your account & roles","Tap your initials at the top right for your account, to change your password, or to sign out. Accounts come in three roles: admin (manages everything, including the Team in Settings), doctor (full clinical access), and staff (day-to-day, but cannot see the doctor's private notes or write prescriptions). New accounts get a temporary password and set their own on first login.","Sign out; roles protect privacy."],
   ["bell","Notifications","In Settings, turn on alerts for each device. On iPhone, add the app to the Home Screen first, then open it from the icon. You get every new message and booking, plus a morning summary.","Turn it on so nothing is missed."],
   ["phone","Emergencies","This app and WhatsApp are not for emergencies. Patients are told to call the clinic for anything urgent.","If a chat sounds urgent, call the patient."],
 ];
