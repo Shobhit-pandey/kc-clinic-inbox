@@ -40,6 +40,8 @@ header .av.logo-sq img{border-radius:9px}
 header .ttl{font-size:17px;font-weight:600;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 header .sub{font-size:12.5px;opacity:.85;font-weight:400}
 header .ico-btn{background:none;border:0;color:#fff;cursor:pointer;padding:4px;display:flex}
+.acctbtn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;border:0;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.rolebadge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;background:#e3e9f0;color:var(--brand);text-transform:capitalize}
 header .ico-btn svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 header .ico-btn:active{opacity:.55}
 
@@ -178,6 +180,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 #sheet .opt{width:100%;background:#fff;border:0;border-radius:13px;padding:15px;font-size:16px;margin-top:8px;cursor:pointer;color:var(--green);font-weight:600}
 #sheet .opt.danger{color:var(--bad)}
 #sheet .opt.plain{color:var(--tx);font-weight:500}
+#sheet .opt.danger{color:var(--bad)}
 #sheet .opt.primary{background:var(--brand);color:#fff}
 #sheet .opt.primary:active{background:var(--brand-d)}
 /* chat / private-notes segmented toggle */
@@ -334,6 +337,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   <div class="av" id="hAv"><img src="logo.svg" alt=""></div>
   <div style="flex:1;min-width:0"><div class="ttl" id="hTitle">KC Clinic</div><div class="sub" id="hSub">Staff inbox</div></div>
   <a class="ico-btn" id="hCall" href="#" style="display:none" title="Call patient"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg></a>
+  <button class="acctbtn" id="hAcct" style="display:none" title="Account" onclick="openAccount()"><span id="hAcctIni">•</span></button>
 </header>
 <main>
   <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"><button class="npbtn" title="New patient" onclick="openNewPatient()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div><div class="chips" id="chatChips"><button data-f="all" class="on">All</button><button data-f="needs_human">Needs reply</button><button data-f="unread">Unread</button></div><div id="chatList"></div></div>
@@ -400,7 +404,7 @@ const PUBLISHABLE_KEY = "sb_publishable_42opnFY4QP-KC2bCoNQSfw_OuHtBISF";
 const VAPID = "BKxKqzaKG39_Xf2O543johvOqr1XXP-mLrvwiuRrzZRUmS-ay8DMFDAm0EDuujytb5GRBVDZFFBjLZdgZmrkRHk";
 const sb = createClient(SUPABASE_URL, PUBLISHABLE_KEY);
 const $ = (id) => document.getElementById(id);
-let me = null, openConvo = null, channel = null;
+let me = null, openConvo = null, channel = null, myRole = "staff", myName = "";
 
 function toast(t){ const el=$("toast"); el.textContent=t; el.style.opacity=1; setTimeout(()=>el.style.opacity=0, 2600); }
 const IST = { timeZone:"Asia/Kolkata" };
@@ -421,12 +425,17 @@ $("loginBtn").onclick = async () => {
   } catch (e) { $("loginErr").textContent = "Could not reach server: " + (e && e.message ? e.message : e); }
 };
 $("pass").addEventListener("keydown",(e)=>{ if(e.key==="Enter") $("loginBtn").click(); });
-sb.auth.onAuthStateChange((_e, session) => {
+sb.auth.onAuthStateChange(async (_e, session) => {
   const was = !!me; me = session?.user ?? null;
   $("login").classList.toggle("hide", !!me);
   $("app").classList.toggle("hide", !me);
-  if (me && !was) { showTab("chats"); subscribeRealtime(); handleDeepLink(); }
+  if (me && !was) {
+    const { data: pr } = await sb.from("profiles").select("role,display_name").eq("id", me.id).maybeSingle();
+    myRole = pr?.role || "staff"; myName = pr?.display_name || (me.email || "").split("@")[0];
+    showTab("chats"); subscribeRealtime(); handleDeepLink();
+  }
 });
+const canWriteRx = ()=> myRole === "admin" || myRole === "doctor";
 
 // Tapping a notification lands here (fresh open) or messages the open tab (SW).
 function routeUrl(url){
@@ -457,6 +466,7 @@ function showTab(tab){
   $("tabs").classList.remove("hide");
   $("backBtn").style.display = "none";
   $("hCall").style.display = "none";
+  $("hAcct").style.display = "flex"; $("hAcctIni").textContent = initials(myName) || "•";
   $("hAv").className = "av logo-sq";
   $("hAv").innerHTML = '<img src="logo.svg" alt="">';
   $("hTitle").textContent = "KC Clinic";
@@ -532,6 +542,7 @@ window.openThread = async (id) => {
   const phone = c?.patients?.wa_phone;
   openPatientPhone = phone || null;
   if (phone) { $("hCall").href = "tel:+"+phone; $("hCall").style.display = "flex"; } else $("hCall").style.display = "none";
+  $("hAcct").style.display = "none";
   $("tStatus").textContent = statLabel(c?.status); $("tStatus").className = "stat " + (c?.status ?? "");
   setThreadMode("chat");
   await sb.from("conversations").update({ unread_count: 0 }).eq("id", id);
@@ -553,7 +564,9 @@ function setThreadMode(m){
   $("qrToggle").style.display = notes ? "none" : "flex";
   $("attachBtn").style.display = notes ? "none" : "flex";
   $("replybar").classList.toggle("notes", notes);
-  $("replyText").placeholder = notes ? "Add a private note (staff only)…" : "Message";
+  // Staff can record vitals (＋ Vitals) but not free private notes (doctor/admin only).
+  $("replybar").classList.toggle("hide", notes && myRole === "staff");
+  $("replyText").placeholder = notes ? "Add a private note…" : "Message";
   if (notes) renderNotes();
 }
 document.querySelectorAll("#threadSeg button").forEach(b=> b.onclick = ()=> setThreadMode(b.dataset.mode));
@@ -593,7 +606,7 @@ async function renderNotes(){
         <button class="ghost" style="flex:1" onclick="addVitals()">＋ Vitals</button>
       </div>
       <button class="ghost" style="width:100%;margin-top:8px" onclick="logWalkIn()">＋ Log walk-in visit</button>
-      <button class="act" style="width:100%;margin-top:8px" onclick="openRxEditor()">℞ Write prescription</button></div>`;
+      ${canWriteRx()?`<button class="act" style="width:100%;margin-top:8px" onclick="openRxEditor()">℞ Write prescription</button>`:""}</div>`;
   // Prescriptions (each printable). Doctor writes; anyone here can print/send.
   const rxlist = (rxs??[]).length
     ? `<div class="vhead">Prescriptions · ${rxs.length}</div>` + rxs.map(r=>
@@ -1072,12 +1085,12 @@ async function loadSettings(){
        <button class="act" style="width:100%" onclick="openScheduleEditor()">Edit schedule</button></div>`;
   const statsCard = await buildStatsCard();
   const cp = await loadClinic(true);
-  const clinicCard = `<div class="card"><b>℞ Clinic & doctor details</b>
+  const clinicCard = (myRole!=="staff") ? `<div class="card"><b>℞ Clinic & doctor details</b>
        <p class="mut" style="margin:6px 0 2px">Printed on prescriptions. Fill the doctor's registration number and mobile.</p>
        <p class="mut" style="margin:2px 0"><b style="color:var(--ink)">${esc(cp.doctor_name||"—")}</b>${cp.doctor_reg_no?` · Reg ${esc(cp.doctor_reg_no)}`:" · Reg —"}</p>
-       <button class="act" style="width:100%;margin-top:10px" onclick="openClinicEditor()">Edit details</button></div>`;
-  const { data: devs } = await sb.from("dev_numbers").select("wa_phone,label").order("added_at",{ascending:false});
-  const devCard = `<div class="card"><b>🧪 Developer / test numbers</b>
+       <button class="act" style="width:100%;margin-top:10px" onclick="openClinicEditor()">Edit details</button></div>` : "";
+  const { data: devs } = myRole==="admin" ? await sb.from("dev_numbers").select("wa_phone,label").order("added_at",{ascending:false}) : { data: [] };
+  const devCard = myRole!=="admin" ? "" : `<div class="card"><b>🧪 Developer / test numbers</b>
        <p class="mut" style="margin:6px 0 10px">These numbers work normally but are kept out of the real stats and can be wiped. Add your own phone while testing.</p>
        <div style="display:flex;gap:8px"><input id="devNum" placeholder="Mobile number" inputmode="numeric" style="flex:1;padding:12px;border:1px solid #d1d5db;border-radius:11px;font-size:15px"><button class="act" style="width:auto;padding:12px 16px" onclick="addDevNumber()">Add</button></div>
        ${(devs??[]).map(d=>`<div class="row" style="margin-top:9px;border-top:1px solid var(--line);padding-top:9px"><span>+${esc(d.wa_phone)}${d.label?` · ${esc(d.label)}`:""}</span><button class="ghost" onclick="removeDevNumber('${esc(d.wa_phone)}')">Remove</button></div>`).join("")||`<p class="mut" style="margin-top:8px">No developer numbers yet.</p>`}
@@ -1162,6 +1175,23 @@ async function waitlistHintForAppt(id){
   if(count) toast(`${count} on the waitlist for that day — see Bookings › Waitlist`);
 }
 
+window.openAccount = () => {
+  const s = $("sheet");
+  s.querySelector(".body").innerHTML =
+    `<div class="title">Account</div>
+     <div style="text-align:center;padding:4px 0 12px">
+       <div style="width:64px;height:64px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;margin:0 auto 10px">${esc(initials(myName)||"•")}</div>
+       <div style="font-weight:700;font-size:17px;color:var(--navy)">${esc(myName||"Staff")}</div>
+       <div class="mut">${esc(me?.email||"")}</div>
+       <div style="margin-top:8px"><span class="rolebadge">${esc(myRole)}</span></div>
+     </div>
+     <button class="opt" onclick="closeSheet();showTab('settings')">Open Settings</button>
+     <button class="opt danger" id="acctOut">Sign out</button>
+     <button class="opt plain" id="acctCancel">Cancel</button>`;
+  s.querySelector("#acctCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
+  s.querySelector("#acctOut").onclick=async(e)=>{e.stopPropagation();await sb.auth.signOut();location.reload();};
+  s.classList.add("open");
+};
 function b64ToU8(b64){ const pad="=".repeat((4-b64.length%4)%4); const raw=atob((b64+pad).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from([...raw].map(c=>c.charCodeAt(0))); }
 async function enablePush(){
   try {
@@ -1564,6 +1594,9 @@ const MOCKS = {
       +mkR(116,110,44,26,"mk-search",13)+mkT(138,127,"Close","mk-ph","middle")
       +mkR(166,110,54,26,"mk-search",13)+mkT(193,127,"Block","mk-statpill-t","middle"),
     annot: mkRing(193,123,33,17)+mkT(120,182,"Block a nuisance number","mk-lab","middle")+mkArrow(150,174,193,138)}),
+  account: ()=> mkFrame({title:"KC Clinic",sub:"Staff inbox",tab:0,
+    body: mkSearch(54)+mkRow(92,{nm:"Priya Sharma",pv:"Thank you 🙏",time:"9:41"})+mkRow(138,{nm:"Anjali",pv:"Photo",time:"8:15"}),
+    annot: mkC(214,27,12,"mk-accent")+mkT(214,31,"A","mk-accent-t","middle")+mkRing(214,27,19,18)+mkT(120,150,"Your account & sign out","mk-lab","middle")+mkArrow(150,142,214,46)}),
   rx: ()=> mkFrame({title:"Priya Sharma",sub:"Private notes",back:true,call:true,tab:-1,
     body: mkR(22,58,196,48,"mk-row",12)+mkT(36,80,"Patient · KC-2026-0004","mk-id")+mkT(36,96,"Age 29 · O+","mk-pv")
       +mkBtn(34,114,172,26,"mk-accent","℞ Write prescription")
@@ -1587,6 +1620,7 @@ const TUTORIAL = [
   ["clock","Clinic schedule","In Settings, edit opening hours, add a second session like a morning block, set slot length, and pick a weekly day off. It updates the bot instantly.","Change hours or add a day off."],
   ["stats","Clinic stats","Settings shows a quick read: appointments in the coming week, patients seen in the last 30 days, your no-show rate, and the most common appointment types.","A quick pulse on how the clinic is doing."],
   ["idcard","Patient ID","Every patient gets a permanent ID like KC-2026-0001, shown in Private notes. It never changes, even if the phone number does.","Use it in paper records and receipts."],
+  ["account","Your account & roles","Tap your initials at the top right for your account and to sign out. Accounts come in three roles: admin (manages everything), doctor (full clinical access), and staff (day-to-day, but cannot see the doctor's private notes and cannot write prescriptions). This keeps patient privacy protected.","Sign out; roles protect privacy."],
   ["bell","Notifications","In Settings, turn on alerts for each device. On iPhone, add the app to the Home Screen first, then open it from the icon. You get every new message and booking, plus a morning summary.","Turn it on so nothing is missed."],
   ["phone","Emergencies","This app and WhatsApp are not for emergencies. Patients are told to call the clinic for anything urgent.","If a chat sounds urgent, call the patient."],
 ];
