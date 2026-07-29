@@ -458,6 +458,16 @@ sb.auth.onAuthStateChange(async (ev, session) => {
   }
 });
 const canWriteRx = ()=> myRole === "admin" || myRole === "doctor";
+// Force-logout enforcement: if this account is deactivated (or its sessions were
+// revoked so the token can't refresh), sign out promptly instead of lingering.
+async function enforceActive(){
+  if(!me) return;
+  const { data: pr, error } = await sb.from("profiles").select("active").eq("id", me.id).maybeSingle();
+  if(error || !pr) return; // ignore transient errors
+  if(pr.active === false){ await sb.auth.signOut(); location.reload(); }
+}
+setInterval(enforceActive, 60000);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) enforceActive(); });
 
 // Tapping a notification lands here (fresh open) or messages the open tab (SW).
 function routeUrl(url){
@@ -1302,6 +1312,7 @@ window.teamMenu = (id, name, role, active) => openSheet("Manage " + name, [
   ...(role!=="doctor"?[{ label:"Make doctor", fn:()=>teamRole(id,"doctor") }]:[]),
   ...(role!=="staff"?[{ label:"Make staff", fn:()=>teamRole(id,"staff") }]:[]),
   { label:"Reset password", fn:()=>teamResetPw(id,name) },
+  { label:"Force logout", fn:()=>teamForceLogout(id,name) },
   { label: active?"Deactivate":"Activate", fn:()=>teamActive(id,!active) },
   { label:"Delete account", cls:"danger", fn:()=>{ if(confirm("Delete this account permanently?")) teamDelete(id); } },
 ]);
@@ -1310,6 +1321,7 @@ async function teamResetPw(id,name){
   const r = await callManage({ action:"reset_pw", user_id:id, password:pw });
   if(!r.error) alert(`New temporary password for ${name}:\n\n${pw}\n\nShare it. They'll set their own password on next login.`);
 }
+async function teamForceLogout(id,name){ const r=await callManage({action:"force_logout",user_id:id}); if(!r.error) toast(name+" will be signed out"); }
 async function teamRole(id,role){ const r=await callManage({action:"set_role",user_id:id,role}); if(!r.error){ toast("Role updated"); loadSettings(); } }
 async function teamActive(id,active){ const r=await callManage({action:"set_active",user_id:id,active}); if(!r.error){ toast(active?"Activated":"Deactivated"); loadSettings(); } }
 async function teamDelete(id){ const r=await callManage({action:"delete",user_id:id}); if(!r.error){ toast("Account deleted"); loadSettings(); } }
