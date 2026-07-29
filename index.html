@@ -279,6 +279,31 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .tdots i.on{background:var(--navy);width:19px;border-radius:4px}
 .tback{background:none;border:0;color:var(--mut);font-size:15px;font-weight:600;cursor:pointer;padding:8px 4px;min-width:60px;text-align:left}
 .tnext{background:var(--navy);border:0;color:#fff;font-size:15px;font-weight:600;cursor:pointer;padding:10px 24px;border-radius:999px}
+/* user-story walkthroughs (reuse the tutorial mock system) */
+#stories{position:absolute;inset:0;background:var(--chatbg);z-index:51;display:none;flex-direction:column}
+#stories.open{display:flex}
+#stories header{display:flex;align-items:center;gap:8px;padding:max(14px,env(safe-area-inset-top)) 14px 12px 8px;background:#fff;border-bottom:1px solid var(--line)}
+#stories header .ttl{font-weight:700;color:var(--navy);font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#stories .sbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px calc(28px + env(safe-area-inset-bottom))}
+.story-intro{color:var(--mut);font-size:13.5px;margin:2px 4px 14px;line-height:1.55}
+.slist-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:11px;box-shadow:0 1px 3px rgba(0,0,0,.05);cursor:pointer;display:flex;gap:12px;align-items:center;transition:transform .08s ease}
+.slist-card:active{transform:scale(.985)}
+.slist-card .sidx{width:32px;height:32px;border-radius:10px;background:rgba(22,50,79,.09);color:var(--brand);font-weight:800;display:grid;place-items:center;flex:none;font-size:14px}
+.slist-card .st{font-weight:700;color:var(--ink);font-size:15px;line-height:1.25}
+.slist-card .ss{color:var(--mut);font-size:12.5px;margin-top:2px;line-height:1.4}
+.slist-card .chev{margin-left:auto;flex:none;color:#c3ccd4}
+.sstep{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px 16px 18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);animation:rowIn .3s ease both}
+.sstep .snum{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.sstep .snum b{width:24px;height:24px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:12.5px;font-weight:700;flex:none}
+.sactor{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:6px;color:#fff}
+.sactor.patient{background:#c88a1e} .sactor.bot{background:#3a6ea5} .sactor.staff{background:#586b7a} .sactor.doctor{background:var(--ok)} .sactor.admin{background:var(--brand-d)}
+.sstep .smock{width:172px;height:215px;margin:12px auto 6px;filter:drop-shadow(0 8px 20px rgba(22,50,79,.18))}
+.sstep .smock svg{width:100%;height:100%;display:block}
+.sstep h4{margin:6px 0 4px;font-size:16px;color:var(--navy);font-weight:700}
+.sstep p{margin:0;color:var(--tx);font-size:14.5px;line-height:1.55}
+.sstep p b{color:var(--ink)}
+.story-tip{background:#f3f7f4;border:1px solid #d8e8de;border-radius:12px;padding:12px 14px;font-size:13px;color:var(--tx);line-height:1.5;margin-top:2px}
+.story-tip b{color:var(--ok)}
 /* prescriptions: editor + printable page */
 #rxEdit{position:absolute;inset:0;background:var(--chatbg);z-index:60;display:none;flex-direction:column}
 #rxEdit.open{display:flex}
@@ -435,6 +460,13 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
     <div class="tdots" id="tutDots"></div>
     <button class="tnext" id="tutNext" onclick="tutNext()">Next</button>
   </div>
+</div>
+<div id="stories">
+  <header>
+    <button class="ico-btn" id="storiesBack" onclick="storiesBack()" title="Back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="ttl" id="storiesTitle">Walkthroughs</div>
+  </header>
+  <div class="sbody" id="storiesBody"></div>
 </div>
 <div id="rxEdit">
   <header><button class="ico-btn" onclick="closeRxEdit()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="ttl">Write prescription</div></header>
@@ -1258,7 +1290,8 @@ async function loadSettings(){
     `</div>`;
   $("settings").innerHTML = notif +
     `<div class="card">${chead('book','New here?')}<p class="mut" style="margin:6px 0 10px">A quick guide to every feature and when to use it.</p>
-       <button class="act" style="width:100%" onclick="openTutorial()">How to use this app</button></div>` +
+       <button class="act" style="width:100%" onclick="openTutorial()">How to use this app</button>
+       <button class="ghost" style="width:100%;margin-top:8px" onclick="openStories()">Walkthroughs — real situations</button></div>` +
     statsCard +
     schedCard +
     clinicCard +
@@ -1906,6 +1939,90 @@ window.tutNext = () => { if(tutI>=TUTORIAL.length-1){ closeTut(); return; } tutI
   st.addEventListener("touchstart",(e)=>{ x0=e.touches[0].clientX; },{passive:true});
   st.addEventListener("touchend",(e)=>{ if(x0==null) return; const dx=e.changedTouches[0].clientX-x0; if(dx<-45) tutNext(); else if(dx>45) tutPrev(); x0=null; },{passive:true});
 })();
+
+// --- Walkthroughs: real end-to-end situations, one screen at a time, written for
+// first-time non-technical staff. Reuses the tutorial's SVG mock screenshots. ---
+const ACTOR_LABEL = { patient:"Patient", bot:"The app", staff:"Reception", doctor:"Doctor", admin:"Admin" };
+const STORIES = [
+  { title:"New patient books on WhatsApp",
+    sub:"Someone who has never messaged the clinic before books a visit.",
+    steps:[
+      { actor:"bot", mock:"chats", title:"The patient books themselves", text:"A new patient messages the clinic's WhatsApp number in Hindi or English. The app greets them and guides them through booking, the type of visit, a day, a time, and their name and age, with no help from you. Their chat appears in your inbox. After clinic hours it politely says we're closed but still lets them book." },
+      { actor:"staff", mock:"bell", title:"Your phone alerts you", text:"You get a <b>New booking</b> alert on your phone. (You turn alerts on once — see the last walkthrough.)" },
+      { actor:"staff", mock:"calendar", title:"See it in Bookings", text:"Open the <b>Bookings</b> tab to see today's list. Tap the three dots on a booking if you ever need to move it, mark a no-show, or cancel." },
+      { actor:"staff", mock:"queue", title:"Move them through the visit", text:"When the patient reaches the clinic tap <b>Arrived</b>. When the doctor calls them in tap <b>Start</b>. When finished tap <b>Done</b>. Everyone sees who is waiting." },
+      { actor:"staff", mock:"notes", title:"Write down vitals", text:"Open the patient and switch to <b>Notes</b>. Tap <b>＋ Vitals</b> to record BP, weight or pulse. Don't worry, the patient never sees these notes." },
+      { actor:"doctor", mock:"rx", title:"Doctor writes the prescription", text:"In <b>Notes</b>, the doctor taps <b>Write prescription</b> and adds each medicine and any advice. It prints on the clinic's own letterhead (the doctor can edit those details in Settings)." },
+      { actor:"doctor", mock:"rx", title:"Give it to the patient", text:"Tap <b>Print</b> for a paper copy, or <b>Send</b> to deliver it to the patient's WhatsApp as a PDF." },
+      { actor:"staff", mock:"followup", title:"Book the next visit", text:"After you tap <b>Done</b>, the app offers a follow-up in 1, 2 or 4 weeks. One tap books it." },
+    ]},
+  { title:"Returning patient books on WhatsApp",
+    sub:"A patient the clinic has seen before, messaging from the same number.",
+    steps:[
+      { actor:"bot", mock:"chats", title:"They message again", text:"The app recognises the number, welcomes them back by name, and helps them book just like before. Their chat moves to the top of your inbox." },
+      { actor:"bot", mock:"notes", title:"Who is the visit for?", text:"If the same phone is shared by a family (a husband booking for his wife, a mother for a child), the app asks who the visit is for, and keeps each person separate." },
+      { actor:"staff", mock:"notes", title:"Switch between people", text:"Inside the chat's <b>Notes</b>, the chips at the top let you switch person, or tap <b>Add person</b> to add a family member on the same number." },
+      { actor:"doctor", mock:"idcard", title:"Their history is right there", text:"Every person has their own permanent Patient ID. Past visits, vitals and old prescriptions are all saved, so the doctor sees the full picture." },
+      { actor:"doctor", mock:"rx", title:"Write today's prescription", text:"The doctor sees allergies and earlier medicines, writes the new prescription, then prints or sends it. Then mark the visit <b>Done</b> and offer a follow-up." },
+    ]},
+  { title:"New patient walks in or phones",
+    sub:"Someone at the desk or on the phone who does not use WhatsApp.",
+    steps:[
+      { actor:"staff", mock:"personplus", title:"Add them by hand", text:"On the <b>Chats</b> tab, tap the <b>＋</b> and choose <b>New patient</b>. Type their name and mobile number. No WhatsApp message is sent, so it's free. A record and Patient ID are created." },
+      { actor:"staff", mock:"calplus", title:"Give them a slot", text:"If they need an appointment, go to <b>Bookings → New booking</b> and pick a day and time. Only genuinely free times show, the same ones the app offers patients." },
+      { actor:"staff", mock:"notes", title:"Record the visit", text:"Open their <b>Notes</b>, fill in age and allergies, and tap <b>＋ Log walk-in visit</b> to record that they came today. Add vitals too." },
+      { actor:"doctor", mock:"rx", title:"Prescription on paper", text:"The doctor writes the prescription and taps <b>Print</b> to hand it over. If the patient messages from that number later, it links to this same record automatically." },
+    ]},
+  { title:"Returning patient walks in or phones",
+    sub:"A patient you have seen before who has no booking today.",
+    steps:[
+      { actor:"staff", mock:"chats", title:"Find them fast", text:"On <b>Chats</b>, type their name or number in the search box to open their record. If they have a booking, you'll also find them in <b>Bookings</b>." },
+      { actor:"staff", mock:"idcard", title:"Everything is saved", text:"Their Patient ID, past visits and old prescriptions are all there in <b>Notes</b>, even from months ago." },
+      { actor:"staff", mock:"notes", title:"Log today's visit", text:"Tap <b>＋ Log walk-in visit</b> and add today's vitals." },
+      { actor:"doctor", mock:"rx", title:"Fresh prescription", text:"The doctor writes a new prescription with the old medicines visible for reference, then prints or sends it. Mark <b>Done</b> and offer a follow-up." },
+    ]},
+  { title:"Answering everyday messages",
+    sub:"How to handle the chats that come in through the day.",
+    steps:[
+      { actor:"staff", mock:"chats", title:"Your inbox", text:"Every WhatsApp chat lands in <b>Chats</b>, newest first. Use the filters (All, Needs reply, Unread) or the search box to find one. Tap a chat to open it." },
+      { actor:"staff", mock:"reply", title:"Reply like WhatsApp", text:"Type and send a message. Use the clip to send a photo or a report, the quick-reply button for common answers, and the phone icon at the top to call the patient." },
+      { actor:"bot", mock:"bot", title:"When it's your turn", text:"The app answers simple bookings on its own. When a chat is marked <b>Needs reply</b>, it means the app has stepped aside and a person is needed. That's your cue to jump in." },
+      { actor:"staff", mock:"block", title:"Stop nuisance messages", text:"If someone messages the clinic wrongly or keeps spamming, open their chat and tap <b>Block</b>. You can unblock any time from Settings." },
+      { actor:"staff", mock:"phone", title:"Emergencies", text:"This app and WhatsApp are not for emergencies. If a message sounds urgent, tell the patient to call the clinic directly." },
+    ]},
+  { title:"Setting up and running the clinic",
+    sub:"For the doctor and admin: the one-time setup and the settings you'll use.",
+    steps:[
+      { actor:"admin", mock:"bell", title:"Turn on alerts (do this first)", text:"On each phone, open Settings and turn on notifications. On iPhone, first add the app to the Home Screen (Share, then Add to Home Screen), open it from that icon, and allow alerts." },
+      { actor:"admin", mock:"clock", title:"Set your hours", text:"In Settings, <b>Clinic schedule</b> sets your opening hours, an optional morning session, slot length, and your weekly day off. The booking assistant updates instantly." },
+      { actor:"doctor", mock:"stats", title:"See how things are going", text:"Settings, <b>Clinic stats</b> shows bookings in the coming week, patients seen in the last 30 days, and your no-show rate." },
+      { actor:"admin", mock:"account", title:"Accounts and roles", text:"Tap your initials (top right) to change your password or sign out. Admin can add doctor and staff accounts from Settings, <b>Team</b>, reset a password, or remove someone. Staff can't see private notes or write prescriptions; doctors can." },
+      { actor:"staff", mock:"waitlist", title:"When a day is full", text:"If a day has no free slot, add the patient to that day's <b>waitlist</b> from the New booking form. When a slot frees up, the Bookings tab shows who was waiting so you can call them." },
+    ]},
+];
+let storyView = "list";
+function renderStoriesList(){
+  storyView = "list";
+  $("storiesTitle").textContent = "Common situations";
+  const chev = '<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
+  $("storiesBody").innerHTML =
+    '<p class="story-intro">Pick a situation to see, step by step, exactly what to do, with a picture of each screen. Made for first-time users. You can\'t break anything by looking.</p>' +
+    STORIES.map((s,i)=>`<div class="slist-card" onclick="openStory(${i})"><div class="sidx">${i+1}</div><div style="flex:1;min-width:0"><div class="st">${s.title}</div><div class="ss">${s.sub}</div></div>${chev}</div>`).join("");
+  $("storiesBody").scrollTop = 0;
+}
+window.openStory = (i)=>{
+  const s = STORIES[i]; if(!s) return;
+  storyView = "detail";
+  $("storiesTitle").textContent = s.title;
+  $("storiesBody").innerHTML =
+    `<p class="story-intro">${s.sub}</p>` +
+    s.steps.map((st,n)=>`<div class="sstep"><div class="snum"><b>${n+1}</b><span class="sactor ${st.actor}">${ACTOR_LABEL[st.actor]}</span></div>${st.mock?`<div class="smock">${buildMock(st.mock)}</div>`:""}<h4>${esc(st.title)}</h4><p>${st.text}</p></div>`).join("") +
+    '<div class="story-tip"><b>Safe to practise</b> — try any of this on a test number first (Admin, Settings, Developer / test numbers), then wipe it clean. It never touches real patients.</div>';
+  $("storiesBody").scrollTop = 0;
+};
+window.openStories = ()=>{ renderStoriesList(); $("stories").classList.add("open"); };
+window.closeStories = ()=> $("stories").classList.remove("open");
+window.storiesBack = ()=>{ if(storyView==="detail") renderStoriesList(); else closeStories(); };
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
