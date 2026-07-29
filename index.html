@@ -1237,7 +1237,7 @@ window.openChangePw = () => {
   s.querySelector("#cpwCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
   s.querySelector("#cpwSave").onclick=async(e)=>{
     e.stopPropagation();
-    const pw=$("cpw").value; if(pw.length<8){ toast("Password must be at least 8 characters"); return; }
+    const pw=$("cpw").value; const bad=pwCheck(pw); if(bad){ toast(bad); return; }
     const { error } = await sb.auth.updateUser({ password: pw });
     if(error){ toast(error.message); return; }
     if(me?.id) await sb.from("profiles").update({ must_change_pw: false }).eq("id", me.id);
@@ -1253,7 +1253,29 @@ async function callManage(body){
   if(!res.ok){ toast(j.error || ("Error " + res.status)); return { error: j.error||res.status }; }
   return j;
 }
-const genPassword = ()=>"kc-" + Math.random().toString(36).slice(2,8) + Math.floor(10+Math.random()*89);
+// Strong-password policy (used for both generated and user-chosen passwords).
+function pwCheck(pw){
+  if(!pw || pw.length<8) return "Use at least 8 characters";
+  if(!/[a-z]/.test(pw)) return "Add a lowercase letter";
+  if(!/[A-Z]/.test(pw)) return "Add an uppercase letter";
+  if(!/[0-9]/.test(pw)) return "Add a number";
+  if(!/[^A-Za-z0-9]/.test(pw)) return "Add a special character (e.g. ! @ # $ %)";
+  const low = pw.toLowerCase();
+  if(["password","qwerty","letmein","welcome","admin","clinic","iloveyou","abc123","kcdada"].some(w=>low.includes(w))) return "Too easy to guess — avoid common words";
+  let asc=1,desc=1,rep=1;
+  for(let i=1;i<pw.length;i++){ const d=pw.charCodeAt(i)-pw.charCodeAt(i-1);
+    asc=d===1?asc+1:1; desc=d===-1?desc+1:1; rep=d===0?rep+1:1;
+    if(asc>=4||desc>=4) return "Avoid sequences like 1234 or abcd";
+    if(rep>=4) return "Avoid repeated characters like aaaa"; }
+  return null;
+}
+function genPassword(){
+  const L="abcdefghijkmnpqrstuvwxyz",U="ABCDEFGHJKLMNPQRSTUVWXYZ",D="23456789",S="!@#$%*?",ALL=L+U+D+S;
+  const r=s=>s[Math.floor(Math.random()*s.length)];
+  const a=[r(L),r(U),r(D),r(S)]; for(let i=0;i<7;i++) a.push(r(ALL));
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  const pw=a.join(""); return pwCheck(pw) ? genPassword() : pw;
+}
 window.openAddAccount = () => {
   const s = $("sheet");
   s.querySelector(".body").innerHTML =
@@ -1269,6 +1291,7 @@ window.openAddAccount = () => {
   s.querySelector("#acCreate").onclick=async(e)=>{
     e.stopPropagation();
     const email=$("acEmail").value.trim().toLowerCase(), pass=$("acPass").value;
+    const bad=pwCheck(pass); if(bad){ toast("Password: "+bad); return; }
     const r = await callManage({ action:"create", email, display_name:$("acName").value.trim(), role:$("acRole").value, password:pass });
     if(!r.error){ closeSheet(); alert(`Account created.\n\nEmail: ${email}\nTemporary password: ${pass}\n\nShare these. They'll be asked to set a new password when they first sign in.`); loadSettings(); }
   };
@@ -1293,7 +1316,7 @@ async function teamDelete(id){ const r=await callManage({action:"delete",user_id
 // Forced set-password on first login / after an admin reset.
 function showSetPw(){ $("login")?.classList.add("hide"); $("app")?.classList.add("hide"); $("setpw").classList.add("open"); }
 window.saveSetPw = async () => {
-  const pw = $("spwInput").value; if(pw.length<8){ $("spwErr").textContent="Password must be at least 8 characters"; return; }
+  const pw = $("spwInput").value; const bad = pwCheck(pw); if(bad){ $("spwErr").textContent = bad; return; }
   const { error } = await sb.auth.updateUser({ password: pw });
   if(error){ $("spwErr").textContent=error.message; return; }
   if(me?.id) await sb.from("profiles").update({ must_change_pw: false }).eq("id", me.id);
