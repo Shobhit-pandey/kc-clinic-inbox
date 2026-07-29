@@ -384,7 +384,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   <div class="rxfoot"><button class="act" id="rxSaveBtn" style="width:100%">Save prescription</button></div>
 </div>
 <div id="rxPrint">
-  <header class="noprint"><button class="ico-btn" onclick="closeRxPrint()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="ttl">Prescription</div><button class="act" style="width:auto;padding:9px 16px" onclick="window.print()">Print / Save PDF</button></header>
+  <header class="noprint"><button class="ico-btn" onclick="closeRxPrint()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="ttl">Prescription</div><button class="act" id="rxSendBtn" style="width:auto;padding:9px 13px;background:#fff;color:var(--brand)" onclick="sendRxToPatient()">Send</button><button class="act" style="width:auto;padding:9px 13px" onclick="window.print()">Print</button></header>
   <div class="rxsheet" id="rxSheet"></div>
 </div>
 </div>
@@ -665,7 +665,20 @@ async function saveRx(){
   if (e2) { toast(e2.message); return; }
   closeRxEdit(); toast("Prescription saved"); renderNotes(); openRxPrint(rx.id);
 }
+let rxCurrentId = null;
+window.sendRxToPatient = async ()=>{
+  if (!rxCurrentId) return;
+  if (!confirm("Send this prescription to the patient on WhatsApp?")) return;
+  const auth = await authHeader(); if (!auth) return;
+  const res = await fetch(SUPABASE_URL + "/functions/v1/send-prescription", {
+    method:"POST", headers:{ "apikey":PUBLISHABLE_KEY, "Authorization":auth, "Content-Type":"application/json" },
+    body: JSON.stringify({ prescription_id: rxCurrentId }),
+  });
+  if (res.ok) toast("Prescription sent to the patient");
+  else { const e = await res.json().catch(()=>({})); toast(e.error==="outside_24h_window" ? "Patient must message first (24h window closed)" : "Send failed: " + (e.error || res.status)); }
+};
 window.openRxPrint = async (id)=>{
+  rxCurrentId = id;
   const c = await loadClinic();
   const { data: rx } = await sb.from("prescriptions").select("*,patients(name,patient_code,age,allergies)").eq("id", id).single();
   const { data: its } = await sb.from("prescription_items").select("*").eq("prescription_id", id).order("sort");
@@ -1564,7 +1577,7 @@ const TUTORIAL = [
   ["reply","Replying","Type and send like WhatsApp. Use the clip to send a photo or a file (a prescription or report PDF), and the quick-reply button for canned answers. Tap the phone icon at the top to call the patient. WhatsApp allows replies within 24 hours of the patient's last message.","Send reports, confirm details, answer questions."],
   ["notes","Private notes","Inside any chat, switch to Notes. This is staff-only and the patient never sees it. Keep a timestamped history plus vitals like BP and weight, and edit the profile up top. You'll see every visit listed with its date and outcome, and if a patient walks in without an appointment, tap 'Log walk-in visit' to record it.","Record history, vitals, and every visit."],
   ["block","Block a number","If someone messages the clinic wrongly or keeps sending nuisance messages, open their chat and tap Block. You'll stop receiving any messages from that number. Unblock any time from Settings › Blocked numbers.","Stop unwanted or spam messages."],
-  ["rx","Prescriptions","Open a patient's Notes and tap Write prescription. Add each medicine with its dose, frequency, and duration, plus advice and a follow-up. Print it on the clinic letterhead — clinic and doctor details, registration number, and signature — or save it as a PDF to send to the patient.","Give patients a proper prescription."],
+  ["rx","Prescriptions","Open a patient's Notes and tap Write prescription. Add each medicine with its dose, frequency, and duration, plus advice and a follow-up. Then Print it on the clinic letterhead — clinic and doctor details, registration number, and signature — or tap Send to deliver it to the patient on WhatsApp as a PDF.","Give patients a proper prescription."],
   ["personplus","Add a walk-in","Tap the plus on Chats to add someone by name and number without sending a message (free). If they message later, it links to the same record.","For patients who visit or call first."],
   ["calendar","Bookings","See today and the next 7 days. Tap an appointment to open that chat, or the three dots to mark done, move to another time, mark no-show, or cancel.","Run the day and manage every appointment."],
   ["queue","Today's queue","On today's appointments, tap Arrived when a patient reaches the clinic, Start when they go in, and Done when finished. Everyone sees who is waiting.","Track the waiting room at a glance."],
