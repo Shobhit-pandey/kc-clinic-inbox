@@ -47,6 +47,8 @@ header .ico-btn{background:none;border:0;color:#fff;cursor:pointer;padding:4px;d
 #setpw{position:absolute;inset:0;background:var(--chatbg);z-index:70;display:none;align-items:center;justify-content:center;padding:22px}
 #setpw.open{display:flex}
 .setpw-card{background:#fff;border-radius:18px;padding:26px 20px;width:100%;max-width:360px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+.setpw-card .av.logo-sq{width:60px;height:60px;background:transparent;border-radius:14px;overflow:visible}
+.setpw-card .av.logo-sq img{width:100%;height:100%;object-fit:contain}
 .setpw-card input{width:100%;padding:14px;border:1px solid #d1d5db;border-radius:12px;font-size:16px}
 header .ico-btn svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 header .ico-btn:active{opacity:.55}
@@ -225,6 +227,17 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .vs.up{background:#e3e9f0;color:var(--brand)}
 .note.vitals{background:#e8f3ff;border-color:#bcdcff}
 .note.vitals .nm{color:#3a6ea5}
+/* loading feedback: inline spinner, full-screen splash, list placeholder */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;vertical-align:-3px;animation:spin .7s linear infinite;margin-right:6px}
+.act:disabled,.opt:disabled,button:disabled{opacity:.8;cursor:default}
+#splash{position:absolute;inset:0;z-index:60;background:var(--chatbg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#splash.on{display:flex}
+#splash .logo-sq{width:56px;height:56px}
+#splash .spinner{width:30px;height:30px;border:3px solid #cdd6df;border-top-color:var(--brand);margin:0}
+#splash p{color:var(--mut);font-size:14px;font-weight:600;margin:0}
+.listloading{display:flex;align-items:center;justify-content:center;gap:8px;padding:44px 20px;color:var(--mut);font-size:14px;font-weight:600}
+.listloading .spinner{width:20px;height:20px;border:2.5px solid #cdd6df;border-top-color:var(--brand);margin:0}
 /* tutorial overlay */
 #tut{position:absolute;inset:0;background:#fff;z-index:50;display:none;flex-direction:column}
 #tut.open{display:flex}
@@ -514,9 +527,14 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
     <h2 style="color:var(--navy);text-align:center;margin-bottom:4px">Set your password</h2>
     <p class="mut" style="text-align:center;margin-bottom:16px">Welcome to KC Clinic. Choose a password to finish setting up your account.</p>
     <input id="spwInput" type="password" placeholder="New password (min 8)">
-    <button class="act" style="width:100%;margin-top:10px" onclick="saveSetPw()">Set password & continue</button>
+    <button class="act" id="spwBtn" style="width:100%;margin-top:10px" onclick="saveSetPw()">Set password &amp; continue</button>
     <p id="spwErr" class="mut" style="color:var(--bad);margin-top:8px"></p>
   </div>
+</div>
+<div id="splash">
+  <div class="av logo-sq"><img src="logo.svg" alt=""></div>
+  <div class="spinner"></div>
+  <p id="splashMsg">Loading…</p>
 </div>
 </div>
 <div id="toast"></div>
@@ -531,6 +549,15 @@ const PUBLISHABLE_KEY = "sb_publishable_42opnFY4QP-KC2bCoNQSfw_OuHtBISF";
 const VAPID = "BKxKqzaKG39_Xf2O543johvOqr1XXP-mLrvwiuRrzZRUmS-ay8DMFDAm0EDuujytb5GRBVDZFFBjLZdgZmrkRHk";
 const sb = createClient(SUPABASE_URL, PUBLISHABLE_KEY);
 const $ = (id) => document.getElementById(id);
+// Loading feedback helpers: a full-screen splash during page transitions, and a
+// busy state on any button that triggers a backend call.
+function showSplash(msg){ const s=$("splash"); if(!s) return; $("splashMsg").textContent = msg || "Loading…"; s.classList.add("on"); }
+function hideSplash(){ $("splash")?.classList.remove("on"); }
+function btnBusy(btn, on, busyHtml){
+  if(!btn) return;
+  if(on){ if(btn.dataset.idle==null) btn.dataset.idle = btn.innerHTML; btn.disabled=true; btn.innerHTML = busyHtml || ('<span class="spinner"></span>'+ (btn.dataset.idle||"")); }
+  else { btn.disabled=false; if(btn.dataset.idle!=null){ btn.innerHTML=btn.dataset.idle; delete btn.dataset.idle; } }
+}
 let me = null, openConvo = null, channel = null, myRole = "staff", myName = "";
 
 function toast(t){ const el=$("toast"); el.textContent=t; el.style.opacity=1; setTimeout(()=>el.style.opacity=0, 2600); }
@@ -545,27 +572,38 @@ const statLabel = (s)=> s==="needs_human"?"Needs reply":s==="human"?"Staff":s===
 function tickHtml(s){ if(s==="read")return '<span class="tick read">✓✓</span>'; if(s==="delivered")return '<span class="tick">✓✓</span>'; return '<span class="tick">✓</span>'; }
 
 $("loginBtn").onclick = async () => {
-  $("loginErr").textContent = "Signing in…";
+  $("loginErr").textContent = "";
+  btnBusy($("loginBtn"), true, '<span class="spinner"></span>Signing in…');
   try {
     const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim().toLowerCase(), password: $("pass").value });
-    $("loginErr").textContent = error ? ("Sign-in failed: " + error.message) : "";
-  } catch (e) { $("loginErr").textContent = "Could not reach server: " + (e && e.message ? e.message : e); }
+    // On success onAuthStateChange takes over the screen; only reset the button on failure.
+    if (error) { $("loginErr").textContent = "Sign-in failed: " + error.message; btnBusy($("loginBtn"), false); }
+  } catch (e) { $("loginErr").textContent = "Could not reach server: " + (e && e.message ? e.message : e); btnBusy($("loginBtn"), false); }
 };
 $("pass").addEventListener("keydown",(e)=>{ if(e.key==="Enter") $("loginBtn").click(); });
 sb.auth.onAuthStateChange(async (ev, session) => {
   const was = !!me; me = session?.user ?? null;
-  $("login").classList.toggle("hide", !!me);
-  $("app").classList.toggle("hide", !me);
+  if (!me) { // signed out
+    $("app").classList.add("hide"); $("setpw").classList.remove("open"); hideSplash();
+    $("login").classList.remove("hide"); btnBusy($("loginBtn"), false);
+    return;
+  }
   if (me && !was) {
-    const { data: pr } = await sb.from("profiles").select("role,display_name,active,must_change_pw").eq("id", me.id).maybeSingle();
+    // Keep the login screen up and show a splash while we fetch the account —
+    // never a blank white screen.
+    $("login").classList.add("hide"); showSplash("Signing you in…");
+    let pr = null;
+    try { pr = (await sb.from("profiles").select("role,display_name,active,must_change_pw").eq("id", me.id).maybeSingle()).data; } catch (_) {}
     if (pr && pr.active === false) {
-      await sb.auth.signOut();
-      const el = $("loginErr"); if (el) el.textContent = "Your account has been deactivated. Please contact the clinic admin.";
+      hideSplash(); await sb.auth.signOut();
+      $("login").classList.remove("hide"); const el = $("loginErr"); if (el) el.textContent = "Your account has been deactivated. Please contact the clinic admin.";
       return;
     }
     myRole = pr?.role || "staff"; myName = pr?.display_name || (me.email || "").split("@")[0];
-    if (pr?.must_change_pw) { showSetPw(); return; }   // temp password → must set a new one
-    showTab("chats"); subscribeRealtime(); handleDeepLink();
+    if (pr?.must_change_pw) { hideSplash(); showSetPw(); return; }   // temp password → must set a new one
+    showSplash("Loading your inbox…");
+    $("app").classList.remove("hide");
+    showTab("chats"); subscribeRealtime(); handleDeepLink();   // loadChats hides the splash when the inbox is ready
   }
 });
 const canWriteRx = ()=> myRole === "admin" || myRole === "doctor";
@@ -621,10 +659,12 @@ function showTab(tab){
 
 let allChatRows = [];
 async function loadChats(){
+  if (!allChatRows.length) $("chatList").innerHTML = '<div class="listloading"><span class="spinner"></span>Loading chats…</div>';
   const { data: convos, error } = await sb.from("conversations")
     .select("id,status,unread_count,updated_at,last_patient_msg_at,contacts(wa_phone,patients(name,is_primary))")
     .order("updated_at",{ascending:false}).limit(200);
-  if (error){ toast(error.message); return; }
+  hideSplash();
+  if (error){ $("chatList").innerHTML=''; toast(error.message); return; }
   const { data: recent } = await sb.from("messages")
     .select("conversation_id,body,type,direction,created_at").order("created_at",{ascending:false}).limit(500);
   const preview = {};
@@ -1450,9 +1490,10 @@ window.openChangePw = () => {
   s.querySelector("#cpwSave").onclick=async(e)=>{
     e.stopPropagation();
     const pw=$("cpw").value; const bad=pwCheck(pw); if(bad){ toast(bad); return; }
+    const b=e.currentTarget; btnBusy(b, true, '<span class="spinner"></span>Updating…');
     const { error } = await sb.auth.updateUser({ password: pw });
-    if(error){ toast(error.message); return; }
-    if(me?.id) await sb.from("profiles").update({ must_change_pw: false }).eq("id", me.id);
+    if(error){ toast(error.message); btnBusy(b, false); return; }
+    try { await sb.rpc("clear_my_must_change_pw"); } catch(_) {}
     closeSheet(); toast("Password updated");
   };
   s.classList.add("open");
@@ -1504,8 +1545,10 @@ window.openAddAccount = () => {
     e.stopPropagation();
     const email=$("acEmail").value.trim().toLowerCase(), pass=$("acPass").value;
     const bad=pwCheck(pass); if(bad){ toast("Password: "+bad); return; }
+    const b=e.currentTarget; btnBusy(b, true, '<span class="spinner"></span>Creating…');
     const r = await callManage({ action:"create", email, display_name:$("acName").value.trim(), role:$("acRole").value, password:pass });
     if(!r.error){ closeSheet(); alert(`Account created.\n\nEmail: ${email}\nTemporary password: ${pass}\n\nShare these. They'll be asked to set a new password when they first sign in.`); loadSettings(); }
+    else btnBusy(b, false);
   };
   s.classList.add("open");
 };
@@ -1528,13 +1571,23 @@ async function teamRole(id,role){ const r=await callManage({action:"set_role",us
 async function teamActive(id,active){ const r=await callManage({action:"set_active",user_id:id,active}); if(!r.error){ toast(active?"Activated":"Deactivated"); loadSettings(); } }
 async function teamDelete(id){ const r=await callManage({action:"delete",user_id:id}); if(!r.error){ toast("Account deleted"); loadSettings(); } }
 // Forced set-password on first login / after an admin reset.
-function showSetPw(){ $("login")?.classList.add("hide"); $("app")?.classList.add("hide"); $("setpw").classList.add("open"); }
+// #setpw is a child of #app and overlays it (z-index:70), so #app must stay
+// visible — hiding it used to hide the set-password screen itself (blank screen).
+function showSetPw(){ $("login")?.classList.add("hide"); $("app")?.classList.remove("hide"); $("setpw").classList.add("open"); }
 window.saveSetPw = async () => {
   const pw = $("spwInput").value; const bad = pwCheck(pw); if(bad){ $("spwErr").textContent = bad; return; }
+  $("spwErr").textContent = ""; btnBusy($("spwBtn"), true, '<span class="spinner"></span>Setting up…');
   const { error } = await sb.auth.updateUser({ password: pw });
-  if(error){ $("spwErr").textContent=error.message; return; }
-  if(me?.id) await sb.from("profiles").update({ must_change_pw: false }).eq("id", me.id);
-  location.reload();
+  if(error){ $("spwErr").textContent=error.message; btnBusy($("spwBtn"), false); return; }
+  // Clear the first-login flag via a SECURITY DEFINER rpc — a non-admin can't write
+  // their own profile row directly (RLS), which used to trap them in a loop.
+  try { await sb.rpc("clear_my_must_change_pw"); } catch(_) {}
+  btnBusy($("spwBtn"), false);
+  // Go straight into the app in-place (no full reload, no blank screen).
+  $("setpw").classList.remove("open");
+  showSplash("Loading your inbox…");
+  $("app").classList.remove("hide");
+  showTab("chats"); subscribeRealtime(); handleDeepLink();
 };
 function b64ToU8(b64){ const pad="=".repeat((4-b64.length%4)%4); const raw=atob((b64+pad).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from([...raw].map(c=>c.charCodeAt(0))); }
 async function enablePush(){
