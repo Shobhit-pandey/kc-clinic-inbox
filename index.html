@@ -390,6 +390,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .rxpage .tick{position:absolute;font-size:34px;font-weight:800;line-height:1;transform:translate(-50%,-50%)}
 .rxpage .inv{position:absolute;font-size:25px;line-height:1.5;color:#1b2f45}
 .rxpage .inv .alg{color:#b00020;font-weight:700;margin-top:8px;font-size:23px}
+.rxpage .inv .alg.ok{color:var(--ok)}
 .rxpage .rx{position:absolute}
 .rxpage .rx .med{margin-bottom:26px}
 .rxpage .rx .mn{font-weight:700;font-size:30px;color:#12233a}
@@ -400,7 +401,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .rxpage .adv{position:absolute;font-size:25px;line-height:37px;color:#1b2f45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 @media print{
   @page{size:A4;margin:0}
-  html,body{height:auto;overflow:visible;background:#fff;display:block;margin:0}
+  html,body{height:auto;overflow:visible;background:#fff;display:block;margin:0;padding:0}
   /* Hide the rest of the app with display:none, NOT visibility:hidden — hidden
      elements still occupy layout space, which added blank pages before and after
      the sheet (a 3-page print). Also release the phone-sized shell, whose
@@ -410,10 +411,14 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   #app > *{display:none !important}
   #rxPrint{display:block !important;position:static;background:#fff}
   #rxPrint header,.noprint{display:none !important}
-  .rxsheet{display:block;padding:0;margin:0;overflow:visible;background:#fff}
-  /* Exactly one A4 page: 1240 x 0.64 = 793.6px wide, 1753 x 0.64 = 1121.9px tall,
-     both inside A4's 794 x 1123px at 96dpi, so nothing spills to a second page. */
-  .rxwrap{--rxs:0.64 !important;max-width:none;width:794px;height:1122px;margin:0;overflow:hidden;box-shadow:none;border-radius:0}
+  .rxsheet{display:block;padding:0;margin:0;overflow:hidden;background:#fff;height:auto}
+  /* Exactly one A4 page: 1240 x 0.637 = 789.9px wide, 1753 x 0.637 = 1116.6px tall,
+     comfortably inside A4's 794 x 1123px at 96dpi. A little slack (rather than
+     filling the page to the last pixel) keeps a rounding difference in any print
+     engine from pushing a sliver onto a second page. */
+  .rxwrap{--rxs:0.637 !important;max-width:none;width:790px;height:1117px;margin:0;overflow:hidden;box-shadow:none;border-radius:0}
+  /* Never let the sheet be split, and never emit a page after it. */
+  #rxPrint,.rxsheet,.rxwrap,.rxpage{break-inside:avoid;page-break-inside:avoid;break-after:avoid;page-break-after:avoid}
   .rxpage,.rxpage *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 /* private notes timeline */
@@ -878,9 +883,23 @@ async function renderNotes(){
 // --- prescriptions ---
 let CLINIC = null;
 async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { data } = await sb.from("clinic_profile").select("*").single(); CLINIC = data || {}; return CLINIC; }
+// Build stamp injected at build time, shown in Settings so a device can be checked
+// against the current release. "Check for update" re-fetches the app from the
+// server rather than reusing the copy the phone is holding.
+const APP_BUILD = "2026-08-04 (9e25506)";
+window.reloadApp = () => {
+  const u = new URL(location.href);
+  u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
+  location.replace(u.toString());
+};
 // Stored sex codes -> what staff and the prescription show. Gynae today, but the
 // field is explicit so the clinic can record any patient when it expands.
 const SEX_LABEL = { F:"Female", M:"Male", O:"Other" };
+// Allergy values that actually mean "nothing to worry about" — these read as
+// reassurance (green), not as the red warning a real allergy must get.
+// KEEP IN SYNC with NO_ALLERGY in supabase/functions/send-prescription/index.ts.
+const NO_ALLERGY = new Set(["no","na","n/a","n.a","none","nil","nka","nkda","no allergy","no allergies","-","0"]);
+const isNoAllergy = (v)=> NO_ALLERGY.has(String(v??"").trim().toLowerCase().replace(/\.+$/,""));
 const RX_MEDS = ["Folic Acid 5 mg","Iron + Folic Acid","Calcium + Vitamin D3","Doxinate (Doxylamine)","Paracetamol 500 mg","Pantoprazole 40 mg","Ondansetron 4 mg","Amoxicillin 500 mg","Metronidazole 400 mg","Progesterone","Multivitamin"];
 const RX_FREQ = ["1-0-0 (morning)","0-0-1 (night)","1-0-1 (morning & night)","1-1-1 (thrice daily)","1-1-1-1 (four times)","Once a week","SOS (as needed)","Custom"];
 const rxRowHtml = ()=>`<div class="rxmed">
@@ -978,7 +997,9 @@ window.openRxPrint = async (id)=>{
   const dateText = new Date(rx.created_at).toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata",day:"numeric",month:"short",year:"numeric"});
 
   const meds = (its||[]).map((x,i)=>`<div class="med"><div class="mn">${i+1}. ${esc(x.medicine)}${x.dose?" "+esc(x.dose):""}</div>${(x.frequency||x.duration)?`<div class="mm">${[esc(x.frequency||""),esc(x.duration||"")].filter(Boolean).join(" · ")}</div>`:""}${x.remark?`<div class="mr">${esc(x.remark)}</div>`:""}</div>`).join("");
-  const invHtml = vitals.map(esc).join("<br>") + (p.allergies?`<div class="alg">Allergy: ${esc(p.allergies)}</div>`:"");
+  const noAlg = isNoAllergy(p.allergies);
+  const invHtml = vitals.map(esc).join("<br>")
+    + (p.allergies?`<div class="alg${noAlg?" ok":""}">${noAlg?"No known allergy":"Allergy: "+esc(p.allergies)}</div>`:"");
   const advParts=[]; if(rx.advice) advParts.push(esc(rx.advice)); if(rx.follow_up_days) advParts.push(`Follow-up: after ${rx.follow_up_days} days`);
 
   // Coordinates are fixed px in the 1240x1753 letterhead space. Header values are
@@ -1462,7 +1483,12 @@ async function loadSettings(){
     blockedCard +
     devCard +
     `<div class="card"><b>Signed in as</b><p class="mut" style="margin-top:4px">${esc(me?.email??"")}</p>
-       <button class="danger" id="logoutBtn" style="margin-top:12px">Sign out</button></div>`;
+       <button class="danger" id="logoutBtn" style="margin-top:12px">Sign out</button></div>` +
+    // Which build this device is actually running. Phones can hold an old copy of
+    // the app for a while after a release, so this makes "is my app up to date?"
+    // answerable instead of guesswork.
+    `<p class="mut" style="text-align:center;font-size:11.5px;margin:14px 0 4px">App version ${esc(APP_BUILD)}
+       <button class="linklike" style="font-size:11.5px;padding:4px 0" onclick="reloadApp()">Check for update</button></p>`;
   if (sub) $("pushOff").onclick = disablePush; else $("pushBtn").onclick = enablePush;
   $("logoutBtn").onclick = async () => { await sb.auth.signOut(); location.reload(); };
 }
