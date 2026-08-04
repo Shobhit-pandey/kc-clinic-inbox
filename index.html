@@ -602,7 +602,9 @@ const fmtT = (s)=> new Intl.DateTimeFormat("en-IN",{...IST,hour:"numeric",minute
 const fmtDayFull = (s)=> new Intl.DateTimeFormat("en-IN",{...IST,weekday:"short",day:"numeric",month:"long"}).format(new Date(s));
 const istKey = (s)=> new Intl.DateTimeFormat("en-CA",IST).format(new Date(s));
 function listTime(s){ return istKey(s)===istKey(Date.now()) ? fmtT(s) : new Intl.DateTimeFormat("en-IN",{...IST,day:"numeric",month:"short"}).format(new Date(s)); }
-const esc = (s)=> (s??"").replace(/[&<>"]/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+// String() matters: values straight from the database are often numbers (age,
+// follow-up days), and .replace() on a number throws and kills the render.
+const esc = (s)=> String(s??"").replace(/[&<>"]/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const initials = (n)=> (n||"").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase() || "•";
 const statLabel = (s)=> s==="needs_human"?"Needs reply":s==="human"?"Staff":s==="closed"?"Closed":"Bot";
 function tickHtml(s){ if(s==="read")return '<span class="tick read">✓✓</span>'; if(s==="delivered")return '<span class="tick">✓✓</span>'; return '<span class="tick">✓</span>'; }
