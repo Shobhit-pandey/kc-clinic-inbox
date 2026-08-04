@@ -1,7 +1,7 @@
 {
-  "name": "KC Dada Women's Clinic Staff",
-  "short_name": "KC Clinic",
-  "description": "Staff inbox for KC Dada Women's Clinic WhatsApp bookings",
+  "name": "KC Dada Clinic Staff",
+  "short_name": "KC Dada",
+  "description": "Staff inbox for KC Dada Clinic WhatsApp bookings",
   "start_url": ".",
   "scope": "./",
   "display": "standalone",
