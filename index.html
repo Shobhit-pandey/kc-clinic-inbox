@@ -886,7 +886,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // Build stamp injected at build time, shown in Settings so a device can be checked
 // against the current release. "Check for update" re-fetches the app from the
 // server rather than reusing the copy the phone is holding.
-const APP_BUILD = "2026-08-04 (9e25506)";
+const APP_BUILD = "2026-08-04 (85d0897)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
