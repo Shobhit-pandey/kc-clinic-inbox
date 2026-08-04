@@ -238,6 +238,18 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 #splash p{color:var(--mut);font-size:14px;font-weight:600;margin:0}
 .listloading{display:flex;align-items:center;justify-content:center;gap:8px;padding:44px 20px;color:var(--mut);font-size:14px;font-weight:600}
 .listloading .spinner{width:20px;height:20px;border:2.5px solid #cdd6df;border-top-color:var(--brand);margin:0}
+/* patient-facing WhatsApp QR — full-screen, nothing else visible behind it */
+#waqr{position:absolute;inset:0;z-index:80;background:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+#waqr.open{display:flex}
+#waqr .waqr-close{position:absolute;top:max(14px,env(safe-area-inset-top));right:14px;background:#eef2f6;border:0;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+#waqr .waqr-close svg{width:22px;height:22px;stroke:var(--brand);fill:none;stroke-width:2.2;stroke-linecap:round}
+#waqr .waqr-card{text-align:center;max-width:360px}
+#waqr .waqr-logo{width:58px;height:58px;background:transparent;margin:0 auto 12px}
+#waqr .waqr-logo img{width:100%;height:100%;object-fit:contain}
+#waqr h2{color:var(--navy);font-size:22px;margin:0 0 6px}
+#waqr p{color:var(--mut);font-size:14px;margin:0 0 20px;line-height:1.5}
+#waqr .waqr-img{display:block;width:280px;max-width:82vw;margin:0 auto;border-radius:16px;border:1px solid var(--line)}
+#waqr .waqr-num{margin-top:18px;font-size:18px;font-weight:700;color:var(--ink);letter-spacing:.5px}
 /* tutorial overlay */
 #tut{position:absolute;inset:0;background:#fff;z-index:50;display:none;flex-direction:column}
 #tut.open{display:flex}
@@ -528,6 +540,16 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
     <input id="spwInput" type="password" placeholder="New password (min 8)">
     <button class="act" id="spwBtn" style="width:100%;margin-top:10px" onclick="saveSetPw()">Set password &amp; continue</button>
     <p id="spwErr" class="mut" style="color:var(--bad);margin-top:8px"></p>
+  </div>
+</div>
+<div id="waqr">
+  <button class="waqr-close" onclick="closeWaQr()" title="Close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <div class="waqr-card">
+    <div class="av logo-sq waqr-logo"><img src="emblem.png" alt=""></div>
+    <h2>Message us on WhatsApp</h2>
+    <p>Open your phone camera and scan to chat with KC Dada Clinic.</p>
+    <img src="qr.png" alt="WhatsApp QR code" class="waqr-img">
+    <div class="waqr-num">+91 73021 32554</div>
   </div>
 </div>
 <div id="splash">
@@ -1377,9 +1399,8 @@ async function loadSettings(){
        <button class="ghost" style="width:100%;margin-top:8px" onclick="openStories()">Walkthroughs — real situations</button>
        <button class="ghost" style="width:100%;margin-top:8px" onclick="openFaq()">Questions &amp; answers (FAQ)</button></div>` +
     `<div class="card">${chead('chat','Message us on WhatsApp')}
-       <p class="mut" style="margin:6px 0 10px">Show this QR to a patient so they can message the clinic. They must message us once before we can send them a prescription or file on WhatsApp.</p>
-       <img src="qr.png" alt="WhatsApp QR" style="display:block;width:190px;max-width:70%;margin:2px auto 4px;border-radius:12px">
-       <p class="mut" style="text-align:center;font-size:12px">Or save the clinic number: +91 73021 32554</p></div>` +
+       <p class="mut" style="margin:6px 0 10px">Show a patient the QR so they can message the clinic. They must message us once before we can send them a prescription or file on WhatsApp.</p>
+       <button class="act" style="width:100%" onclick="openWaQr()">Show QR to a patient</button></div>` +
     statsCard +
     schedCard +
     clinicCard +
@@ -2189,6 +2210,9 @@ function renderFaq(){
 }
 window.openFaq = ()=>{ renderFaq(); $("faq").classList.add("open"); };
 window.closeFaq = ()=> $("faq").classList.remove("open");
+// Patient-facing QR: a clean full-screen overlay so no admin detail shows behind it.
+window.openWaQr = ()=> $("waqr").classList.add("open");
+window.closeWaQr = ()=> $("waqr").classList.remove("open");
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
