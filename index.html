@@ -233,7 +233,10 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .act:disabled,.opt:disabled,button:disabled{opacity:.8;cursor:default}
 #splash{position:absolute;inset:0;z-index:60;background:var(--chatbg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
 #splash.on{display:flex}
-#splash .logo-sq{width:56px;height:56px}
+/* The emblem is a large image: size the box AND the image, or it overflows the
+   flex column and swamps the spinner and message. */
+#splash .logo-sq{width:76px;height:76px;flex:0 0 auto;background:transparent;border-radius:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#splash .logo-sq img{width:100%;height:100%;object-fit:contain;display:block}
 #splash .spinner{width:30px;height:30px;border:3px solid #cdd6df;border-top-color:var(--brand);margin:0}
 #splash p{color:var(--mut);font-size:14px;font-weight:600;margin:0}
 .listloading{display:flex;align-items:center;justify-content:center;gap:8px;padding:44px 20px;color:var(--mut);font-size:14px;font-weight:600}
@@ -372,32 +375,41 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .rxadd{width:100%;background:#fff;border:1px dashed var(--brand);color:var(--brand);border-radius:12px;padding:12px;font-weight:600;font-size:14px;cursor:pointer;margin-bottom:12px}
 .rxlbl{font-size:12px;color:var(--mut);font-weight:600;margin:14px 2px 0}
 /* printable page */
-/* Prescription = fields overlaid on the clinic letterhead. The letterhead <img>
-   sits in normal flow (width:100%, height:auto) so IT defines the page box; every
-   overlay is positioned as a % of that same box, so it stays aligned at any width.
-   Font sizes use cqw (relative to the page width) so screen + print match. */
-.rxsheet{flex:1;overflow-y:auto;padding:16px;background:#586572;text-align:center}
-.rxpage{position:relative;display:inline-block;width:100%;max-width:540px;background:#fff;border-radius:4px;box-shadow:0 8px 30px rgba(0,0,0,.3);container-type:inline-size;color:#14273a;font-family:inherit;text-align:left;-webkit-text-size-adjust:100%}
-.rxpage .lh{display:block;width:100%;height:auto}
-.rxpage .f{position:absolute;line-height:1.2;font-size:2.15cqw}
-.rxpage .val{font-weight:600}
-.rxpage .tick{position:absolute;font-weight:800;color:#12233a;font-size:3cqw;line-height:1}
-.rxpage .inv{position:absolute;font-size:2.0cqw;line-height:1.5;color:#1b2f45}
-.rxpage .inv .alg{color:#b00020;font-weight:700;margin-top:.6cqw;font-size:1.85cqw}
+/* Prescription = a FIXED 1240x1753 page (the letterhead's own pixel size) that is
+   scaled as one unit to fit the screen. Because every position and font size is a
+   fixed pixel value in that space, the geometry is identical on every device and in
+   print — only the scale factor changes, so text can never drift off the printed
+   lines. --rxs (set by fitRxPage) is the scale; the wrapper reserves the space. */
+.rxsheet{flex:1;overflow-y:auto;padding:16px;background:#586572}
+.rxwrap{position:relative;width:100%;max-width:560px;margin:0 auto;height:calc(1753px * var(--rxs, 1));overflow:hidden;background:#fff;border-radius:4px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.rxpage{position:absolute;top:0;left:0;width:1240px;height:1753px;transform-origin:top left;transform:scale(var(--rxs, 1));color:#14273a;font-family:inherit;-webkit-text-size-adjust:100%}
+.rxpage .lh{position:absolute;top:0;left:0;width:1240px;height:1753px;display:block}
+/* Header values are anchored by their BOTTOM edge to the printed writing line, so
+   they rest on the line regardless of the device font's line height. */
+.rxpage .f{position:absolute;font-size:27px;line-height:1.15;font-weight:600;white-space:nowrap;overflow:hidden}
+.rxpage .tick{position:absolute;font-size:34px;font-weight:800;line-height:1;transform:translate(-50%,-50%)}
+.rxpage .inv{position:absolute;font-size:25px;line-height:1.5;color:#1b2f45}
+.rxpage .inv .alg{color:#b00020;font-weight:700;margin-top:8px;font-size:23px}
 .rxpage .rx{position:absolute}
-.rxpage .rx .med{margin-bottom:2.1cqw}
-.rxpage .rx .mn{font-weight:700;font-size:2.45cqw;color:#12233a}
-.rxpage .rx .mm{font-size:2.0cqw;color:#4a5766;margin-top:.3cqw}
-.rxpage .rx .mr{font-size:1.85cqw;color:#6a7686;font-style:italic}
-.rxpage .adv{position:absolute;font-size:2.0cqw;line-height:1.45;color:#1b2f45}
+.rxpage .rx .med{margin-bottom:26px}
+.rxpage .rx .mn{font-weight:700;font-size:30px;color:#12233a}
+.rxpage .rx .mm{font-size:25px;color:#4a5766;margin-top:4px}
+.rxpage .rx .mr{font-size:23px;color:#6a7686;font-style:italic;margin-top:2px}
+/* line-height matches the 37px pitch of the two printed Advice lines, clamped to
+   those two lines so it can never spill into the footer. */
+.rxpage .adv{position:absolute;font-size:25px;line-height:37px;color:#1b2f45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 @media print{
   @page{size:A4;margin:0}
+  /* Release the phone-sized shell, or its max-width + overflow:hidden clips the
+     A4 page. The sheet is a fixed 794px (210mm at 96dpi) scaled by --rxs. */
+  html,body{height:auto;overflow:visible;background:#fff;display:block}
   body *{visibility:hidden}
   #rxPrint,#rxPrint *{visibility:visible}
-  #rxPrint{position:absolute;inset:0;background:#fff;display:block}
+  .shell{max-width:none;width:auto;height:auto;margin:0;overflow:visible;border-radius:0;box-shadow:none}
+  #rxPrint{position:static;display:block;background:#fff}
   #rxPrint header,.noprint{display:none !important}
   .rxsheet{padding:0;margin:0;overflow:visible;background:#fff}
-  .rxpage{box-shadow:none;border-radius:0;max-width:none;width:100%}
+  .rxwrap{max-width:none;width:794px;margin:0;box-shadow:none;border-radius:0}
   .rxpage,.rxpage *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 /* private notes timeline */
@@ -747,7 +759,7 @@ window.openThread = async (id, focusPersonId=null) => {
   openPatientPhone = phone;
   // Everyone on this number; the active person drives the profile / notes / Rx panel.
   const { data: people } = openContactId
-    ? await sb.from("patients").select("id,name,age,patient_code,blood_group,allergies,history,is_primary").eq("contact_id", openContactId).order("is_primary",{ascending:false}).order("created_at")
+    ? await sb.from("patients").select("id,name,age,sex,address,patient_code,blood_group,allergies,history,is_primary").eq("contact_id", openContactId).order("is_primary",{ascending:false}).order("created_at")
     : { data: [] };
   openPeople = people ?? [];
   const primary = openPeople.find(p=>p.is_primary) || openPeople[0] || null;
@@ -822,9 +834,11 @@ async function renderNotes(){
       <div class="pid">Patient ID · ${esc(p.patient_code||"—")}</div>
       ${hist}
       <div class="prow"><span>Age</span><b>${p.age??"—"}</b></div>
+      <div class="prow"><span>Sex</span><b>${SEX_LABEL[p.sex]||"—"}</b></div>
       <div class="prow"><span>Blood group</span><b>${esc(p.blood_group||"—")}</b></div>
       <div class="prow"><span>Allergies</span><b>${esc(p.allergies||"—")}</b></div>
       <div class="prow"><span>Ongoing / history</span><b>${esc(p.history||"—")}</b></div>
+      <div class="prow"><span>Address</span><b>${esc(p.address||"—")}</b></div>
       <div style="display:flex;gap:8px;margin-top:11px">
         <button class="ghost" style="flex:1" onclick="editProfile()">Edit profile</button>
         <button class="ghost" style="flex:1" onclick="addVitals()">＋ Vitals</button>
@@ -858,6 +872,9 @@ async function renderNotes(){
 // --- prescriptions ---
 let CLINIC = null;
 async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { data } = await sb.from("clinic_profile").select("*").single(); CLINIC = data || {}; return CLINIC; }
+// Stored sex codes -> what staff and the prescription show. Gynae today, but the
+// field is explicit so the clinic can record any patient when it expands.
+const SEX_LABEL = { F:"Female", M:"Male", O:"Other" };
 const RX_MEDS = ["Folic Acid 5 mg","Iron + Folic Acid","Calcium + Vitamin D3","Doxinate (Doxylamine)","Paracetamol 500 mg","Pantoprazole 40 mg","Ondansetron 4 mg","Amoxicillin 500 mg","Metronidazole 400 mg","Progesterone","Multivitamin"];
 const RX_FREQ = ["1-0-0 (morning)","0-0-1 (night)","1-0-1 (morning & night)","1-1-1 (thrice daily)","1-1-1-1 (four times)","Once a week","SOS (as needed)","Custom"];
 const rxRowHtml = ()=>`<div class="rxmed">
@@ -929,36 +946,54 @@ window.sendRxToPatient = async ()=>{
 // Format an E.164-without-plus phone (e.g. 919876543210) as "+91 98765 43210".
 const fmtRxPhone = (raw)=>{ const d=String(raw||"").replace(/\D/g,""); if(d.length===12&&d.startsWith("91")) return `+91 ${d.slice(2,7)} ${d.slice(7)}`; if(d.length===10) return `+91 ${d.slice(0,5)} ${d.slice(5)}`; return raw?"+"+d:""; };
 
+// Scale the fixed-size prescription page to fit its container (and to exactly A4
+// when printing: 1240px of artwork -> 794px, i.e. 210mm at 96dpi).
+const RX_PAGE_W = 1240, RX_PAGE_H = 1753, RX_PRINT_W = 794;
+function fitRxPage(printing){
+  const wrap = document.querySelector("#rxSheet .rxwrap");
+  if (!wrap) return;
+  const w = printing ? RX_PRINT_W : wrap.clientWidth;
+  if (w) wrap.style.setProperty("--rxs", w / RX_PAGE_W);
+}
+addEventListener("resize", ()=>fitRxPage());
+addEventListener("beforeprint", ()=>fitRxPage(true));
+addEventListener("afterprint", ()=>fitRxPage());
+
 window.openRxPrint = async (id)=>{
   rxCurrentId = id;
-  const { data: rx } = await sb.from("prescriptions").select("*,patients(name,patient_code,age,allergies,wa_phone)").eq("id", id).single();
+  const { data: rx } = await sb.from("prescriptions").select("*,patients(name,patient_code,age,sex,address,allergies,wa_phone)").eq("id", id).single();
   const { data: its } = await sb.from("prescription_items").select("*").eq("prescription_id", id).order("sort");
   if (!rx) { toast("Prescription not found"); return; }
   const p = rx.patients || {};
   // Latest vitals for this person -> INVESTIGATION column.
   const { data: vn } = await sb.from("patient_notes").select("body").eq("patient_id", rx.patient_id).eq("kind","vitals").order("created_at",{ascending:false}).limit(1);
   const vitals = (vn && vn[0] && vn[0].body) ? String(vn[0].body).replace(/^🩺\s*/,"").split(" · ").map(s=>s.trim()).filter(Boolean) : [];
-  const male = String(p.sex||"F").toUpperCase().startsWith("M");
+  const sex = String(p.sex||"").toUpperCase().charAt(0);
   const dateText = new Date(rx.created_at).toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata",day:"numeric",month:"short",year:"numeric"});
 
   const meds = (its||[]).map((x,i)=>`<div class="med"><div class="mn">${i+1}. ${esc(x.medicine)}${x.dose?" "+esc(x.dose):""}</div>${(x.frequency||x.duration)?`<div class="mm">${[esc(x.frequency||""),esc(x.duration||"")].filter(Boolean).join(" · ")}</div>`:""}${x.remark?`<div class="mr">${esc(x.remark)}</div>`:""}</div>`).join("");
   const invHtml = vitals.map(esc).join("<br>") + (p.allergies?`<div class="alg">⚠ ${esc(p.allergies)}</div>`:"");
   const advParts=[]; if(rx.advice) advParts.push(esc(rx.advice)); if(rx.follow_up_days) advParts.push(`Follow-up: after ${rx.follow_up_days} days`);
 
-  $("rxSheet").innerHTML = `<div class="rxpage">
+  // Coordinates are fixed px in the 1240x1753 letterhead space. Header values are
+  // bottom-anchored 2px under their writing line (measured from the artwork:
+  // lines at y=340.5 / 409.5 / 477.5; Advice lines at y=1427.5 and 1464.5).
+  $("rxSheet").innerHTML = `<div class="rxwrap"><div class="rxpage">
       <img class="lh" src="rx-letterhead.jpg" alt="">
-      <div class="f val" style="left:15.3%;top:18.3%;width:24%">${esc(p.name||"")}</div>
-      <div class="f val" style="left:53%;top:18.3%;width:19%">${esc(p.patient_code||"")}</div>
-      <div class="f val" style="left:82.8%;top:18.3%;width:15%">${dateText}</div>
-      <div class="f val" style="left:14.3%;top:22.5%;width:26%">${esc(fmtRxPhone(p.wa_phone))}</div>
-      <div class="f val" style="left:49.3%;top:22.5%;width:22%">${p.age?esc(p.age)+" yrs":""}</div>
-      <div class="tick" style="left:${male?"90.6%":"82.9%"};top:22.1%">✓</div>
-      ${p.address?`<div class="f val" style="left:12.3%;top:26.7%;width:84%">${esc(p.address)}</div>`:""}
-      <div class="inv" style="left:4%;top:35.2%;width:18.5%">${invHtml}</div>
-      <div class="rx" style="left:27%;top:37%;width:68%">${meds}</div>
-      <div class="adv" style="left:4.3%;top:79.2%;width:44%">${advParts.join("<br>")}</div>
-    </div>`;
+      <div class="f" style="left:190px;bottom:1410.5px;width:330px">${esc(p.name||"")}</div>
+      <div class="f" style="left:657px;bottom:1410.5px;width:300px">${esc(p.patient_code||"")}</div>
+      <div class="f" style="left:1027px;bottom:1410.5px;width:180px">${dateText}</div>
+      <div class="f" style="left:177px;bottom:1341.5px;width:330px">${esc(fmtRxPhone(p.wa_phone))}</div>
+      <div class="f" style="left:611px;bottom:1341.5px;width:280px">${p.age?esc(p.age)+" yrs":""}</div>
+      ${sex==="M"?`<div class="tick" style="left:1130.5px;top:400px">✓</div>`:""}
+      ${sex==="F"?`<div class="tick" style="left:1027px;top:400px">✓</div>`:""}
+      ${p.address?`<div class="f" style="left:152px;bottom:1273.5px;width:1040px">${esc(p.address)}</div>`:""}
+      <div class="inv" style="left:50px;top:617px;width:240px">${invHtml}</div>
+      <div class="rx" style="left:335px;top:650px;width:850px">${meds}</div>
+      <div class="adv" style="left:53px;top:1397px;width:540px">${advParts.join("<br>")}</div>
+    </div></div>`;
   $("rxPrint").classList.add("open");
+  fitRxPage();
 };
 
 // Log a visit for a patient who walked in without an appointment. Creates an
@@ -996,15 +1031,18 @@ window.editProfile = () => {
     `<div class="title">Patient profile · ${esc(p.patient_code||"")}</div>
      <input id="pfName" placeholder="Name" value="${esc(p.name||"")}">
      <input id="pfAge" placeholder="Age" inputmode="numeric" value="${p.age??""}">
+     <select id="pfSex">${Object.entries(SEX_LABEL).map(([v,l])=>`<option value="${v}"${(p.sex||"F")===v?" selected":""}>${l}</option>`).join("")}</select>
      <input id="pfBlood" placeholder="Blood group (e.g. O+)" value="${esc(p.blood_group||"")}">
      <input id="pfAllergy" placeholder="Allergies" value="${esc(p.allergies||"")}">
      <input id="pfHistory" placeholder="Ongoing conditions / history" value="${esc(p.history||"")}">
+     <input id="pfAddress" placeholder="Address (printed on the prescription)" value="${esc(p.address||"")}">
      <button class="opt primary" id="pfSave">Save profile</button><button class="opt plain" id="pfCancel">Cancel</button>`;
   s.querySelector("#pfCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
   s.querySelector("#pfSave").onclick=async(e)=>{
     e.stopPropagation();
     const ageV = parseInt($("pfAge").value,10);
     const upd = { name:$("pfName").value.trim()||null, age: Number.isInteger(ageV)?ageV:null,
+      sex:$("pfSex").value, address:$("pfAddress").value.trim()||null,
       blood_group:$("pfBlood").value.trim()||null, allergies:$("pfAllergy").value.trim()||null, history:$("pfHistory").value.trim()||null };
     const { error } = await sb.from("patients").update(upd).eq("id", openPatientId);
     if (error){ toast(error.message); return; }
@@ -1036,7 +1074,7 @@ window.addPerson = () => {
     const ageV=parseInt($("apAge").value,10);
     const { data, error } = await sb.from("patients")
       .insert({ contact_id: openContactId, wa_phone: openPatientPhone, name, age: Number.isInteger(ageV)?ageV:null })
-      .select("id,name,age,patient_code,blood_group,allergies,history,is_primary").single();
+      .select("id,name,age,sex,address,patient_code,blood_group,allergies,history,is_primary").single();
     if (error){ toast(error.message); return; }
     openPeople.push(data); closeSheet(); setActivePerson(data.id); toast("Person added");
   };
