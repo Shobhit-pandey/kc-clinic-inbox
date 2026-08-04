@@ -115,7 +115,7 @@ nav button:active svg{transform:scale(.84)}
 /* login */
 #login{max-width:480px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;justify-content:center;padding:0 28px;gap:13px;text-align:center;background:var(--chatbg)}
 @media(min-width:520px){#login{height:min(920px,100dvh);border-radius:22px;box-shadow:0 12px 44px rgba(0,0,0,.28)}}
-#login .logo{width:100px;height:100px;margin:0 auto 8px;border-radius:24px;display:block;box-shadow:0 6px 18px rgba(22,50,79,.28)}
+#login .logo{width:auto;max-width:240px;height:auto;max-height:150px;object-fit:contain;margin:0 auto 6px;display:block}
 #login h2{color:var(--navy);letter-spacing:-.3px}
 #login input{width:100%;padding:15px;border:1px solid #d1d5db;border-radius:14px;font-size:16px;background:#fff}
 #login input:focus{border-color:var(--green);outline:none}
@@ -438,8 +438,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 <body>
 <div id="login">
   <img class="logo" src="logo-full.png" alt="KC Dada Women's Clinic">
-  <h2 style="margin-bottom:0">KC Dada Women's Clinic</h2>
-  <p class="mut">Staff sign in</p>
+  <p class="mut" style="margin-top:2px">Staff sign in</p>
   <input id="email" type="email" placeholder="Email" autocomplete="username" autocapitalize="none">
   <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
   <button class="act" id="loginBtn" type="button">Sign in</button>
