@@ -374,6 +374,14 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .rxrm{background:none;border:0;color:var(--bad);font-weight:600;font-size:12.5px;cursor:pointer;padding:2px 0}
 .rxadd{width:100%;background:#fff;border:1px dashed var(--brand);color:var(--brand);border-radius:12px;padding:12px;font-weight:600;font-size:14px;cursor:pointer;margin-bottom:12px}
 .rxlbl{font-size:12px;color:var(--mut);font-weight:600;margin:14px 2px 0}
+/* timing / food pickers inside a medicine row */
+.rxmed .rxsublbl{font-size:11.5px;color:var(--mut);font-weight:600;margin:12px 2px 0}
+/* Equal columns, so the four times sit 2x2 and food sits 1x3 — no chip is left
+   stretched across a row on its own. */
+.rxpick{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px}
+.rxpick.food{grid-template-columns:repeat(3,1fr)}
+.rxpick button{min-width:0;border:1px solid var(--line);background:#fff;color:var(--mut);border-radius:999px;padding:10px 8px;font-size:13px;font-weight:600;cursor:pointer}
+.rxpick button.on{background:var(--brand);border-color:var(--brand);color:#fff}
 /* printable page */
 /* Prescription = a FIXED 1240x1753 page (the letterhead's own pixel size) that is
    scaled as one unit to fit the screen. Because every position and font size is a
@@ -886,7 +894,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // Build stamp injected at build time, shown in Settings so a device can be checked
 // against the current release. "Check for update" re-fetches the app from the
 // server rather than reusing the copy the phone is holding.
-const APP_BUILD = "2026-08-04 (7026560)";
+const APP_BUILD = "2026-08-04 (926678f)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -900,14 +908,49 @@ const SEX_LABEL = { F:"Female", M:"Male", O:"Other" };
 // KEEP IN SYNC with NO_ALLERGY in supabase/functions/send-prescription/index.ts.
 const NO_ALLERGY = new Set(["no","na","n/a","n.a","none","nil","nka","nkda","no allergy","no allergies","-","0"]);
 const isNoAllergy = (v)=> NO_ALLERGY.has(String(v??"").trim().toLowerCase().replace(/\.+$/,""));
+// How a medicine is taken. Codes are stored; the labels are what staff, the
+// doctor and the patient read on the sheet.
+// KEEP IN SYNC with the same three maps in supabase/functions/send-prescription/index.ts.
+const RX_TIMING = { morning:"Morning", afternoon:"Afternoon", evening:"Evening", night:"Night" };
+const RX_FOOD = { before:"Before food", after:"After food", with:"With food" };
+const RX_SCHEDULE = { daily:"Every day", alt:"Alternate days", weekly:"Once a week", sos:"As needed (SOS)" };
+// One readable line per medicine: "Morning, Night · After food · 5 days".
+// "Every day" is left out because it is the norm — only the unusual is spelled
+// out. Prescriptions written before timing existed fall back to their old text.
+function rxDoseLine(it){
+  const out = [];
+  const chosen = Array.isArray(it.timing) ? it.timing : [];
+  const times = Object.keys(RX_TIMING).filter(k=>chosen.includes(k)).map(k=>RX_TIMING[k]);
+  if (times.length) out.push(times.join(", "));
+  if (RX_FOOD[it.food]) out.push(RX_FOOD[it.food]);
+  if (it.schedule && it.schedule !== "daily" && RX_SCHEDULE[it.schedule]) out.push(RX_SCHEDULE[it.schedule]);
+  if (!out.length && it.frequency) out.push(it.frequency);
+  if (it.duration) out.push(it.duration);
+  return out.join(" · ");
+}
 const RX_MEDS = ["Folic Acid 5 mg","Iron + Folic Acid","Calcium + Vitamin D3","Doxinate (Doxylamine)","Paracetamol 500 mg","Pantoprazole 40 mg","Ondansetron 4 mg","Amoxicillin 500 mg","Metronidazole 400 mg","Progesterone","Multivitamin"];
-const RX_FREQ = ["1-0-0 (morning)","0-0-1 (night)","1-0-1 (morning & night)","1-1-1 (thrice daily)","1-1-1-1 (four times)","Once a week","SOS (as needed)","Custom"];
 const rxRowHtml = ()=>`<div class="rxmed">
     <div class="rxmh"><b>Medicine</b><button class="rxrm" onclick="rxRemoveRow(this)">Remove</button></div>
     <input class="rxm-name" list="rxMeds" placeholder="Medicine name">
-    <div class="two"><input class="rxm-dose" placeholder="Dose (e.g. 500 mg)"><input class="rxm-dur" placeholder="Duration (e.g. 5 days)"></div>
-    <select class="rxm-freq">${RX_FREQ.map(f=>`<option>${f}</option>`).join("")}</select>
-    <input class="rxm-remark" placeholder="Remark (e.g. after food)"></div>`;
+    <div class="two"><input class="rxm-dose" placeholder="Dose (e.g. 1 tablet)"><input class="rxm-dur" placeholder="Duration (e.g. 5 days)"></div>
+    <div class="rxsublbl">When to take — tap all that apply</div>
+    <div class="rxpick timing" data-multi="1">${Object.entries(RX_TIMING).map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="false" onclick="rxPick(this)">${l}</button>`).join("")}</div>
+    <div class="rxsublbl">Food</div>
+    <!-- The heading already says Food, so the chips drop it and stay on one line
+         on a 320px phone. The sheet still prints the full "After food". -->
+    <div class="rxpick food">${Object.entries(RX_FOOD).map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="false" onclick="rxPick(this)">${l.replace(/ food$/,"")}</button>`).join("")}</div>
+    <div class="rxsublbl">How often</div>
+    <select class="rxm-sched">${Object.entries(RX_SCHEDULE).map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select>
+    <input class="rxm-remark" placeholder="Note for this medicine (optional)"></div>`;
+// Timing takes several choices (data-multi); food takes one — tapping the chosen
+// one again clears it.
+window.rxPick = (btn)=>{
+  const wasOn = btn.classList.contains("on");
+  const group = btn.parentNode;
+  const set = (b, on)=>{ b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); };
+  if (!group.dataset.multi) [...group.children].forEach(b=>set(b, false));
+  set(btn, !wasOn);
+};
 window.rxAddRow = ()=>{ $("rxRows").insertAdjacentHTML("beforeend", rxRowHtml()); };
 window.rxRemoveRow = (btn)=>{ const rows=document.querySelectorAll("#rxRows .rxmed"); if(rows.length>1) btn.closest(".rxmed").remove(); else toast("Keep at least one medicine (or Close to cancel)"); };
 window.closeRxEdit = ()=> $("rxEdit").classList.remove("open");
@@ -930,16 +973,25 @@ async function saveRx(){
   const rows = [...document.querySelectorAll("#rxRows .rxmed")].map(r=>({
     medicine: r.querySelector(".rxm-name").value.trim(),
     dose: r.querySelector(".rxm-dose").value.trim(),
-    frequency: r.querySelector(".rxm-freq").value,
+    timing: [...r.querySelectorAll(".rxpick.timing button.on")].map(b=>b.dataset.v),
+    food: r.querySelector(".rxpick.food button.on")?.dataset.v || null,
+    schedule: r.querySelector(".rxm-sched").value,
     duration: r.querySelector(".rxm-dur").value.trim(),
     remark: r.querySelector(".rxm-remark").value.trim(),
   })).filter(x=>x.medicine);
   if (!rows.length) { toast("Add at least one medicine"); return; }
+  // A medicine with no time of day would print with no instruction at all, which
+  // is worse than useless on a prescription. "As needed" is the one case where
+  // there is genuinely no fixed time.
+  const noTime = rows.find(x=>!x.timing.length && x.schedule !== "sos");
+  if (noTime) { toast(`Choose when to take ${noTime.medicine} — or set How often to "As needed"`); return; }
   const advice = $("rxAdvice").value.trim() || null;
   const fu = parseInt($("rxFollow").value,10); const follow_up_days = Number.isFinite(fu) ? fu : null;
   const { data: rx, error } = await sb.from("prescriptions").insert({ patient_id: pid, created_by: me?.email||"staff", advice, follow_up_days }).select("id").single();
   if (error) { toast(error.message); return; }
-  const items = rows.map((x,i)=>({ prescription_id: rx.id, medicine: x.medicine, dose: x.dose||null, frequency: x.frequency||null, duration: x.duration||null, remark: x.remark||null, sort: i }));
+  const items = rows.map((x,i)=>({ prescription_id: rx.id, medicine: x.medicine, dose: x.dose||null,
+    timing: x.timing.length ? x.timing : null, food: x.food, schedule: x.schedule,
+    duration: x.duration||null, remark: x.remark||null, sort: i }));
   const { error: e2 } = await sb.from("prescription_items").insert(items);
   if (e2) { toast(e2.message); return; }
   closeRxEdit(); toast("Prescription saved"); renderNotes(); openRxPrint(rx.id);
@@ -1036,7 +1088,10 @@ window.openRxPrint = async (id)=>{
   const sex = String(p.sex||"").toUpperCase().charAt(0);
   const dateText = new Date(rx.created_at).toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata",day:"numeric",month:"short",year:"numeric"});
 
-  const meds = (its||[]).map((x,i)=>`<div class="med"><div class="mn">${i+1}. ${esc(x.medicine)}${x.dose?" "+esc(x.dose):""}</div>${(x.frequency||x.duration)?`<div class="mm">${[esc(x.frequency||""),esc(x.duration||"")].filter(Boolean).join(" · ")}</div>`:""}${x.remark?`<div class="mr">${esc(x.remark)}</div>`:""}</div>`).join("");
+  const meds = (its||[]).map((x,i)=>{
+    const line = rxDoseLine(x);
+    return `<div class="med"><div class="mn">${i+1}. ${esc(x.medicine)}${x.dose?" "+esc(x.dose):""}</div>${line?`<div class="mm">${esc(line)}</div>`:""}${x.remark?`<div class="mr">${esc(x.remark)}</div>`:""}</div>`;
+  }).join("");
   const noAlg = isNoAllergy(p.allergies);
   const invHtml = vitals.map(esc).join("<br>")
     + (p.allergies?`<div class="alg${noAlg?" ok":""}">${noAlg?"No known allergy":"Allergy: "+esc(p.allergies)}</div>`:"");
@@ -2149,7 +2204,7 @@ const TUTORIAL = [
   ["notes","Private notes","Inside any chat, switch to Notes. This is staff-only and the patient never sees it. Keep a timestamped history plus vitals like BP and weight, and edit the profile up top. You'll see every visit listed with its date and outcome, and if a patient walks in without an appointment, tap 'Log walk-in visit' to record it.","Record history, vitals, and every visit."],
   ["idcard","Several people, one number","A husband may book for his wife, or a whole family shares one phone. Each person keeps their own profile, Patient ID, visit history and prescriptions. When booking, the bot asks who the appointment is for. In a chat, tap the person chips at the top of Notes to switch person, or Add person.","Shared phones and family members."],
   ["block","Block a number","If someone messages the clinic wrongly or keeps sending nuisance messages, open their chat and tap Block. You'll stop receiving any messages from that number. Unblock any time from Settings › Blocked numbers.","Stop unwanted or spam messages."],
-  ["rx","Prescriptions","Open a patient's Notes and tap Write prescription. Add each medicine with its dose, frequency, and duration, plus advice and a follow-up. Then Print it on the clinic letterhead — clinic and doctor details, registration number, and signature — or tap Send to deliver it to the patient on WhatsApp as a PDF.","Give patients a proper prescription."],
+  ["rx","Prescriptions","Open a patient's Notes and tap Write prescription. For each medicine add the dose, tap when it is to be taken — Morning, Afternoon, Evening, Night — and whether it is before, after or with food, then how long to continue. Add advice and a follow-up. Print it on the clinic letterhead, or tap Send to deliver it to the patient on WhatsApp as a PDF. The patient reads it in words, so there is no confusion about when to take what.","Give patients a proper prescription."],
   ["personplus","Add a walk-in","Tap the plus on Chats to add someone by name and number without sending a message (free). If they message later, it links to the same record.","For patients who visit or call first."],
   ["calendar","Bookings","See today and the next 7 days. Tap an appointment to open that chat, or the three dots to mark done, move to another time, mark no-show, or cancel.","Run the day and manage every appointment."],
   ["queue","Today's queue","On today's appointments, tap Arrived when a patient reaches the clinic, Start when they go in, and Done when finished. Everyone sees who is waiting.","Track the waiting room at a glance."],
@@ -2195,7 +2250,7 @@ const STORIES = [
       { actor:"staff", mock:"queue", title:"Move them through the visit", text:"When the patient reaches the clinic tap <b>Arrived</b>. When the doctor calls them in tap <b>Start</b>. When finished tap <b>Done</b>. Everyone sees who is waiting." },
       { actor:"staff", mock:"notes", title:"Write down vitals", text:"Open the patient and switch to <b>Notes</b>. Tap <b>＋ Vitals</b> for BP, weight or pulse. Do this at <b>every visit</b> — each one is saved with its date. Tap <b>Edit profile</b> to fill age, blood group, allergies and ongoing history." },
       { actor:"doctor", mock:"notes", title:"The doctor's private note", text:"In <b>Notes</b>, the doctor (or admin) can type a <b>private note</b> about the visit. It is only for the doctor and admin — reception and the patient never see it. This is separate from vitals, which reception can add and see." },
-      { actor:"doctor", mock:"rx", title:"Doctor writes the prescription", text:"In <b>Notes</b>, the doctor taps <b>Write prescription</b> and adds each medicine — pick from the common list or type your own — with dose, how often, and for how long, plus advice and a follow-up. It prints on the clinic's own letterhead (the doctor can edit those details in Settings)." },
+      { actor:"doctor", mock:"rx", title:"Doctor writes the prescription", text:"In <b>Notes</b>, the doctor taps <b>Write prescription</b> and adds each medicine — pick from the common list or type your own. Enter the dose, then tap <b>when</b> to take it (Morning, Afternoon, Evening, Night — tap more than one for twice or thrice a day), tap <b>before / after / with food</b>, and set how long to continue. Add advice and a follow-up. It prints on the clinic's own letterhead." },
       { actor:"doctor", mock:"rx", title:"Give it to the patient", text:"Tap <b>Print</b> for a paper copy, or <b>Send</b> to deliver it to the patient's WhatsApp as a PDF. (Send works within 24 hours of the patient's last message.)" },
       { actor:"staff", mock:"followup", title:"Book the next visit", text:"After you tap <b>Done</b>, the app offers a follow-up in 1, 2 or 4 weeks, or <b>Pick another date & time</b> for any day. Whichever you choose, it opens the booking screen so you set the exact time." },
     ]},
@@ -2296,7 +2351,10 @@ const FAQ = [
     ["Where do I see past visits and the Patient ID?","In <b>Notes</b>. Every person has a permanent Patient ID (like KC-2026-0001) and a full list of past visits and prescriptions."],
   ]},
   { h:"Prescriptions", qa:[
-    ["How does the doctor write a prescription?","Open the patient's <b>Notes</b> and tap <b>Write prescription</b>. Add each medicine with its dose, how often, and for how long, plus any advice."],
+    ["How does the doctor write a prescription?","Open the patient's <b>Notes</b> and tap <b>Write prescription</b>. For each medicine: the dose, <b>when to take it</b> (Morning / Afternoon / Evening / Night), <b>before, after or with food</b>, and for how long. Then any advice and a follow-up."],
+    ["A medicine is once a day — how do I say which time?","Tap just that one time. Tapping only <b>Night</b> prints \"Night\", so the patient knows exactly when. For twice a day tap two, for thrice a day tap three."],
+    ["Where do I put 'after food'?","Tap <b>After food</b> under Food. It prints next to the timing, e.g. \"Morning, Night · After food · 5 days\", so you don't have to type it in the note."],
+    ["What if the medicine is not for every day?","Use <b>How often</b> — Alternate days, Once a week, or As needed (SOS). \"Every day\" is the normal case and is not printed."],
     ["How do I give it to the patient?","Tap <b>Print</b> for a paper copy on the clinic letterhead, or <b>Send</b> to deliver it to the patient's WhatsApp as a PDF."],
     ["Can reception write a prescription?","No. Only the doctor and admin can write one. Reception can still print or send a prescription the doctor already wrote."],
     ["The Send button says the window is closed. Why?","WhatsApp only lets us message a patient within 24 hours of their last message. Ask them to send any message first, then send the prescription."],
