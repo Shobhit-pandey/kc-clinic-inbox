@@ -146,6 +146,20 @@ button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);borde
 .qbadge.arrived{background:#fdf1dc;color:#a2761b}
 .qbadge.consult{background:#e3f4ea;color:var(--ok)}
 .qadv{border:0;border-radius:999px;padding:5px 14px;font-size:12.5px;font-weight:600;color:#fff;background:var(--navy);cursor:pointer}
+/* correct / remove a prescription — outlined so Print stays the obvious action */
+/* Date + summary read on the first line; the actions get a line of their own so
+   nothing is squeezed to an ellipsis and every button is easy to hit. */
+.vrow.rxrow{flex-wrap:wrap}
+.vrow.rxrow .vt{flex:1 1 auto}
+.vrow.rxrow .rxacts{flex:1 0 100%;display:flex;gap:8px;margin-top:4px;align-items:center}
+.vrow.rxrow .rxacts button{padding-top:7px;padding-bottom:7px}
+/* Print is the routine action and takes the room; an irreversible Delete should
+   not be the same size and shape as it, sitting under a doctor's thumb. */
+.vrow.rxrow .rxacts .qadv{flex:2}
+.vrow.rxrow .rxacts .qedit{flex:1}
+.vrow.rxrow .rxacts .qdel{flex:0 0 auto;font-size:12px;padding-left:12px;padding-right:12px}
+.qedit{border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600;color:var(--brand);background:#fff;cursor:pointer}
+.qdel{border:1px solid #f3b4b4;border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600;color:var(--bad);background:#fff;cursor:pointer}
 .qadv.done{background:var(--ok)}
 .dayline{padding:7px 18px;color:var(--mut);font-size:13px}
 .sumtiles{display:flex;gap:14px;text-align:center}
@@ -376,6 +390,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .rxlbl{font-size:12px;color:var(--mut);font-weight:600;margin:14px 2px 0}
 /* timing / food pickers inside a medicine row */
 .rxmed .rxsublbl{font-size:11.5px;color:var(--mut);font-weight:600;margin:12px 2px 0}
+.rxmed .rxwas{font-size:11.5px;color:var(--warn);font-weight:600;margin:6px 2px 0}
 /* Equal columns, so the four times sit 2x2 and food sits 1x3 — no chip is left
    stretched across a row on its own. */
 .rxpick{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px}
@@ -556,7 +571,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   <div class="fbody" id="faqBody"></div>
 </div>
 <div id="rxEdit">
-  <header><button class="ico-btn" onclick="closeRxEdit()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="ttl">Write prescription</div></header>
+  <header><button class="ico-btn" onclick="closeRxEdit()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button><div class="ttl" id="rxEditTitle">Write prescription</div></header>
   <div class="rxbody" id="rxEditBody"></div>
   <div class="rxfoot"><button class="act" id="rxSaveBtn" style="width:100%">Save prescription</button></div>
 </div>
@@ -826,7 +841,7 @@ async function renderNotes(){
   const [{ data: notes }, { data: appts }, { data: rxs }] = await Promise.all([
     sb.from("patient_notes").select("body,author,created_at,kind").eq("patient_id", pid).order("created_at",{ascending:false}).limit(300),
     sb.from("appointments").select("slot_start,status,type_code,new_or_followup,arrived_at,consult_at,appointment_types(name_en)").eq("patient_id", pid).order("slot_start",{ascending:false}),
-    sb.from("prescriptions").select("id,created_at,advice,prescription_items(id)").eq("patient_id", pid).order("created_at",{ascending:false}),
+    sb.from("prescriptions").select("id,created_at,updated_at,sent_at,advice,prescription_items(id)").eq("patient_id", pid).order("created_at",{ascending:false}),
   ]);
   if (openPatientId !== pid) return;
   const p = openPatient || {};
@@ -864,10 +879,16 @@ async function renderNotes(){
       </div>
       <button class="ghost" style="width:100%;margin-top:8px" onclick="logWalkIn()">＋ Log walk-in visit</button>
       ${canWriteRx()?`<button class="act" style="width:100%;margin-top:8px" onclick="openRxEditor()">℞ Write prescription</button>`:""}</div>`;
-  // Prescriptions (each printable). Doctor writes; anyone here can print/send.
+  // Prescriptions. Anyone here can print/send; only doctor/admin can correct or
+  // remove one (RLS enforces that too, the buttons just match it).
   const rxlist = (rxs??[]).length
     ? `<div class="vhead">Prescriptions · ${rxs.length}</div>` + rxs.map(r=>
-        `<div class="vrow"><span class="vd">${short(r.created_at)}</span><span class="vt">${(r.prescription_items||[]).length} medicine${(r.prescription_items||[]).length===1?"":"s"}${r.advice?" · advice":""}</span><button class="qadv" onclick="openRxPrint('${r.id}')">Print</button></div>`).join("")
+        `<div class="vrow rxrow"><span class="vd">${short(r.created_at)}</span><span class="vt">${(r.prescription_items||[]).length} medicine${(r.prescription_items||[]).length===1?"":"s"}${r.advice?" · advice":""}${r.updated_at?" · corrected":""}${r.sent_at?" · sent":""}${rxNeedsResend(r)?` <b style="color:var(--warn)">· corrected after sending, send again</b>`:""}</span>
+           <div class="rxacts">
+             <button class="qadv" onclick="openRxPrint('${r.id}')">Print</button>${canWriteRx()?`
+             <button class="qedit" onclick="openRxEditor('${r.id}')">Edit</button>
+             <button class="qdel" onclick="deleteRx('${r.id}')" aria-label="Delete prescription">Delete</button>`:""}
+           </div></div>`).join("")
     : "";
   // Visit history: every appointment is a distinct visit (date · type · outcome),
   // so repeat visits by the same patient are each recorded and differentiated.
@@ -891,10 +912,12 @@ async function renderNotes(){
 // --- prescriptions ---
 let CLINIC = null;
 async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { data } = await sb.from("clinic_profile").select("*").single(); CLINIC = data || {}; return CLINIC; }
-// Build stamp injected at build time, shown in Settings so a device can be checked
-// against the current release. "Check for update" re-fetches the app from the
-// server rather than reusing the copy the phone is holding.
-const APP_BUILD = "2026-08-04 (926678f)";
+// Product version, bumped by hand at a release the clinic cares about (stays at
+// 1.0.0 until the v1 feature set is signed off). The build stamp underneath it is
+// injected at build time and identifies the exact deploy, so a device still
+// holding an older copy of the app is obvious instead of guesswork.
+const APP_VERSION = "1.0.0";
+const APP_BUILD = "2026-08-05 (0df63ae)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -918,21 +941,34 @@ const RX_SCHEDULE = { daily:"Every day", alt:"Alternate days", weekly:"Once a we
 // "Every day" is left out because it is the norm — only the unusual is spelled
 // out. Prescriptions written before timing existed fall back to their old text.
 function rxDoseLine(it){
-  const out = [];
+  // How it is taken. Kept separate from dose/duration so the legacy fallback below
+  // depends only on whether real instructions exist.
+  const how = [];
   const chosen = Array.isArray(it.timing) ? it.timing : [];
   const times = Object.keys(RX_TIMING).filter(k=>chosen.includes(k)).map(k=>RX_TIMING[k]);
-  if (times.length) out.push(times.join(", "));
-  if (RX_FOOD[it.food]) out.push(RX_FOOD[it.food]);
-  if (it.schedule && it.schedule !== "daily" && RX_SCHEDULE[it.schedule]) out.push(RX_SCHEDULE[it.schedule]);
-  if (!out.length && it.frequency) out.push(it.frequency);
+  if (times.length) how.push(times.join(", "));
+  if (RX_FOOD[it.food]) how.push(RX_FOOD[it.food]);
+  if (it.schedule && it.schedule !== "daily" && RX_SCHEDULE[it.schedule]) how.push(RX_SCHEDULE[it.schedule]);
+  if (!how.length && it.frequency) how.push(it.frequency);
+  // Amount per intake leads: "1 tablet · Morning, Night" reads as one tablet at
+  // each of those times. Gluing it to the name made "Dolo 650 1 tablet" look like
+  // a strength, which is what the medicine name already carries.
+  const out = [];
+  if (it.dose) out.push(it.dose);
+  out.push(...how);
   if (it.duration) out.push(it.duration);
   return out.join(" · ");
 }
+// The patient holds a copy that no longer matches the record: it was sent, then
+// corrected, and not sent again. Worth saying loudly — reception otherwise sees
+// "sent" and tells the patient their prescription is on WhatsApp, which it is, in
+// the wrong version.
+const rxNeedsResend = (r)=> !!(r?.sent_at && r?.updated_at && new Date(r.updated_at) > new Date(r.sent_at));
 const RX_MEDS = ["Folic Acid 5 mg","Iron + Folic Acid","Calcium + Vitamin D3","Doxinate (Doxylamine)","Paracetamol 500 mg","Pantoprazole 40 mg","Ondansetron 4 mg","Amoxicillin 500 mg","Metronidazole 400 mg","Progesterone","Multivitamin"];
 const rxRowHtml = ()=>`<div class="rxmed">
     <div class="rxmh"><b>Medicine</b><button class="rxrm" onclick="rxRemoveRow(this)">Remove</button></div>
     <input class="rxm-name" list="rxMeds" placeholder="Medicine name">
-    <div class="two"><input class="rxm-dose" placeholder="Dose (e.g. 1 tablet)"><input class="rxm-dur" placeholder="Duration (e.g. 5 days)"></div>
+    <div class="two"><input class="rxm-dose" placeholder="How much each time (1 tablet)"><input class="rxm-dur" placeholder="For how long (5 days)"></div>
     <div class="rxsublbl">When to take — tap all that apply</div>
     <div class="rxpick timing" data-multi="1">${Object.entries(RX_TIMING).map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="false" onclick="rxPick(this)">${l}</button>`).join("")}</div>
     <div class="rxsublbl">Food</div>
@@ -952,23 +988,82 @@ window.rxPick = (btn)=>{
   set(btn, !wasOn);
 };
 window.rxAddRow = ()=>{ $("rxRows").insertAdjacentHTML("beforeend", rxRowHtml()); };
+// Put a saved medicine back into a freshly rendered row, so Edit reopens exactly
+// what was prescribed rather than a blank form.
+function rxFillRow(row, it){
+  row.querySelector(".rxm-name").value = it.medicine || "";
+  row.querySelector(".rxm-dose").value = it.dose || "";
+  row.querySelector(".rxm-dur").value = it.duration || "";
+  row.querySelector(".rxm-remark").value = it.remark || "";
+  const sched = row.querySelector(".rxm-sched");
+  sched.value = RX_SCHEDULE[it.schedule] ? it.schedule : "daily";
+  const mark = (sel, values)=> row.querySelectorAll(sel).forEach(b=>{
+    const on = values.includes(b.dataset.v);
+    b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  mark(".rxpick.timing button", Array.isArray(it.timing) ? it.timing : []);
+  mark(".rxpick.food button", it.food ? [it.food] : []);
+  // A prescription written before timing existed has only free text. Show it as a
+  // read-only hint — copying it into the note would print the same instruction
+  // twice once the doctor also taps the chips, and would overwrite the note.
+  if (!row.querySelector(".rxpick.timing button.on") && it.frequency) {
+    row.querySelector(".rxm-name").insertAdjacentHTML("afterend",
+      `<p class="rxwas">Was written as: ${esc(it.frequency)}</p>`);
+  }
+}
 window.rxRemoveRow = (btn)=>{ const rows=document.querySelectorAll("#rxRows .rxmed"); if(rows.length>1) btn.closest(".rxmed").remove(); else toast("Keep at least one medicine (or Close to cancel)"); };
 window.closeRxEdit = ()=> $("rxEdit").classList.remove("open");
 window.closeRxPrint = ()=> $("rxPrint").classList.remove("open");
-window.openRxEditor = ()=>{
+// Write a new prescription, or correct an existing one when given its id.
+window.openRxEditor = async (id)=>{
   if (!openPatientId) return;
+  let rx = null, items = [];
+  if (id) {
+    const [{ data: r }, { data: its }] = await Promise.all([
+      sb.from("prescriptions").select("*").eq("id", id).single(),
+      sb.from("prescription_items").select("*").eq("prescription_id", id).order("sort"),
+    ]);
+    if (!r) { toast("Prescription not found"); return; }
+    rx = r; items = its || [];
+  }
+  const sentWarning = rx?.sent_at
+    ? `<p class="mut" style="margin:0 2px 10px;color:var(--warn);font-weight:600">${rxNeedsResend(rx)
+        ? "Corrected since it was sent, and not sent again — the patient still has the older copy."
+        : "Already sent to the patient on WhatsApp. If you change it, tap Send again afterwards."}</p>`
+    : "";
   $("rxEditBody").innerHTML =
     `<datalist id="rxMeds">${RX_MEDS.map(m=>`<option value="${esc(m)}"></option>`).join("")}</datalist>
-     <div id="rxRows">${rxRowHtml()}</div>
+     ${sentWarning}
+     <div id="rxRows">${(items.length ? items : [null]).map(()=>rxRowHtml()).join("")}</div>
      <button class="rxadd" onclick="rxAddRow()">＋ Add another medicine</button>
      <div class="rxlbl">Advice / instructions</div>
-     <textarea id="rxAdvice" rows="3" placeholder="e.g. Plenty of fluids and rest. Review if fever persists."></textarea>
+     <textarea id="rxAdvice" rows="3" placeholder="e.g. Plenty of fluids and rest. Review if fever persists.">${esc(rx?.advice||"")}</textarea>
      <div class="rxlbl">Follow-up in (days, optional)</div>
-     <input id="rxFollow" inputmode="numeric" placeholder="e.g. 14">`;
-  $("rxSaveBtn").onclick = saveRx;
+     <input id="rxFollow" inputmode="numeric" placeholder="e.g. 14" value="${rx?.follow_up_days ?? ""}">`;
+  const rows = [...document.querySelectorAll("#rxRows .rxmed")];
+  items.forEach((it,i)=> rxFillRow(rows[i], it));
+  $("rxEditTitle").textContent = id ? "Correct prescription" : "Write prescription";
+  $("rxSaveBtn").textContent = id ? "Save changes" : "Save prescription";
+  $("rxSaveBtn").onclick = ()=> saveRx(id);
   $("rxEdit").classList.add("open");
 };
-async function saveRx(){
+
+// Remove a prescription. Deleting one the patient already has is allowed (a wrong
+// prescription should not stay in the record) but must be said out loud first.
+window.deleteRx = async (id)=>{
+  const { data: rx } = await sb.from("prescriptions").select("created_at,sent_at").eq("id", id).maybeSingle();
+  const sent = rx?.sent_at
+    ? "\n\nThis one was already sent to the patient on WhatsApp — deleting it here does NOT remove their copy."
+    : "";
+  if (!confirm(`Delete the prescription from ${rx?fmtDayFull(rx.created_at):"this visit"}?${sent}\n\nThis cannot be undone.`)) return;
+  // A delete that RLS filters out affects no rows and returns no error, so ask for
+  // the deleted id back rather than claiming success on a no-op.
+  const { data: gone, error } = await sb.from("prescriptions").delete().eq("id", id).select("id");
+  if (error) { toast(error.message); return; }
+  if (!gone?.length) { toast("Not deleted — you may not have permission"); renderNotes(); return; }
+  toast("Prescription deleted"); renderNotes();
+};
+async function saveRx(editId){
   const pid = openPatientId; if (!pid) return;
   const rows = [...document.querySelectorAll("#rxRows .rxmed")].map(r=>({
     medicine: r.querySelector(".rxm-name").value.trim(),
@@ -987,14 +1082,43 @@ async function saveRx(){
   if (noTime) { toast(`Choose when to take ${noTime.medicine} — or set How often to "As needed"`); return; }
   const advice = $("rxAdvice").value.trim() || null;
   const fu = parseInt($("rxFollow").value,10); const follow_up_days = Number.isFinite(fu) ? fu : null;
-  const { data: rx, error } = await sb.from("prescriptions").insert({ patient_id: pid, created_by: me?.email||"staff", advice, follow_up_days }).select("id").single();
-  if (error) { toast(error.message); return; }
-  const items = rows.map((x,i)=>({ prescription_id: rx.id, medicine: x.medicine, dose: x.dose||null,
-    timing: x.timing.length ? x.timing : null, food: x.food, schedule: x.schedule,
-    duration: x.duration||null, remark: x.remark||null, sort: i }));
-  const { error: e2 } = await sb.from("prescription_items").insert(items);
-  if (e2) { toast(e2.message); return; }
-  closeRxEdit(); toast("Prescription saved"); renderNotes(); openRxPrint(rx.id);
+
+  // Disable the button for the round trip: two taps used to race each other and
+  // could leave every medicine listed twice on the patient's sheet.
+  const btn = $("rxSaveBtn"); btnBusy(btn, true, '<span class="spinner"></span>Saving…');
+  try {
+    let rxId = editId;
+    if (editId) {
+      // One transaction in the database: the row, the removal of the old medicines
+      // and the new ones all land together, or nothing does. Doing it as separate
+      // calls from here could leave a live prescription with no medicines at all.
+      const { error } = await sb.rpc("replace_prescription_items", {
+        rx_id: editId, advice_in: advice, follow_in: follow_up_days,
+        items: rows.map((x,i)=>({ medicine: x.medicine, dose: x.dose, timing: x.timing,
+          food: x.food, schedule: x.schedule, duration: x.duration, remark: x.remark, sort: i })),
+      });
+      if (error) { toast(error.message || "Could not save the changes"); return; }
+    } else {
+      const { data: rx, error } = await sb.from("prescriptions").insert({ patient_id: pid, created_by: me?.email||"staff", advice, follow_up_days }).select("id").single();
+      if (error) { toast(error.message); return; }
+      rxId = rx.id;
+      const items = rows.map((x,i)=>({ prescription_id: rxId, medicine: x.medicine, dose: x.dose||null,
+        timing: x.timing.length ? x.timing : null, food: x.food, schedule: x.schedule,
+        duration: x.duration||null, remark: x.remark||null, sort: i }));
+      const { error: e2 } = await sb.from("prescription_items").insert(items);
+      if (e2) {
+        // The prescription exists but has no medicines — say so plainly instead of
+        // leaving a blank sheet that looks printable.
+        toast("Medicines not saved — open Edit and save again");
+        renderNotes(); return;
+      }
+    }
+    closeRxEdit(); toast(editId ? "Prescription updated" : "Prescription saved"); renderNotes(); openRxPrint(rxId);
+  } catch (e) {
+    toast("Could not save — check the connection and try again");
+  } finally {
+    btnBusy(btn, false);
+  }
 }
 let rxCurrentId = null;
 window.sendRxToPatient = async ()=>{
@@ -1090,7 +1214,7 @@ window.openRxPrint = async (id)=>{
 
   const meds = (its||[]).map((x,i)=>{
     const line = rxDoseLine(x);
-    return `<div class="med"><div class="mn">${i+1}. ${esc(x.medicine)}${x.dose?" "+esc(x.dose):""}</div>${line?`<div class="mm">${esc(line)}</div>`:""}${x.remark?`<div class="mr">${esc(x.remark)}</div>`:""}</div>`;
+    return `<div class="med"><div class="mn">${i+1}. ${esc(x.medicine)}</div>${line?`<div class="mm">${esc(line)}</div>`:""}${x.remark?`<div class="mr">${esc(x.remark)}</div>`:""}</div>`;
   }).join("");
   const noAlg = isNoAllergy(p.allergies);
   const invHtml = vitals.map(esc).join("<br>")
@@ -1582,8 +1706,9 @@ async function loadSettings(){
     // Which build this device is actually running. Phones can hold an old copy of
     // the app for a while after a release, so this makes "is my app up to date?"
     // answerable instead of guesswork.
-    `<p class="mut" style="text-align:center;font-size:11.5px;margin:14px 0 4px">App version ${esc(APP_BUILD)}
-       <button class="linklike" style="font-size:11.5px;padding:4px 0" onclick="reloadApp()">Check for update</button></p>`;
+    `<p class="mut" style="text-align:center;font-size:12.5px;margin:16px 0 2px;font-weight:600">KC Dada Clinic · v${esc(APP_VERSION)}</p>
+     <p class="mut" style="text-align:center;font-size:11px;margin:0">Build ${esc(APP_BUILD)}
+       <button class="linklike" style="font-size:11px;padding:4px 0" onclick="reloadApp()">Check for update</button></p>`;
   if (sub) $("pushOff").onclick = disablePush; else $("pushBtn").onclick = enablePush;
   $("logoutBtn").onclick = async () => { await sb.auth.signOut(); location.reload(); };
 }
