@@ -414,11 +414,14 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .rxpage .inv{position:absolute;font-size:25px;line-height:1.5;color:#1b2f45}
 .rxpage .inv .alg{color:#b00020;font-weight:700;margin-top:8px;font-size:23px}
 .rxpage .inv .alg.ok{color:var(--ok)}
+/* --rxf shrinks the whole Rx block together (set by rxFitScale) so a long list of
+   medicines still fits above the Advice box instead of printing over it. The px
+   values here must match RX_FONT in the script — a test asserts that. */
 .rxpage .rx{position:absolute}
-.rxpage .rx .med{margin-bottom:26px}
-.rxpage .rx .mn{font-weight:700;font-size:30px;color:#12233a}
-.rxpage .rx .mm{font-size:25px;color:#4a5766;margin-top:4px}
-.rxpage .rx .mr{font-size:23px;color:#6a7686;font-style:italic;margin-top:2px}
+.rxpage .rx .med{margin-bottom:calc(26px * var(--rxf, 1))}
+.rxpage .rx .mn{font-weight:700;font-size:calc(30px * var(--rxf, 1));color:#12233a}
+.rxpage .rx .mm{font-size:calc(25px * var(--rxf, 1));color:#4a5766;margin-top:calc(4px * var(--rxf, 1))}
+.rxpage .rx .mr{font-size:calc(23px * var(--rxf, 1));color:#6a7686;font-style:italic;margin-top:calc(2px * var(--rxf, 1))}
 /* line-height matches the 37px pitch of the two printed Advice lines, clamped to
    those two lines so it can never spill into the footer. */
 .rxpage .adv{position:absolute;font-size:25px;line-height:37px;color:#1b2f45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -917,7 +920,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-05 (32f14e9)";
+const APP_BUILD = "2026-08-05 (c480870)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -964,6 +967,39 @@ function rxDoseLine(it){
 // "sent" and tells the patient their prescription is on WhatsApp, which it is, in
 // the wrong version.
 const rxNeedsResend = (r)=> !!(r?.sent_at && r?.updated_at && new Date(r.updated_at) > new Date(r.sent_at));
+// Fitting the medicines into the Rx column. Sizes are px in the letterhead's own
+// 1240x1753 space; the column runs from y=650 down to the divider above
+// Advice/Notes at y=1355 (both measured from the artwork). Past about seven
+// medicines the text used to run straight over the Advice box and the footer, so
+// everything is scaled down together until it fits. Characters-per-line is
+// deliberately pessimistic: a smaller font fits MORE per line, so the estimate
+// only ever over-reserves.
+// KEEP IN SYNC with the same block in supabase/functions/send-prescription/index.ts.
+const RX_FIT = { top:650, bottom:1355, pad:12, minScale:0.36, maxMeds:20 };
+const RX_FONT = { mn:30, mm:25, mr:23, metaGap:4, remarkGap:2, medGap:26, nameCpl:44, metaCpl:60 };
+const rxAvailHeight = ()=> RX_FIT.bottom - RX_FIT.top - RX_FIT.pad;
+function rxEstimateHeight(items){
+  const F = RX_FONT;
+  const lines = (text, cpl)=> Math.max(1, Math.ceil(String(text||"").length / cpl));
+  let need = 0;
+  for (const it of (items||[])) {
+    need += lines(`00. ${it.medicine||""}`, F.nameCpl) * F.mn * 1.2;
+    const line = rxDoseLine(it);
+    if (line) need += F.metaGap + lines(line, F.metaCpl) * F.mm * 1.2;
+    if (it.remark) need += F.remarkGap + lines(it.remark, F.metaCpl) * F.mr * 1.2;
+    need += F.medGap;
+  }
+  return need;
+}
+function rxFitScale(items){
+  const need = rxEstimateHeight(items), avail = rxAvailHeight();
+  if (need <= avail) return 1;
+  return Math.max(RX_FIT.minScale, avail / need);
+}
+// Would this list still be readable on one sheet? Below the scale floor the type
+// would be too small to dispense from, so the app refuses at entry rather than
+// printing something illegible or spilling over the Advice box.
+const rxFitsSheet = (items)=> rxEstimateHeight(items) * rxFitScale(items) <= rxAvailHeight() + 0.5;
 const RX_MEDS = ["Folic Acid 5 mg","Iron + Folic Acid","Calcium + Vitamin D3","Doxinate (Doxylamine)","Paracetamol 500 mg","Pantoprazole 40 mg","Ondansetron 4 mg","Amoxicillin 500 mg","Metronidazole 400 mg","Progesterone","Multivitamin"];
 const rxRowHtml = ()=>`<div class="rxmed">
     <div class="rxmh"><b>Medicine</b><button class="rxrm" onclick="rxRemoveRow(this)">Remove</button></div>
@@ -987,7 +1023,15 @@ window.rxPick = (btn)=>{
   if (!group.dataset.multi) [...group.children].forEach(b=>set(b, false));
   set(btn, !wasOn);
 };
-window.rxAddRow = ()=>{ $("rxRows").insertAdjacentHTML("beforeend", rxRowHtml()); };
+window.rxAddRow = ()=>{
+  // Above this the sheet would have to shrink past readable. It has never been
+  // near this in practice; if a patient genuinely needs more, write a second one.
+  if (document.querySelectorAll("#rxRows .rxmed").length >= RX_FIT.maxMeds) {
+    toast(`${RX_FIT.maxMeds} medicines is the most one sheet can hold — write a second prescription`);
+    return;
+  }
+  $("rxRows").insertAdjacentHTML("beforeend", rxRowHtml());
+};
 // Put a saved medicine back into a freshly rendered row, so Edit reopens exactly
 // what was prescribed rather than a blank form.
 function rxFillRow(row, it){
@@ -1080,6 +1124,9 @@ async function saveRx(editId){
   // there is genuinely no fixed time.
   const noTime = rows.find(x=>!x.timing.length && x.schedule !== "sos");
   if (noTime) { toast(`Choose when to take ${noTime.medicine} — or set How often to "As needed"`); return; }
+  // The sheet shrinks to fit a long list, but only down to a readable size. Past
+  // that, refuse here rather than print type nobody can dispense from.
+  if (!rxFitsSheet(rows)) { toast("Too much to fit one sheet — shorten the notes or write a second prescription"); return; }
   const advice = $("rxAdvice").value.trim() || null;
   const fu = parseInt($("rxFollow").value,10); const follow_up_days = Number.isFinite(fu) ? fu : null;
 
@@ -1235,7 +1282,7 @@ window.openRxPrint = async (id)=>{
       ${sex==="F"?`<div class="tick" style="left:1027px;top:400px">✓</div>`:""}
       ${p.address?`<div class="f" style="left:152px;bottom:1273.5px;width:1040px">${esc(p.address)}</div>`:""}
       <div class="inv" style="left:50px;top:617px;width:240px">${invHtml}</div>
-      <div class="rx" style="left:335px;top:650px;width:850px">${meds}</div>
+      <div class="rx" style="left:335px;top:650px;width:850px;--rxf:${rxFitScale(its||[])}">${meds}</div>
       <div class="adv" style="left:53px;top:1397px;width:540px">${advParts.join("<br>")}</div>
     </div></div>`;
   $("rxPrint").classList.add("open");
