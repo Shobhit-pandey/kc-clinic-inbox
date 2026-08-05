@@ -424,7 +424,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .rxpage .rx .mr{font-size:calc(23px * var(--rxf, 1));color:#6a7686;font-style:italic;margin-top:calc(2px * var(--rxf, 1))}
 /* line-height matches the 37px pitch of the two printed Advice lines, clamped to
    those two lines so it can never spill into the footer. */
-.rxpage .adv{position:absolute;font-size:25px;line-height:37px;color:#1b2f45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rxpage .adv{position:absolute;font-size:calc(25px * var(--advf, 1));line-height:37px;color:#1b2f45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 @media print{
   @page{size:A4;margin:0}
   html,body{height:auto;overflow:visible;background:#fff;display:block;margin:0;padding:0}
@@ -920,7 +920,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-05 (c480870)";
+const APP_BUILD = "2026-08-05 (37db4bc)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -975,31 +975,74 @@ const rxNeedsResend = (r)=> !!(r?.sent_at && r?.updated_at && new Date(r.updated
 // deliberately pessimistic: a smaller font fits MORE per line, so the estimate
 // only ever over-reserves.
 // KEEP IN SYNC with the same block in supabase/functions/send-prescription/index.ts.
-const RX_FIT = { top:650, bottom:1355, pad:12, minScale:0.36, maxMeds:20 };
-const RX_FONT = { mn:30, mm:25, mr:23, metaGap:4, remarkGap:2, medGap:26, nameCpl:44, metaCpl:60 };
+const RX_FIT = { top:650, bottom:1355, pad:12, minScale:0.36, maxMeds:20, colW:850, colW2:410, gutter:30, advW:540 };
+const RX_FONT = { mn:30, mm:25, mr:23, adv:25, metaGap:4, remarkGap:2, medGap:26, nameCw:0.64, metaCw:0.567 };
 const rxAvailHeight = ()=> RX_FIT.bottom - RX_FIT.top - RX_FIT.pad;
-function rxEstimateHeight(items){
+// Characters that fit one line at full size in a column this wide.
+const rxCpl = (width, fontPx, cw)=> Math.max(8, Math.floor(width / (fontPx * cw)));
+function rxMedHeight(it, width){
   const F = RX_FONT;
   const lines = (text, cpl)=> Math.max(1, Math.ceil(String(text||"").length / cpl));
-  let need = 0;
-  for (const it of (items||[])) {
-    need += lines(`00. ${it.medicine||""}`, F.nameCpl) * F.mn * 1.2;
-    const line = rxDoseLine(it);
-    if (line) need += F.metaGap + lines(line, F.metaCpl) * F.mm * 1.2;
-    if (it.remark) need += F.remarkGap + lines(it.remark, F.metaCpl) * F.mr * 1.2;
-    need += F.medGap;
-  }
-  return need;
+  let h = lines(`00. ${it.medicine||""}`, rxCpl(width, F.mn, F.nameCw)) * F.mn * 1.2;
+  const line = rxDoseLine(it);
+  if (line) h += F.metaGap + lines(line, rxCpl(width, F.mm, F.metaCw)) * F.mm * 1.2;
+  if (it.remark) h += F.remarkGap + lines(it.remark, rxCpl(width, F.mr, F.metaCw)) * F.mr * 1.2;
+  return h + F.medGap;
 }
-function rxFitScale(items){
-  const need = rxEstimateHeight(items), avail = rxAvailHeight();
-  if (need <= avail) return 1;
-  return Math.max(RX_FIT.minScale, avail / need);
+const rxEstimateHeight = (items, width)=> (items||[]).reduce((h,it)=> h + rxMedHeight(it, width), 0);
+// One wide column while the list fits at full size — a normal prescription looks
+// exactly as it always has. Beyond that, go to two columns BEFORE shrinking the
+// type: halving the column width costs far less readability than halving the font
+// (twenty medicines land near 8pt this way instead of 5pt).
+function rxLayout(items){
+  const avail = rxAvailHeight();
+  if (rxEstimateHeight(items, RX_FIT.colW) <= avail) return { cols:1, width:RX_FIT.colW, scale:1 };
+  let scale = Math.min(1, (avail * 2) / rxEstimateHeight(items, RX_FIT.colW2));
+  // Medicines are indivisible, so no split may reach that ideal packing — one tall
+  // entry can leave the left column short and overfill the right. Step the scale
+  // down until the split it actually produces fits, or the floor is reached.
+  for (let i = 0; i < 40; i++) {
+    const lay = { cols:2, width:RX_FIT.colW2, scale: Math.max(RX_FIT.minScale, scale) };
+    const fitsNow = rxColumns(items, lay).every(c=> rxEstimateHeight(c, lay.width) * lay.scale <= avail + 0.5);
+    if (fitsNow || lay.scale <= RX_FIT.minScale) return lay;
+    scale *= 0.97;
+  }
+  return { cols:2, width:RX_FIT.colW2, scale:RX_FIT.minScale };
+}
+// Which medicine goes in which column, decided once here so the doctor's sheet and
+// the patient's PDF put the same medicine in the same place. Fills the left column
+// then the right, so reading order stays 1, 2, 3...
+function rxColumns(items, lay){
+  if (lay.cols === 1) return [items||[]];
+  const avail = rxAvailHeight(), out = [[], []];
+  let h = 0;
+  for (const it of (items||[])) {
+    const ih = rxMedHeight(it, lay.width) * lay.scale;
+    if (out[1].length || (out[0].length && h + ih > avail)) out[1].push(it);
+    else { out[0].push(it); h += ih; }
+  }
+  return out;
+}
+// The letterhead prints exactly two Advice lines. Long advice used to wrap onto
+// both and silently push the follow-up off the sheet, losing something the doctor
+// typed — so shrink the advice text (never its line pitch, which must stay on the
+// printed lines) until the advice AND the follow-up both fit.
+// KEEP IN SYNC with the same function in supabase/functions/send-prescription/index.ts.
+function rxAdviceScale(advice, hasFollowUp){
+  const need = hasFollowUp ? 1 : 2;   // lines available to the advice itself
+  for (let s = 1; s > 0.55; s -= 0.05) {
+    const cpl = rxCpl(RX_FIT.advW, RX_FONT.adv * s, RX_FONT.metaCw);
+    if (Math.ceil(String(advice||"").length / cpl) <= need) return Math.round(s * 100) / 100;
+  }
+  return 0.55;
 }
 // Would this list still be readable on one sheet? Below the scale floor the type
 // would be too small to dispense from, so the app refuses at entry rather than
 // printing something illegible or spilling over the Advice box.
-const rxFitsSheet = (items)=> rxEstimateHeight(items) * rxFitScale(items) <= rxAvailHeight() + 0.5;
+function rxFitsSheet(items){
+  const lay = rxLayout(items), avail = rxAvailHeight();
+  return rxColumns(items, lay).every(c=> rxEstimateHeight(c, lay.width) * lay.scale <= avail + 0.5);
+}
 const RX_MEDS = ["Folic Acid 5 mg","Iron + Folic Acid","Calcium + Vitamin D3","Doxinate (Doxylamine)","Paracetamol 500 mg","Pantoprazole 40 mg","Ondansetron 4 mg","Amoxicillin 500 mg","Metronidazole 400 mg","Progesterone","Multivitamin"];
 const rxRowHtml = ()=>`<div class="rxmed">
     <div class="rxmh"><b>Medicine</b><button class="rxrm" onclick="rxRemoveRow(this)">Remove</button></div>
@@ -1259,10 +1302,15 @@ window.openRxPrint = async (id)=>{
   const sex = String(p.sex||"").toUpperCase().charAt(0);
   const dateText = new Date(rx.created_at).toLocaleDateString("en-IN",{timeZone:"Asia/Kolkata",day:"numeric",month:"short",year:"numeric"});
 
-  const meds = (its||[]).map((x,i)=>{
-    const line = rxDoseLine(x);
-    return `<div class="med"><div class="mn">${i+1}. ${esc(x.medicine)}</div>${line?`<div class="mm">${esc(line)}</div>`:""}${x.remark?`<div class="mr">${esc(x.remark)}</div>`:""}</div>`;
+  // One or two columns, with the split decided by shared logic so the PDF matches.
+  const rxLay = rxLayout(its||[]);
+  let rxNo = 0;
+  const medsHtml = (list)=> list.map((x)=>{
+    const line = rxDoseLine(x); rxNo++;
+    return `<div class="med"><div class="mn">${rxNo}. ${esc(x.medicine)}</div>${line?`<div class="mm">${esc(line)}</div>`:""}${x.remark?`<div class="mr">${esc(x.remark)}</div>`:""}</div>`;
   }).join("");
+  const rxCols = rxColumns(its||[], rxLay).map((list, ci)=>
+    `<div class="rx" style="left:${335 + ci * (rxLay.width + RX_FIT.gutter)}px;top:650px;width:${rxLay.width}px;--rxf:${rxLay.scale}">${medsHtml(list)}</div>`).join("");
   const noAlg = isNoAllergy(p.allergies);
   const invHtml = vitals.map(esc).join("<br>")
     + (p.allergies?`<div class="alg${noAlg?" ok":""}">${noAlg?"No known allergy":"Allergy: "+esc(p.allergies)}</div>`:"");
@@ -1282,8 +1330,8 @@ window.openRxPrint = async (id)=>{
       ${sex==="F"?`<div class="tick" style="left:1027px;top:400px">✓</div>`:""}
       ${p.address?`<div class="f" style="left:152px;bottom:1273.5px;width:1040px">${esc(p.address)}</div>`:""}
       <div class="inv" style="left:50px;top:617px;width:240px">${invHtml}</div>
-      <div class="rx" style="left:335px;top:650px;width:850px;--rxf:${rxFitScale(its||[])}">${meds}</div>
-      <div class="adv" style="left:53px;top:1397px;width:540px">${advParts.join("<br>")}</div>
+      ${rxCols}
+      <div class="adv" style="left:53px;top:1397px;width:540px;--advf:${rxAdviceScale(rx.advice, !!rx.follow_up_days)}">${advParts.join("<br>")}</div>
     </div></div>`;
   $("rxPrint").classList.add("open");
   fitRxPage();
