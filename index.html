@@ -74,7 +74,11 @@ nav button:active svg{transform:scale(.84)}
 .crow:active{background:#f0f2f2}
 .crow .av{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#9fb3bb,#7b929c);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px;flex-shrink:0}
 .crow .mid{flex:1;min-width:0}
+.crow .nmrow{display:flex;align-items:center;gap:6px;min-width:0}
 .crow .nm{font-size:16.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctag{flex-shrink:0;font-size:10.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:2px 7px;border-radius:999px}
+.ctag.blocked{background:#fdecec;color:var(--bad)}
+.ctag.test{background:#fff4e0;color:var(--warn)}
 .crow .pv{font-size:14px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
 .crow .rt{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
 .crow .tm{font-size:12px;color:var(--mut)}
@@ -156,6 +160,7 @@ button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);borde
 /* Print is the routine action and takes the room; an irreversible Delete should
    not be the same size and shape as it, sitting under a doctor's thumb. */
 .vrow.rxrow .rxacts .qadv{flex:2}
+.vschip{background:none;border:0;padding:0;cursor:pointer;font:inherit}
 .vrow.rxrow .rxacts .qedit{flex:1}
 .vrow.rxrow .rxacts .qdel{flex:0 0 auto;font-size:12px;padding-left:12px;padding-right:12px}
 .qedit{border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600;color:var(--brand);background:#fff;cursor:pointer}
@@ -734,12 +739,16 @@ let allChatRows = [];
 async function loadChats(){
   if (!allChatRows.length) $("chatList").innerHTML = '<div class="listloading"><span class="spinner"></span>Loading chats…</div>';
   const { data: convos, error } = await sb.from("conversations")
-    .select("id,status,unread_count,updated_at,last_patient_msg_at,contacts(wa_phone,patients(name,is_primary))")
+    .select("id,status,unread_count,updated_at,last_patient_msg_at,contacts(wa_phone,is_test,patients(name,is_primary))")
     .order("updated_at",{ascending:false}).limit(200);
   hideSplash();
   if (error){ $("chatList").innerHTML=''; toast(error.message); return; }
   const { data: recent } = await sb.from("messages")
     .select("conversation_id,body,type,direction,created_at").order("created_at",{ascending:false}).limit(500);
+  // Blocked and developer/test numbers get a tag in the list, so staff can see at a
+  // glance why a number behaves differently instead of opening it to find out.
+  const { data: blockedRows } = await sb.from("blocked_numbers").select("wa_phone");
+  const blockedSet = new Set((blockedRows??[]).map(b=>b.wa_phone));
   const preview = {};
   for (const m of (recent??[])) if (!preview[m.conversation_id]) {
     const who = m.direction==="out" ? "You: " : "";
@@ -750,12 +759,14 @@ async function loadChats(){
     const ct = c.contacts ?? {}, phone = ct.wa_phone || "";
     const people = ct.patients ?? [], primary = people.find(x=>x.is_primary) || people[0] || {};
     const nm = primary.name || ("+"+phone);
+    const tags = (blockedSet.has(phone) ? `<span class="ctag blocked">Blocked</span>` : "")
+               + (ct.is_test ? `<span class="ctag test">Test</span>` : "");
     return {
       hay: (nm + " " + phone).toLowerCase(),
       status: c.status, unread: c.unread_count>0,
       html: `<div class="crow" onclick="openThread('${c.id}')">
         <div class="av">${esc(initials(primary.name)||"•")}</div>
-        <div class="mid"><div class="nm">${esc(nm)}</div>
+        <div class="mid"><div class="nmrow"><span class="nm">${esc(nm)}</span>${tags}</div>
           <div class="pv">${esc(preview[c.id]||statLabel(c.status))}</div></div>
         <div class="rt"><span class="tm">${c.last_patient_msg_at?listTime(c.last_patient_msg_at):""}</span>
           ${c.unread_count>0?`<span class="badge">${c.unread_count}</span>`:`<span class="stat ${c.status}">${statLabel(c.status)}</span>`}
@@ -843,7 +854,7 @@ async function renderNotes(){
   const pid = openPatientId;
   const [{ data: notes }, { data: appts }, { data: rxs }] = await Promise.all([
     sb.from("patient_notes").select("body,author,created_at,kind").eq("patient_id", pid).order("created_at",{ascending:false}).limit(300),
-    sb.from("appointments").select("slot_start,status,type_code,new_or_followup,arrived_at,consult_at,appointment_types(name_en)").eq("patient_id", pid).order("slot_start",{ascending:false}),
+    sb.from("appointments").select("id,slot_start,status,type_code,new_or_followup,arrived_at,consult_at,appointment_types(name_en)").eq("patient_id", pid).order("slot_start",{ascending:false}),
     sb.from("prescriptions").select("id,created_at,updated_at,sent_at,advice,prescription_items(id)").eq("patient_id", pid).order("created_at",{ascending:false}),
   ]);
   if (openPatientId !== pid) return;
@@ -895,12 +906,17 @@ async function renderNotes(){
     : "";
   // Visit history: every appointment is a distinct visit (date · type · outcome),
   // so repeat visits by the same patient are each recorded and differentiated.
+  // The chip is tappable: staff can correct a wrong outcome from here too, not just
+  // from the bookings page (a visit marked no-show by mistake used to be stuck).
+  const vstage = (a)=> a.status==="completed" ? "done" : a.status==="no_show" ? "no_show"
+                 : a.consult_at ? "consult" : a.arrived_at ? "arrived" : "waiting";
   const vchip = (a)=>{
-    if (a.status==="completed") return '<span class="vs done">Done</span>';
-    if (a.status==="no_show") return '<span class="vs miss">No-show</span>';
-    if (a.consult_at) return '<span class="vs done">In consult</span>';
-    if (a.arrived_at) return '<span class="vs arr">Arrived</span>';
-    return new Date(a.slot_start).getTime()>=nowMs ? '<span class="vs up">Upcoming</span>' : '<span class="vs">Booked</span>';
+    const inner = a.status==="completed" ? '<span class="vs done">Done</span>'
+      : a.status==="no_show" ? '<span class="vs miss">No-show</span>'
+      : a.consult_at ? '<span class="vs done">In consult</span>'
+      : a.arrived_at ? '<span class="vs arr">Arrived</span>'
+      : new Date(a.slot_start).getTime()>=nowMs ? '<span class="vs up">Upcoming</span>' : '<span class="vs">Booked</span>';
+    return `<button class="vschip" title="Change outcome" onclick="openApptSheet('${a.id}','${short(a.slot_start)} visit','${vstage(a)}')">${inner}</button>`;
   };
   const visits = (appts??[]).filter(a=>a.status!=="cancelled_by_clinic" && a.status!=="cancelled_by_patient");
   const vlist = visits.length
@@ -920,7 +936,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-05 (06568f4)";
+const APP_BUILD = "2026-08-05 (a382a00)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -975,37 +991,43 @@ const rxNeedsResend = (r)=> !!(r?.sent_at && r?.updated_at && new Date(r.updated
 // deliberately pessimistic: a smaller font fits MORE per line, so the estimate
 // only ever over-reserves.
 // KEEP IN SYNC with the same block in supabase/functions/send-prescription/index.ts.
-const RX_FIT = { top:650, bottom:1355, pad:12, minScale:0.36, maxMeds:20, colW:850, colW2:410, gutter:30, advW:540 };
-const RX_FONT = { mn:30, mm:25, mr:23, adv:25, metaGap:4, remarkGap:2, medGap:26, nameCw:0.64, metaCw:0.567 };
+const RX_FIT = { top:650, bottom:1355, pad:12, minScale:0.5, maxMeds:20, colW:850, colW2:410, gutter:30, advW:540 };
+// Average character width as a fraction of the font size, measured from the real
+// Helvetica metrics the PDF uses (bold names 0.493, regular details 0.428) plus a
+// 6% margin. Guessing high here silently wastes a third of the sheet.
+const RX_FONT = { mn:30, mm:25, mr:23, adv:25, metaGap:4, remarkGap:2, medGap:26, nameCw:0.522, metaCw:0.454 };
 const rxAvailHeight = ()=> RX_FIT.bottom - RX_FIT.top - RX_FIT.pad;
-// Characters that fit one line at full size in a column this wide.
+// Characters that fit one line of this font size in a column this wide.
 const rxCpl = (width, fontPx, cw)=> Math.max(8, Math.floor(width / (fontPx * cw)));
-function rxMedHeight(it, width){
-  const F = RX_FONT;
+// Height of one medicine AT a given scale. The scale has to be applied before the
+// line count, not after: a smaller font fits more characters per line, so it needs
+// FEWER lines. Counting lines at full size and scaling the total afterwards charges
+// twice for the same shrink and is what left the sheet a third empty.
+function rxMedHeight(it, width, scale){
+  const F = RX_FONT, s = scale || 1;
+  const mn = F.mn * s, mm = F.mm * s, mr = F.mr * s;
   const lines = (text, cpl)=> Math.max(1, Math.ceil(String(text||"").length / cpl));
-  let h = lines(`00. ${it.medicine||""}`, rxCpl(width, F.mn, F.nameCw)) * F.mn * 1.2;
+  let h = lines(`00. ${it.medicine||""}`, rxCpl(width, mn, F.nameCw)) * mn * 1.2;
   const line = rxDoseLine(it);
-  if (line) h += F.metaGap + lines(line, rxCpl(width, F.mm, F.metaCw)) * F.mm * 1.2;
-  if (it.remark) h += F.remarkGap + lines(it.remark, rxCpl(width, F.mr, F.metaCw)) * F.mr * 1.2;
-  return h + F.medGap;
+  if (line) h += F.metaGap * s + lines(line, rxCpl(width, mm, F.metaCw)) * mm * 1.2;
+  if (it.remark) h += F.remarkGap * s + lines(it.remark, rxCpl(width, mr, F.metaCw)) * mr * 1.2;
+  return h + F.medGap * s;
 }
-const rxEstimateHeight = (items, width)=> (items||[]).reduce((h,it)=> h + rxMedHeight(it, width), 0);
+const rxEstimateHeight = (items, width, scale)=> (items||[]).reduce((h,it)=> h + rxMedHeight(it, width, scale), 0);
 // One wide column while the list fits at full size — a normal prescription looks
 // exactly as it always has. Beyond that, go to two columns BEFORE shrinking the
 // type: halving the column width costs far less readability than halving the font
 // (twenty medicines land near 8pt this way instead of 5pt).
 function rxLayout(items){
   const avail = rxAvailHeight();
-  if (rxEstimateHeight(items, RX_FIT.colW) <= avail) return { cols:1, width:RX_FIT.colW, scale:1 };
-  let scale = Math.min(1, (avail * 2) / rxEstimateHeight(items, RX_FIT.colW2));
-  // Medicines are indivisible, so no split may reach that ideal packing — one tall
-  // entry can leave the left column short and overfill the right. Step the scale
-  // down until the split it actually produces fits, or the floor is reached.
-  for (let i = 0; i < 40; i++) {
-    const lay = { cols:2, width:RX_FIT.colW2, scale: Math.max(RX_FIT.minScale, scale) };
-    const fitsNow = rxColumns(items, lay).every(c=> rxEstimateHeight(c, lay.width) * lay.scale <= avail + 0.5);
-    if (fitsNow || lay.scale <= RX_FIT.minScale) return lay;
-    scale *= 0.97;
+  if (rxEstimateHeight(items, RX_FIT.colW, 1) <= avail) return { cols:1, width:RX_FIT.colW, scale:1 };
+  // Take the LARGEST two-column size that fits, found by stepping down 2% at a
+  // time. Solving for it algebraically does not work: the split is discrete
+  // (medicines are indivisible) and the line count changes with the size, so the
+  // honest way to use the whole column is to try and check.
+  for (let s = 1; s > RX_FIT.minScale; s -= 0.02) {
+    const lay = { cols:2, width:RX_FIT.colW2, scale: Math.round(s * 100) / 100 };
+    if (rxColumns(items, lay).every(c=> rxEstimateHeight(c, lay.width, lay.scale) <= avail + 0.5)) return lay;
   }
   return { cols:2, width:RX_FIT.colW2, scale:RX_FIT.minScale };
 }
@@ -1017,7 +1039,7 @@ function rxColumns(items, lay){
   const avail = rxAvailHeight(), out = [[], []];
   let h = 0;
   for (const it of (items||[])) {
-    const ih = rxMedHeight(it, lay.width) * lay.scale;
+    const ih = rxMedHeight(it, lay.width, lay.scale);
     if (out[1].length || (out[0].length && h + ih > avail)) out[1].push(it);
     else { out[0].push(it); h += ih; }
   }
@@ -1041,7 +1063,7 @@ function rxAdviceScale(advice, hasFollowUp){
 // printing something illegible or spilling over the Advice box.
 function rxFitsSheet(items){
   const lay = rxLayout(items), avail = rxAvailHeight();
-  return rxColumns(items, lay).every(c=> rxEstimateHeight(c, lay.width) * lay.scale <= avail + 0.5);
+  return rxColumns(items, lay).every(c=> rxEstimateHeight(c, lay.width, lay.scale) <= avail + 0.5);
 }
 const RX_MEDS = ["Folic Acid 5 mg","Iron + Folic Acid","Calcium + Vitamin D3","Doxinate (Doxylamine)","Paracetamol 500 mg","Pantoprazole 40 mg","Ondansetron 4 mg","Amoxicillin 500 mg","Metronidazole 400 mg","Progesterone","Multivitamin"];
 const rxRowHtml = ()=>`<div class="rxmed">
@@ -1640,6 +1662,10 @@ async function loadBookings(){
     html += `<h3>${label}</h3>`;
     html += list.map((a)=>{
       const cancelled = a.status!=="booked";
+      // Which stage this visit is at, so the actions sheet can offer the others.
+      const stage = a.status==="completed" ? "done" : a.status==="no_show" ? "no_show"
+                  : a.status!=="booked" ? "cancelled"
+                  : a.consult_at ? "consult" : a.arrived_at ? "arrived" : "waiting";
       const sub = `${esc(a.appointment_types?.name_en ?? a.type_code)} · ${a.new_or_followup==="new"?"First visit":"Follow-up"}`;
       const isToday = key===todayKey;
       // Today + still booked: show the live queue state and a one-tap advance.
@@ -1658,7 +1684,8 @@ async function loadBookings(){
         <div class="bt">${fmtT(a.slot_start)}</div>
         <div class="bmid"><div class="bname">${esc(a.patients?.name??"?")}${a.patients?.age?" · "+a.patients.age:""}</div>
           <div class="mut">${sub}</div>${a.note?`<div class="mut">📝 ${esc(a.note)}</div>`:""}${queue}</div>
-        ${cancelled?`<span class="mut">${a.status.replace(/_/g," ")}</span>`:`<button class="bcancel" title="Actions" onclick="event.stopPropagation();openApptSheet('${a.id}','${esc((a.patients?.name||"Appointment")).replace(/['\\]/g,"")} · ${fmtT(a.slot_start)}')">⋯</button>`}
+        ${cancelled?`<span class="mut">${a.status.replace(/_/g," ")}</span>`:""}
+        <button class="bcancel" title="Change status" onclick="event.stopPropagation();openApptSheet('${a.id}','${esc((a.patients?.name||"Appointment")).replace(/['\\]/g,"")} · ${fmtT(a.slot_start)}','${stage}')">⋯</button>
       </div>`;
     }).join("");
   }
@@ -2064,12 +2091,17 @@ function openSheet(title, actions){
 }
 function closeSheet(){ $("sheet").classList.remove("open"); }
 $("sheet").onclick = (e)=>{ if (e.target.id==="sheet") closeSheet(); };
-window.openApptSheet = (id, label) => openSheet(label, [
-  { label:"Mark done", fn:()=>setApptStatus(id,"completed") },
-  { label:"Move to another time", fn:()=>moveAppt(id) },
-  { label:"Mark no-show", fn:()=>setApptStatus(id,"no_show") },
-  { label:"Cancel booking", cls:"danger", fn:()=>setApptStatus(id,"cancelled_by_clinic") },
-]);
+// Every stage is offered, not just the next one, so a wrong tap can be undone —
+// including bringing back a booking already marked no-show or cancelled.
+window.openApptSheet = (id, label, stage) => openSheet(
+  stage ? `${label} — now ${VISIT_STAGE_LABEL[stage]||stage}` : label,
+  [
+    ...["waiting","arrived","consult","done","no_show"]
+      .filter(k=>k!==stage)
+      .map(k=>({ label: k==="waiting" ? "Waiting (not arrived yet)" : VISIT_STAGE_LABEL[k], fn:()=>setVisitStage(id,k) })),
+    { label:"Move to another time", fn:()=>moveAppt(id) },
+    ...(stage==="cancelled" ? [] : [{ label:"Cancel booking", cls:"danger", fn:()=>setApptStatus(id,"cancelled_by_clinic") }]),
+  ]);
 async function setApptStatus(id, status){
   const { error } = await sb.from("appointments").update({ status }).eq("id", id);
   if (error) { toast(error.message); return; }
@@ -2123,16 +2155,35 @@ window.offerFollowUp = async (id) => {
   ]);
 };
 
-// Today's queue: Waiting -> Arrived -> In consult -> Done.
-window.advanceVisit = async (id, to) => {
-  const upd = to==="arrived" ? { arrived_at:new Date().toISOString() }
-            : to==="consult" ? { consult_at:new Date().toISOString() }
-            : { status:"completed" };
+// Today's queue: Waiting -> Arrived -> In consult -> Done. Every stage can also be
+// set from any other, including backwards, because a mis-tap on a busy desk has to
+// be fixable. Moving back CLEARS the later timestamps, otherwise the queue would
+// still believe the patient had been seen.
+const VISIT_STAGE_LABEL = { waiting:"Waiting", arrived:"Arrived", consult:"In consult", done:"Done", no_show:"No-show", cancelled:"Cancelled" };
+window.setVisitStage = async (id, to) => {
+  const now = new Date().toISOString();
+  const upd = to==="waiting" ? { status:"booked", arrived_at:null, consult_at:null }
+            : to==="arrived" ? { status:"booked", arrived_at:now, consult_at:null }
+            : to==="consult" ? { status:"booked", consult_at:now }
+            : to==="done"    ? { status:"completed" }
+            : to==="no_show" ? { status:"no_show", arrived_at:null, consult_at:null }
+            : null;
+  if (!upd) return;
+  // Starting a consultation for someone never marked arrived would leave the queue
+  // inconsistent, so record the arrival at the same moment.
+  if (to==="consult") {
+    const { data } = await sb.from("appointments").select("arrived_at").eq("id",id).single();
+    if (!data?.arrived_at) upd.arrived_at = now;
+  }
   const { error } = await sb.from("appointments").update(upd).eq("id",id);
-  if(error){ toast(error.message); return; }
-  if(to==="done"){ toast("Marked done"); await loadBookings(); offerFollowUp(id); return; }
-  toast(to==="arrived"?"Marked arrived":"Consultation started"); loadBookings();
+  if (error){ toast(error.message); return; }
+  toast(`Moved to ${VISIT_STAGE_LABEL[to]}`);
+  await loadBookings();
+  if (openPatientId) renderNotes();
+  if (to==="done") offerFollowUp(id);
 };
+// The queue's one-tap forward button.
+window.advanceVisit = (id, to)=> setVisitStage(id, to);
 
 // --- schedule (cached) + client-side free-slot computation (mirrors the bot's slots.ts) ---
 let SCHED = null;
@@ -2565,6 +2616,8 @@ const FAQ = [
     ["Same patient came on WhatsApp once and walked in another time. Is that one record?","Yes. Everything is matched by the phone number, so WhatsApp visits and walk-ins on the same number join into one record, in either order."],
   ]},
   { h:"Notes, vitals and history", qa:[
+    ["I tapped Arrived (or No-show) by mistake — can I undo it?","Yes. Tap the <b>\u22ef</b> button on that booking, or tap the status chip in the patient's <b>Notes</b> visit history, and pick the right one. You can move <b>backwards</b> too \u2014 Waiting, Arrived, In consult, Done, No-show \u2014 and even bring back a booking that was cancelled. Moving back to Waiting clears the arrival and consultation times so the queue stays honest."],
+    ["What do the BLOCKED and TEST tags in the chat list mean?","<b>Blocked</b> means messages from that number are ignored by the bot \u2014 unblock it in Settings. <b>Test</b> means it is a developer number, so its bookings are kept out of the clinic statistics."],
     ["Where do I record vitals? Every visit?","Open the patient, go to <b>Notes</b>, and tap <b>＋ Vitals</b>. Record vitals at <b>every visit</b> — each one is saved with its date, building a history."],
     ["Can I keep a note only the doctor sees?","Yes. In <b>Notes</b>, the doctor and admin can type a private note. The patient never sees it."],
     ["Can reception see the doctor's private notes?","No. Reception can add and see <b>vitals</b>, but the doctor's written notes are visible only to the doctor and admin."],
