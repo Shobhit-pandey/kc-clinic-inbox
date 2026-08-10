@@ -975,7 +975,11 @@ async function renderNotes(){
           <button class="qadv" onclick="openDoc('${m.media_path}')">Open</button>
           <button class="qadv ghosty" onclick="tagDoc('${m.id}')">Label</button>
         </div>`;
-    }).join("") : "";
+    }).join("")
+    // Always show the section, even when empty: a heading that simply is not there
+    // reads as a missing feature rather than as "nothing here yet".
+    : `<div class="vhead">Reports &amp; documents</div>
+       <div class="notes-hint">No reports yet. Photos and files this number sends on WhatsApp appear here, and anything the clinic sends is kept too.</div>`;
   const visits = (appts??[]).filter(a=>a.status!=="cancelled_by_clinic" && a.status!=="cancelled_by_patient");
   const vlist = visits.length
     ? `<div class="vhead">Visit history · ${visits.length}</div>` + visits.map(a=>
@@ -994,7 +998,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-10 (1628b8a)";
+const APP_BUILD = "2026-08-10 (3af793c)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
