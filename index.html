@@ -275,17 +275,18 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .listloading{display:flex;align-items:center;justify-content:center;gap:8px;padding:44px 20px;color:var(--mut);font-size:14px;font-weight:600}
 .listloading .spinner{width:20px;height:20px;border:2.5px solid #cdd6df;border-top-color:var(--brand);margin:0}
 /* patient-facing WhatsApp QR — full-screen, nothing else visible behind it */
-#waqr{position:absolute;inset:0;z-index:80;background:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px}
-#waqr.open{display:flex}
-#waqr .waqr-close{position:absolute;top:max(14px,env(safe-area-inset-top));right:14px;background:#eef2f6;border:0;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-#waqr .waqr-close svg{width:22px;height:22px;stroke:var(--brand);fill:none;stroke-width:2.2;stroke-linecap:round}
-#waqr .waqr-card{text-align:center;max-width:360px}
-#waqr .waqr-logo{width:58px;height:58px;background:transparent;margin:0 auto 12px}
-#waqr .waqr-logo img{width:100%;height:100%;object-fit:contain}
-#waqr h2{color:var(--navy);font-size:22px;margin:0 0 6px}
-#waqr p{color:var(--mut);font-size:14px;margin:0 0 20px;line-height:1.5}
-#waqr .waqr-img{display:block;width:280px;max-width:82vw;margin:0 auto;border-radius:16px;border:1px solid var(--line)}
-#waqr .waqr-num{margin-top:18px;font-size:18px;font-weight:700;color:var(--ink);letter-spacing:.5px}
+/* Full-screen QR panels: WhatsApp (#waqr) and Google review (#revqr) share one look. */
+#waqr,#revqr{position:absolute;inset:0;z-index:80;background:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+#waqr.open,#revqr.open{display:flex}
+#waqr .waqr-close,#revqr .waqr-close{position:absolute;top:max(14px,env(safe-area-inset-top));right:14px;background:#eef2f6;border:0;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+#waqr .waqr-close svg,#revqr .waqr-close svg{width:22px;height:22px;stroke:var(--brand);fill:none;stroke-width:2.2;stroke-linecap:round}
+#waqr .waqr-card,#revqr .waqr-card{text-align:center;max-width:360px}
+#waqr .waqr-logo,#revqr .waqr-logo{width:58px;height:58px;background:transparent;margin:0 auto 12px}
+#waqr .waqr-logo img,#revqr .waqr-logo img{width:100%;height:100%;object-fit:contain}
+#waqr h2,#revqr h2{color:var(--navy);font-size:22px;margin:0 0 6px}
+#waqr p,#revqr p{color:var(--mut);font-size:14px;margin:0 0 20px;line-height:1.5}
+#waqr .waqr-img,#revqr .waqr-img{display:block;width:280px;max-width:82vw;margin:0 auto;border-radius:16px;border:1px solid var(--line)}
+#waqr .waqr-num,#revqr .waqr-num{margin-top:18px;font-size:18px;font-weight:700;color:var(--ink);letter-spacing:.5px}
 /* tutorial overlay */
 #tut{position:absolute;inset:0;background:#fff;z-index:50;display:none;flex-direction:column}
 #tut.open{display:flex}
@@ -621,6 +622,16 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
     <div class="waqr-num">+91 73021 32554</div>
   </div>
 </div>
+<div id="revqr">
+  <button class="waqr-close" onclick="closeReviewQr()" title="Close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <div class="waqr-card">
+    <div class="av logo-sq waqr-logo"><img src="emblem.png" alt=""></div>
+    <h2>Rate us on Google</h2>
+    <p>Scan with your phone camera to leave a review for KC Dada Clinic.</p>
+    <img src="review-qr.png" alt="Google review QR code" class="waqr-img">
+    <div class="waqr-num" id="revqrNote"></div>
+  </div>
+</div>
 <div id="splash">
   <div class="av logo-sq"><img src="emblem.png" alt=""></div>
   <div class="spinner"></div>
@@ -950,7 +961,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-10 (874913c)";
+const APP_BUILD = "2026-08-10 (858bd00)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -1829,7 +1840,8 @@ async function loadSettings(){
        <button class="ghost" style="width:100%;margin-top:8px" onclick="openFaq()">Questions &amp; answers (FAQ)</button></div>` +
     `<div class="card">${chead('chat','Message us on WhatsApp')}
        <p class="mut" style="margin:6px 0 10px">Show a patient the QR so they can message the clinic. They must message us once before we can send them a prescription or file on WhatsApp.</p>
-       <button class="act" style="width:100%" onclick="openWaQr()">Show QR to a patient</button></div>` +
+       <button class="act" style="width:100%" onclick="openWaQr()">Show QR to a patient</button>
+       <button class="ghost" style="width:100%;margin-top:8px" onclick="openReviewQr()">Show Google review QR</button></div>` +
     statsCard +
     schedCard +
     clinicCard +
@@ -2160,7 +2172,9 @@ window.offerFollowUp = async (id) => {
   const name=ap.patients?.name||"", phone=ap.patients?.wa_phone||"";
   const inDays=(n)=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata"}).format(new Date(Date.now()+n*86400000));
   const mk=(n)=>({name,phone,type:"follow_up",dateIso:inDays(n),title:`Follow-up for ${name||"patient"}`});
+  const c = await loadClinic();
   openSheet(`Book a follow-up for ${name||"this patient"}?`, [
+    ...(reviewLive(c) && phone ? [{ label:"Ask for a Google review", fn:()=>askForReview(phone, name) }] : []),
     { label:"In 1 week — then pick a time",  fn:()=>openNewBooking(mk(7)) },
     { label:"In 2 weeks — then pick a time", fn:()=>openNewBooking(mk(14)) },
     { label:"In 4 weeks — then pick a time", fn:()=>openNewBooking(mk(28)) },
@@ -2732,6 +2746,46 @@ window.closeFaq = ()=> $("faq").classList.remove("open");
 // Patient-facing QR: a clean full-screen overlay so no admin detail shows behind it.
 window.openWaQr = ()=> $("waqr").classList.add("open");
 window.closeWaQr = ()=> $("waqr").classList.remove("open");
+// Google refuses reviews on a listing whose opening date is still in the future, so
+// the ask stays hidden until that date — sending a patient to a page that turns them
+// away is worse than not asking.
+function reviewLive(c){
+  if (!c || !c.google_review_url) return false;
+  if (!c.google_review_from) return true;
+  const todayIst = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata"}).format(new Date());
+  return todayIst >= c.google_review_from;
+}
+window.openReviewQr = async ()=>{
+  const c = await loadClinic();
+  $("revqrNote").textContent = reviewLive(c) ? "" : `Live from ${fmtDayFull(c.google_review_from)}`;
+  $("revqr").classList.add("open");
+};
+window.closeReviewQr = ()=> $("revqr").classList.remove("open");
+// WhatsApp the review link to a patient. Uses the normal reply path, so it is free
+// and subject to the same 24-hour window as any other staff message.
+window.askForReview = async (phone, name)=>{
+  const c = await loadClinic();
+  if (!reviewLive(c)) { toast(`Google reviews open on ${fmtDayFull(c.google_review_from)}`); return; }
+  const { data: contact } = await sb.from("contacts").select("id").eq("wa_phone", phone).maybeSingle();
+  const { data: convo } = contact
+    ? await sb.from("conversations").select("id").eq("contact_id", contact.id).maybeSingle()
+    : { data: null };
+  if (!convo) { toast("No WhatsApp chat with this patient yet"); return; }
+  const text = `\u{1F64F} Thank you for visiting ${c.clinic_name||"our clinic"}${name?", "+name:""}. `
+    + `If we cared for you well, would you leave a short review? It helps other women in Agra find us:\n`
+    + `${c.google_review_url}\n\n`
+    + `\u0927\u0928\u094D\u092F\u0935\u093E\u0926! \u0905\u0917\u0930 \u0906\u092A\u0915\u094B \u0939\u092E\u093E\u0930\u0940 \u0938\u0947\u0935\u093E \u0905\u091A\u094D\u091B\u0940 \u0932\u0917\u0940 \u0939\u094B \u0924\u094B \u0915\u0943\u092A\u092F\u093E \u090F\u0915 \u091B\u094B\u091F\u093E \u0930\u093F\u0935\u094D\u092F\u0942 \u0932\u093F\u0916\u0947\u0902\u0964`;
+  const auth = await authHeader(); if (!auth) return;
+  const res = await fetch(SUPABASE_URL + "/functions/v1/send-message", {
+    method:"POST", headers:{ "Content-Type":"application/json", "apikey":PUBLISHABLE_KEY, "Authorization":auth },
+    body: JSON.stringify({ conversation_id: convo.id, text }),
+  });
+  if (res.ok) { toast("Review request sent"); return; }
+  const e = await res.json().catch(()=>({}));
+  toast(e.error==="outside_24h_window"
+    ? "Ask the patient to message the clinic first — WhatsApp only allows a reply within 24 hours"
+    : "Could not send: "+(e.error??res.status));
+};
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
