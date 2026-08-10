@@ -150,6 +150,11 @@ button.danger{background:#fff;color:var(--bad);border:1px solid var(--bad);borde
 .qbadge.arrived{background:#fdf1dc;color:#a2761b}
 .qbadge.consult{background:#e3f4ea;color:var(--ok)}
 .qadv{border:0;border-radius:999px;padding:5px 14px;font-size:12.5px;font-weight:600;color:#fff;background:var(--navy);cursor:pointer}
+.qadv.ghosty{background:#fff;color:var(--brand);border:1px solid var(--line)}
+.docrow{gap:6px}
+.docrow .vt{flex:1;min-width:0}
+.docrow .vt b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.docrow .vt .mut{white-space:normal;font-size:12px;line-height:1.3}
 /* correct / remove a prescription — outlined so Print stays the obvious action */
 /* Date + summary read on the first line; the actions get a line of their own so
    nothing is squeezed to an ellipsis and every button is easy to hit. */
@@ -943,6 +948,34 @@ async function renderNotes(){
       : new Date(a.slot_start).getTime()>=nowMs ? '<span class="vs up">Upcoming</span>' : '<span class="vs">Booked</span>';
     return `<button class="vschip" title="Change outcome" onclick="openApptSheet('${a.id}','${short(a.slot_start)} visit','${vstage(a)}')">${inner}</button>`;
   };
+  // Reports patients send arrive as chat messages and get buried. Collect every file
+  // on this NUMBER (a number can hold more than one person, so each file can be
+  // assigned to the right patient rather than assumed).
+  const { data: convo } = openContactId
+    ? await sb.from("conversations").select("id").eq("contact_id", openContactId).maybeSingle()
+    : { data: null };
+  const { data: docMsgs } = convo
+    ? await sb.from("messages").select("id,type,body,media_path,direction,created_at")
+        .eq("conversation_id", convo.id).in("type",["image","document"])
+        .not("media_path","is",null).order("created_at",{ascending:false}).limit(60)
+    : { data: [] };
+  const { data: docTags } = (docMsgs && docMsgs.length)
+    ? await sb.from("document_tags").select("message_id,patient_id,label").in("message_id", docMsgs.map(m=>m.id))
+    : { data: [] };
+  const tagBy = Object.fromEntries((docTags||[]).map(t=>[t.message_id, t]));
+  const personName = (id)=> (openPeople.find(x=>x.id===id)||{}).name || "";
+  const dlist = (docMsgs||[]).length ? `<div class="vhead">Reports &amp; documents · ${docMsgs.length}</div>` +
+    docMsgs.map(m=>{
+      const t = tagBy[m.id] || {};
+      const who = t.patient_id ? esc(personName(t.patient_id)||"this number") : "Not assigned";
+      const label = t.label ? esc(t.label) : (m.type==="image" ? "Photo" : esc(m.body||"File"));
+      return `<div class="vrow docrow">
+          <span class="vd">${short(m.created_at)}</span>
+          <span class="vt"><b>${label}</b><div class="mut">${who}${m.direction==="out"?" · sent by clinic":""}</div></span>
+          <button class="qadv" onclick="openDoc('${m.media_path}')">Open</button>
+          <button class="qadv ghosty" onclick="tagDoc('${m.id}')">Label</button>
+        </div>`;
+    }).join("") : "";
   const visits = (appts??[]).filter(a=>a.status!=="cancelled_by_clinic" && a.status!=="cancelled_by_patient");
   const vlist = visits.length
     ? `<div class="vhead">Visit history · ${visits.length}</div>` + visits.map(a=>
@@ -950,7 +983,7 @@ async function renderNotes(){
     : "";
   const hint = `<div class="notes-hint">🔒 Private — only clinic staff. The patient never sees this. Newest first.</div>`;
   const items = (notes??[]).map(n=>`<div class="note ${n.kind==="vitals"?"vitals":""}">${esc(n.body)}<div class="nm">${esc(n.author||"staff")} · ${fmtDayFull(n.created_at)} ${fmtT(n.created_at)}</div></div>`).join("");
-  $("notes").innerHTML = switcher + prof + rxlist + vlist + hint + (items || `<div class="notes-hint">No notes yet. Add the first one below.</div>`);
+  $("notes").innerHTML = switcher + prof + rxlist + dlist + vlist + hint + (items || `<div class="notes-hint">No notes yet. Add the first one below.</div>`);
   $("notes").scrollTop = 0;
 }
 // --- prescriptions ---
@@ -961,7 +994,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-10 (858bd00)";
+const APP_BUILD = "2026-08-10 (1628b8a)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -2700,6 +2733,9 @@ const FAQ = [
   { h:"Notes, vitals and history", qa:[
     ["I tapped Arrived (or No-show) by mistake — can I undo it?","Yes. Tap the <b>\u22ef</b> button on that booking, or tap the status chip in the patient's <b>Notes</b> visit history, and pick the right one. You can move <b>backwards</b> too \u2014 Waiting, Arrived, In consult, Done, No-show \u2014 and even bring back a booking that was cancelled. Moving back to Waiting clears the arrival and consultation times so the queue stays honest."],
     ["What do the BLOCKED and TEST tags in the chat list mean?","<b>Blocked</b> means messages from that number are ignored by the bot \u2014 unblock it in Settings. <b>Test</b> means it is a developer number, so its bookings are kept out of the clinic statistics."],
+    ["A patient sent a report photo — where does it go?","Open the patient and switch to <b>Notes</b>. Under <b>Reports &amp; documents</b> you'll see every photo and file on that number, newest first. Tap <b>Open</b> to view it, or <b>Label</b> to name it (e.g. \"USG report\") and say which person on that number it belongs to, so the doctor finds it later without scrolling the chat."],
+    ["Do patients get an appointment reminder?","Yes, the evening before, once the clinic's WhatsApp reminder template is approved. It goes in the language the patient chose, and nobody is reminded twice."],
+    ["How do I ask a patient for a Google review?","When you mark a visit <b>Done</b>, choose <b>Ask for a Google review</b> — it sends the link on WhatsApp. To show the QR at the desk, use <b>Settings &rarr; Show Google review QR</b>."],
     ["Where do I record vitals? Every visit?","Open the patient, go to <b>Notes</b>, and tap <b>＋ Vitals</b>. Record vitals at <b>every visit</b> — each one is saved with its date, building a history."],
     ["Can I keep a note only the doctor sees?","Yes. In <b>Notes</b>, the doctor and admin can type a private note. The patient never sees it."],
     ["Can reception see the doctor's private notes?","No. Reception can add and see <b>vitals</b>, but the doctor's written notes are visible only to the doctor and admin."],
@@ -2744,6 +2780,38 @@ function renderFaq(){
 window.openFaq = ()=>{ renderFaq(); $("faq").classList.add("open"); };
 window.closeFaq = ()=> $("faq").classList.remove("open");
 // Patient-facing QR: a clean full-screen overlay so no admin detail shows behind it.
+// --- patient documents: open a stored report, or label / assign it ---
+// Files live in the private media bucket, so every view goes through a short-lived
+// signed URL rather than a public link.
+window.openDoc = async (path)=>{
+  const { data, error } = await sb.storage.from("media").createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) { toast("Could not open this file"); return; }
+  window.open(data.signedUrl, "_blank");
+};
+window.tagDoc = async (messageId)=>{
+  const { data: existing } = await sb.from("document_tags").select("patient_id,label").eq("message_id",messageId).maybeSingle();
+  const s = $("sheet");
+  s.querySelector(".body").innerHTML =
+    `<div class="title">Label this report</div>
+     <p class="mut" style="margin:2px 2px 8px">So the doctor can find it later without scrolling the chat.</p>
+     <input id="dtLabel" placeholder="e.g. USG report, blood test" value="${esc(existing?.label||"")}">
+     <label class="fld">Whose report is this?</label>
+     <select id="dtWho">
+       <option value="">Not assigned</option>
+       ${openPeople.map(pp=>`<option value="${pp.id}"${existing?.patient_id===pp.id?" selected":""}>${esc(pp.name||"Unnamed")}</option>`).join("")}
+     </select>
+     <button class="opt primary" id="dtSave">Save</button><button class="opt plain" id="dtCancel">Cancel</button>`;
+  s.querySelector("#dtCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
+  s.querySelector("#dtSave").onclick=async(e)=>{
+    e.stopPropagation();
+    const upd = { message_id: messageId, label: $("dtLabel").value.trim()||null,
+                  patient_id: $("dtWho").value||null, tagged_by: me?.email||"staff", tagged_at: new Date().toISOString() };
+    const { error } = await sb.from("document_tags").upsert(upd, { onConflict:"message_id" });
+    if(error){ toast(error.message); return; }
+    closeSheet(); toast("Saved"); renderNotes();
+  };
+  s.classList.add("open");
+};
 window.openWaQr = ()=> $("waqr").classList.add("open");
 window.closeWaQr = ()=> $("waqr").classList.remove("open");
 // Google refuses reviews on a listing whose opening date is still in the future, so
