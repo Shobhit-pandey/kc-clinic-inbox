@@ -220,7 +220,9 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 /* action sheet */
 #sheet{position:absolute;inset:0;background:rgba(0,0,0,.38);display:none;align-items:flex-end;z-index:30}
 #sheet.open{display:flex}
-#sheet .body{width:100%;background:#f2f2f7;border-radius:22px 22px 0 0;padding:10px;padding-bottom:calc(12px + env(safe-area-inset-bottom));animation:slideup .22s ease-out}
+/* Long sheets (the per-day schedule, a prescription with many medicines) are
+   taller than the screen, so the panel scrolls instead of being clipped. */
+#sheet .body{width:100%;max-height:88%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#f2f2f7;border-radius:22px 22px 0 0;padding:10px;padding-bottom:calc(12px + env(safe-area-inset-bottom));animation:slideup .22s ease-out}
 @keyframes slideup{from{transform:translateY(100%)}to{transform:none}}
 #sheet .title{text-align:center;color:var(--mut);font-size:13px;padding:8px 8px 4px}
 #sheet .opt{width:100%;background:#fff;border:0;border-radius:13px;padding:15px;font-size:16px;margin-top:8px;cursor:pointer;color:var(--green);font-weight:600}
@@ -948,7 +950,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-10 (1eb9379)";
+const APP_BUILD = "2026-08-10 (874913c)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -2211,6 +2213,13 @@ async function loadSched(force){
 }
 const hm = (t)=>{ const [h,m]=t.split(":").map(Number); return h*60+m; };
 const WD_LABEL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+// Tutorial/walkthrough screenshots must never quote hours of their own — they read
+// the live schedule, so a mock can never contradict what the clinic actually set.
+const mockHours = ()=>{
+  if (!SCHED) return "Set your hours";
+  const wd = new Date().getDay();
+  return hoursTextFor(SCHED, wd) || hoursTextFor(SCHED, (wd+1)%7) || "Closed";
+};
 const WD_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const sessionsOn = (cfg, wd)=> (cfg.sessions||[]).filter(x=>x.weekday===wd).slice().sort((a,b)=>a.open_time.localeCompare(b.open_time));
 const fmt12 = (t)=>{ const [h,m]=t.split(":").map(Number); return `${h%12||12}:${String(m).padStart(2,"0")} ${h<12?"AM":"PM"}`; };
@@ -2486,7 +2495,7 @@ const MOCKS = {
       +mkR(22,148,196,42,"mk-row",11)+mkT(36,168,"5:15 PM","mk-id"),
     annot: mkRing(167,69,63,18)+mkT(120,214,"Book for a patient","mk-lab","middle")+mkArrow(150,205,167,82)}),
   clock: ()=> mkFrame({title:"KC Dada Clinic",sub:"Preferences",tab:2,
-    body: mkR(22,56,196,80,"mk-row",12)+mkT(36,78,"Clinic schedule","mk-id")+mkT(36,94,"5:30 PM – 9:30 PM","mk-pv")+mkBtn(40,104,160,24,"mk-accent","Edit schedule"),
+    body: mkR(22,56,196,80,"mk-row",12)+mkT(36,78,"Clinic schedule","mk-id")+mkT(36,94,mockHours(),"mk-pv")+mkBtn(40,104,160,24,"mk-accent","Edit schedule"),
     annot: mkRing(120,116,86,16)+mkT(120,182,"Hours, sessions, day off","mk-lab","middle")+mkArrow(120,174,120,128)}),
   idcard: ()=> mkFrame({title:"Seema Devi",sub:"Private notes",back:true,call:true,tab:-1,
     body: mkR(22,60,196,68,"mk-row",12)+mkAv(46,92)+mkT(72,86,"Seema Devi","mk-id")+mkT(72,108,"KC-2026-0001","mk-id"),
