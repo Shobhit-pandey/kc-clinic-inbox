@@ -192,6 +192,18 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 #sheet .body .half{display:flex;gap:8px}
 #sheet .body .half input{flex:1}
 #sheet .body label.fld{display:block;color:var(--mut);font-size:12.5px;margin-top:12px}
+.schlist{margin:8px 0 2px}
+.schrow{display:flex;align-items:baseline;gap:10px;padding:3px 0;font-size:13.5px}
+.schd{width:36px;flex-shrink:0;color:var(--mut);font-weight:700}
+.schh{color:var(--tx);font-weight:600}
+.schh.closed{color:var(--mut);font-weight:500}
+.schday{border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:8px;background:#fff}
+.schdayh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+.schdayh span{display:flex;gap:6px;flex-shrink:0}
+.schadd,.schcopy{background:none;border:1px solid var(--line);border-radius:999px;color:var(--brand);font-size:11.5px;font-weight:700;padding:4px 10px;cursor:pointer}
+.schsess{display:flex;align-items:center;gap:8px;margin-top:8px}
+.schsess input{flex:1;min-width:0;padding:9px;border:1px solid #d1d5db;border-radius:10px;font-size:15px;background:#fff;-webkit-appearance:none;appearance:none}
+.schdel{background:none;border:0;color:var(--bad);font-size:16px;font-weight:700;cursor:pointer;padding:0 4px;flex-shrink:0}
 .wdays{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
 .wdays button{flex:1;min-width:38px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 0;font-size:13px;font-weight:600;color:var(--mut);cursor:pointer}
 .wdays button.off{background:#fdecec;border-color:#f3b4b4;color:var(--bad)}
@@ -936,7 +948,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-05 (7ebd6db)";
+const APP_BUILD = "2026-08-10 (1eb9379)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -1769,15 +1781,14 @@ async function loadSettings(){
          ${perm==="denied"?`<p class="mut" style="color:var(--bad);margin-bottom:8px">Notifications are blocked in your device settings — allow them for this site, then tap below.</p>`:""}
          <button class="act" id="pushBtn" style="width:100%">Enable on this device</button></div>`;
   const c = await loadSched(true);
-  const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  const t12 = (t)=>{ let [h,m]=t.split(":").map(Number); const ap=h<12?"AM":"PM"; h=h%12||12; return `${h}:${String(m).padStart(2,"0")} ${ap}`; };
-  const fmtRange = (o,cl)=> `${t12(o)} – ${t12(cl)}`;
-  const sess = c ? (fmtRange(c.open_time,c.close_time) + (c.open_time2&&c.close_time2 ? `, ${fmtRange(c.open_time2,c.close_time2)}` : "")) : "—";
-  const offDays = c && (c.closed_weekdays||[]).length ? (c.closed_weekdays.map(d=>WD[d]).join(", ")) : "None";
+  // One line per day, so different hours on different days are obvious at a glance.
+  const dayLines = c ? WD_SHORT.map((d,i)=>{
+    const h = hoursTextFor(c, i);
+    return `<div class="schrow"><span class="schd">${d}</span><span class="schh ${h?"":"closed"}">${h||"Closed"}</span></div>`;
+  }).join("") : "";
   const schedCard = `<div class="card">${chead('clock','Clinic schedule')}
-       <p class="mut" style="margin:8px 0 2px">Hours: <b style="color:var(--ink)">${sess}</b></p>
-       <p class="mut" style="margin:2px 0">Slot length: <b style="color:var(--ink)">${c?c.slot_minutes:"—"} min</b> · Booking window: <b style="color:var(--ink)">${c?c.days_ahead:"—"} days</b></p>
-       <p class="mut" style="margin:2px 0 10px">Weekly day off: <b style="color:var(--ink)">${offDays}</b></p>
+       <div class="schlist">${dayLines}</div>
+       <p class="mut" style="margin:8px 0 10px">Slot length: <b style="color:var(--ink)">${c?c.slot_minutes:"—"} min</b> · Booking window: <b style="color:var(--ink)">${c?c.days_ahead:"—"} days</b></p>
        <button class="act" style="width:100%" onclick="openScheduleEditor()">Edit schedule</button></div>`;
   const statsCard = await buildStatsCard();
   const cp = await loadClinic(true);
@@ -2187,17 +2198,31 @@ window.advanceVisit = (id, to)=> setVisitStage(id, to);
 
 // --- schedule (cached) + client-side free-slot computation (mirrors the bot's slots.ts) ---
 let SCHED = null;
-async function loadSched(force){ if (SCHED && !force) return SCHED; const { data } = await sb.from("schedule_config").select("*").single(); SCHED = data; return data; }
+// Hours live in schedule_sessions: one row per sitting per weekday. A weekday with
+// no rows is closed, so there is no separate day-off list to keep in step.
+async function loadSched(force){
+  if (SCHED && !force) return SCHED;
+  const [{ data: cfg }, { data: sess }] = await Promise.all([
+    sb.from("schedule_config").select("slot_minutes,days_ahead,min_lead_minutes").single(),
+    sb.from("schedule_sessions").select("id,weekday,open_time,close_time,sort").order("weekday").order("sort"),
+  ]);
+  SCHED = { ...(cfg||{}), sessions: sess||[] };
+  return SCHED;
+}
 const hm = (t)=>{ const [h,m]=t.split(":").map(Number); return h*60+m; };
+const WD_LABEL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const WD_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const sessionsOn = (cfg, wd)=> (cfg.sessions||[]).filter(x=>x.weekday===wd).slice().sort((a,b)=>a.open_time.localeCompare(b.open_time));
+const fmt12 = (t)=>{ const [h,m]=t.split(":").map(Number); return `${h%12||12}:${String(m).padStart(2,"0")} ${h<12?"AM":"PM"}`; };
+const hoursTextFor = (cfg, wd)=> sessionsOn(cfg, wd).map(x=>`${fmt12(x.open_time)}–${fmt12(x.close_time)}`).join(", ");
 async function computeFreeSlots(dateIso){
   const cfg = await loadSched();
   const wd = new Date(dateIso+"T00:00:00Z").getUTCDay();
-  if ((cfg.closed_weekdays||[]).includes(wd)) return [];
+  const wins = sessionsOn(cfg, wd).map(x=>[x.open_time, x.close_time]);
+  if (!wins.length) return [];
   const { data: blk } = await sb.from("blocked_dates").select("date").eq("date", dateIso);
   if (blk && blk.length) return [];
   const dayStart = new Date(dateIso+"T00:00:00+05:30");
-  const wins = [[cfg.open_time, cfg.close_time]];
-  if (cfg.open_time2 && cfg.close_time2) wins.push([cfg.open_time2, cfg.close_time2]);
   let slots = [];
   for (const [o,c] of wins){ let t=hm(o); const end=hm(c); while (t+cfg.slot_minutes<=end){ slots.push(new Date(dayStart.getTime()+t*60000)); t+=cfg.slot_minutes; } }
   slots.sort((a,b)=>a-b);
@@ -2254,42 +2279,76 @@ async function saveNewBooking(){
   closeSheet(); toast("Appointment booked"); loadBookings();
 }
 
-// --- editable clinic schedule ---
+// --- editable clinic schedule: per weekday, any number of sessions ---
+// The editor works on a local copy and only writes on Save, so half-finished edits
+// never reach the booking bot.
+let SCHED_DRAFT = null;
 window.openScheduleEditor = async () => {
   const c = await loadSched(true);
-  const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  const closed = new Set(c.closed_weekdays||[]);
+  SCHED_DRAFT = WD_SHORT.map((_,wd)=> sessionsOn(c, wd).map(x=>({ open:x.open_time.slice(0,5), close:x.close_time.slice(0,5) })));
   const s = $("sheet");
   s.querySelector(".body").innerHTML =
     `<div class="title">Clinic schedule</div>
-     <label class="fld">Session 1 (open – close)</label>
-     <div class="half"><input type="time" id="o1" value="${(c.open_time||"").slice(0,5)}"><input type="time" id="c1" value="${(c.close_time||"").slice(0,5)}"></div>
-     <label class="fld">Session 2 (optional — e.g. morning)</label>
-     <div class="half"><input type="time" id="o2" value="${(c.open_time2||"").slice(0,5)}"><input type="time" id="c2" value="${(c.close_time2||"").slice(0,5)}"></div>
-     <label class="fld">Slot length (minutes)</label><input id="slen" inputmode="numeric" value="${c.slot_minutes}">
-     <label class="fld">How many days ahead patients can book</label><input id="dahead" inputmode="numeric" value="${c.days_ahead}">
-     <label class="fld">Weekly day(s) off (tap to close)</label>
-     <div class="wdays" id="wdays">${WD.map((d,i)=>`<button data-d="${i}" class="${closed.has(i)?"off":""}">${d}</button>`).join("")}</div>
+     <p class="mut" style="margin:2px 2px 8px">Add as many sittings a day as you need. A day with no sitting is closed.</p>
+     <div id="schDays"></div>
+     <div class="half" style="margin-top:12px">
+       <div><label class="fld">Slot length (min)</label><input id="slen" inputmode="numeric" value="${c.slot_minutes}"></div>
+       <div><label class="fld">Days ahead</label><input id="dahead" inputmode="numeric" value="${c.days_ahead}"></div>
+     </div>
      <button class="opt primary" id="schSave" style="margin-top:14px">Save schedule</button><button class="opt plain" id="schCancel">Cancel</button>`;
-  s.querySelectorAll("#wdays button").forEach(b=> b.onclick=(e)=>{ e.stopPropagation(); b.classList.toggle("off"); });
+  renderSchDays();
   s.querySelector("#schCancel").onclick=(e)=>{e.stopPropagation();closeSheet();};
   s.querySelector("#schSave").onclick=(e)=>{e.stopPropagation();saveSchedule();};
   s.classList.add("open");
 };
+function renderSchDays(){
+  $("schDays").innerHTML = SCHED_DRAFT.map((sess,wd)=>`
+    <div class="schday">
+      <div class="schdayh"><b>${WD_LABEL[wd]}</b>
+        <span>${sess.length?`<button class="schcopy" onclick="schCopyToAll(${wd})">Copy to all days</button>`:""}
+        <button class="schadd" onclick="schAddSession(${wd})">+ Sitting</button></span></div>
+      ${sess.length ? sess.map((x,i)=>`<div class="schsess">
+          <input type="time" value="${x.open}" onchange="schSet(${wd},${i},'open',this.value)">
+          <span class="mut">to</span>
+          <input type="time" value="${x.close}" onchange="schSet(${wd},${i},'close',this.value)">
+          <button class="schdel" title="Remove" onclick="schRemoveSession(${wd},${i})">✕</button>
+        </div>`).join("") : `<div class="mut" style="padding:4px 2px">Closed</div>`}
+    </div>`).join("");
+}
+window.schSet = (wd,i,k,v)=>{ SCHED_DRAFT[wd][i][k]=v; };
+window.schAddSession = (wd)=>{ const last=SCHED_DRAFT[wd][SCHED_DRAFT[wd].length-1]; SCHED_DRAFT[wd].push(last?{open:"17:30",close:"21:30"}:{open:"07:00",close:"09:00"}); renderSchDays(); };
+window.schRemoveSession = (wd,i)=>{ SCHED_DRAFT[wd].splice(i,1); renderSchDays(); };
+window.schCopyToAll = (wd)=>{ const src=SCHED_DRAFT[wd].map(x=>({...x})); SCHED_DRAFT = SCHED_DRAFT.map(()=>src.map(x=>({...x}))); renderSchDays(); toast(`${WD_LABEL[wd]}'s hours copied to every day`); };
+
 async function saveSchedule(){
-  const o1=$("o1").value, c1=$("c1").value, o2=$("o2").value, c2=$("c2").value;
-  if(!o1||!c1){ toast("Session 1 open and close are required"); return; }
-  if(hm(c1)<=hm(o1)){ toast("Session 1 close must be after open"); return; }
-  if((o2&&!c2)||(!o2&&c2)){ toast("Fill both session-2 times, or leave both empty"); return; }
-  if(o2&&c2&&hm(c2)<=hm(o2)){ toast("Session 2 close must be after open"); return; }
   const slen=parseInt($("slen").value,10), dah=parseInt($("dahead").value,10);
   if(!(slen>=5&&slen<=60)){ toast("Slot length must be 5–60 minutes"); return; }
   if(!(dah>=1&&dah<=30)){ toast("Days ahead must be 1–30"); return; }
-  const closed=[...document.querySelectorAll("#wdays button.off")].map(b=>+b.dataset.d);
-  const upd={ open_time:o1+":00", close_time:c1+":00", open_time2:o2?o2+":00":null, close_time2:c2?c2+":00":null, slot_minutes:slen, days_ahead:dah, closed_weekdays:closed };
-  const { error } = await sb.from("schedule_config").update(upd).eq("id",true);
-  if(error){ toast(error.message); return; }
-  SCHED=null; closeSheet(); toast("Schedule saved"); if(!$("bookings").classList.contains("hide")) loadBookings();
+  // Validate every sitting before writing anything, so a bad row cannot leave the
+  // schedule half-saved.
+  const rows = [];
+  for (let wd=0; wd<7; wd++){
+    const sess = SCHED_DRAFT[wd].slice().sort((a,b)=>a.open.localeCompare(b.open));
+    for (let i=0;i<sess.length;i++){
+      const x = sess[i];
+      if(!x.open||!x.close){ toast(`${WD_LABEL[wd]}: fill both times, or remove the sitting`); return; }
+      if(hm(x.close)<=hm(x.open)){ toast(`${WD_LABEL[wd]}: closing time must be after opening`); return; }
+      if(i>0 && hm(x.open) < hm(sess[i-1].close)){ toast(`${WD_LABEL[wd]}: two sittings overlap`); return; }
+      rows.push({ weekday:wd, open_time:x.open+":00", close_time:x.close+":00", sort:i });
+    }
+  }
+  if(!rows.length){ toast("The clinic would be closed every day — add at least one sitting"); return; }
+  const btn=$("schSave"); btnBusy(btn,true,'<span class="spinner"></span>Saving…');
+  // One transaction: a failure halfway must never leave the clinic with no hours.
+  const { error: insErr } = await sb.rpc("replace_schedule_sessions", { rows });
+  if(insErr){ btnBusy(btn,false); toast(insErr.message); return; }
+  const { error: cfgErr } = await sb.from("schedule_config").update({ slot_minutes:slen, days_ahead:dah }).eq("id",true);
+  if(cfgErr){ btnBusy(btn,false); toast(cfgErr.message); return; }
+  SCHED=null; closeSheet(); toast("Schedule saved");
+  // Re-render Settings, otherwise the card keeps showing the old hours and the save
+  // looks like it did nothing.
+  await loadSettings();
+  if(!$("bookings").classList.contains("hide")) loadBookings();
 }
 
 // --- new patient (walk-in / phone-in): create record + notes, NO WhatsApp message sent (free) ---
