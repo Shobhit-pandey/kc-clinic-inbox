@@ -79,6 +79,7 @@ nav button:active svg{transform:scale(.84)}
 .ctag{flex-shrink:0;font-size:10.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:2px 7px;border-radius:999px}
 .ctag.blocked{background:#fdecec;color:var(--bad)}
 .ctag.test{background:#fff4e0;color:var(--warn)}
+.ctag.lead{background:#eef1f4;color:var(--mut)}
 .crow .pv{font-size:14px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
 .crow .rt{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
 .crow .tm{font-size:12px;color:var(--mut)}
@@ -244,6 +245,26 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .npbtn svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round}
 /* patient profile card + vitals */
 .pcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+/* Patients tab: one card per patient. Dates carry the meaning, so they are the only
+   coloured thing — today is what needs attention now, green is fine, red is overdue. */
+.pcard2{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 12px;cursor:pointer}
+.pc-top{display:flex;align-items:flex-start;gap:10px}
+.pc-name{flex:1;min-width:0;font-size:16.5px;font-weight:700;color:var(--tx);line-height:1.25}
+.pc-alg{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;color:var(--bad);background:#fdecec;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.pc-call{flex-shrink:0;width:36px;height:36px;border-radius:50%;background:#eef4ff;display:flex;align-items:center;justify-content:center}
+.pc-call svg{width:18px;height:18px;fill:var(--brand);stroke:none}
+.pc-sub{color:var(--mut);font-size:12.5px;margin-top:2px}
+.pc-rows{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+.pc-row{display:flex;align-items:center;gap:8px;font-size:13px}
+.pc-row>span:first-child{color:var(--mut);min-width:62px}
+.pc-t{color:var(--tx);font-weight:600}
+.pc-foot{margin-top:8px;font-size:11.5px;color:var(--mut);font-weight:600}
+.dt{font-size:12.5px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.dt-today{background:#e7eef7;color:var(--brand)}
+.dt-soon{background:#e6f6ef;color:var(--ok)}
+.dt-past{background:#eef1f4;color:var(--mut)}
+.dt-late{background:#fdecec;color:var(--bad)}
+.dt-miss{background:#fff4e0;color:var(--warn)}
 .pcard .pid{font-weight:700;color:var(--navy);font-size:14px;margin-bottom:8px}
 .pcard .prow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:14px;border-top:1px solid #f0f2f4}
 .pcard .prow span{color:var(--mut)}
@@ -541,7 +562,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   <button class="acctbtn" id="hAcct" style="display:none" title="Account" onclick="openAccount()"><span id="hAcctIni">•</span></button>
 </header>
 <main>
-  <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"><button class="npbtn" title="New patient" onclick="openNewPatient()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div><div class="chips" id="chatChips"><button data-f="all" class="on">All</button><button data-f="needs_human">Needs reply</button><button data-f="unread">Unread</button></div><div id="chatList"></div></div>
+  <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"><button class="npbtn" title="New patient" onclick="openNewPatient()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div><div class="chips" id="chatChips"><button data-f="all" class="on">All</button><button data-f="leads">Leads</button><button data-f="needs_human">Needs reply</button><button data-f="unread">Unread</button></div><div id="chatList"></div></div>
   <div id="thread" class="hide">
     <div class="seg" id="threadSeg">
       <button data-mode="chat" class="on"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg>Chat</button>
@@ -565,12 +586,14 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
       <button class="circ" id="sendBtn"><svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></button>
     </div>
   </div>
-  <div id="bookings" class="pane bookings hide"></div>
+    <div id="patients" class="pane hide"></div>
+<div id="bookings" class="pane bookings hide"></div>
   <div id="settings" class="pane hide"></div>
 </main>
 <nav id="tabs">
   <div class="navbrand"><img src="emblem.png" alt="">KC Dada Clinic</div>
   <button data-tab="chats" class="on"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg><span>Chats</span></button>
+  <button data-tab="patients"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Patients</span></button>
   <button data-tab="bookings"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Bookings</span></button>
   <button data-tab="settings"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>Settings</span></button>
 </nav>
@@ -749,7 +772,7 @@ document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => showT
 $("backBtn").onclick = () => showTab("chats");
 function showTab(tab){
   openConvo = null;
-  ["chats","thread","bookings","settings"].forEach((id)=>$(id).classList.add("hide"));
+  ["chats","thread","patients","bookings","settings"].forEach((id)=>$(id).classList.add("hide"));
   $(tab).classList.remove("hide");
   document.querySelectorAll("#tabs button").forEach((b)=>b.classList.toggle("on", b.dataset.tab===tab));
   $("tabs").classList.remove("hide");
@@ -759,17 +782,126 @@ function showTab(tab){
   $("hAv").className = "av logo-sq";
   $("hAv").innerHTML = '<img src="emblem-white.png" alt="">';
   $("hTitle").textContent = "KC Dada Clinic";
-  $("hSub").textContent = tab==="chats" ? "Staff inbox" : tab==="bookings" ? "Appointments" : "Preferences";
+  $("hSub").textContent = tab==="chats" ? "Staff inbox" : tab==="patients" ? "Patient records" : tab==="bookings" ? "Appointments" : "Preferences";
   if (tab==="chats") loadChats();
+  if (tab==="patients") loadPatients();
   if (tab==="bookings") loadBookings();
   if (tab==="settings") loadSettings();
+}
+
+// ---------- Patients tab ----------
+// A PATIENT is someone staff added in the app, or anyone who has ever booked. Every
+// other number that messaged is a LEAD and stays in Chats, where the doctor calls
+// them back. Keeping enquiries out of the clinical list was the whole point: the
+// roster was 36 enquiries around 10 real patients.
+// Chats deliberately still shows everyone — you must be able to reply to a patient.
+let PATIENTS = [];
+let patientSeg = "upcoming";
+const dayIso = (d)=> new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata"}).format(d);
+// How a date reads at a glance: today is what matters now, the future is fine, an
+// overdue follow-up is the one thing that should look wrong.
+function dateTag(iso, kind){
+  if (!iso) return "";
+  const today = dayIso(new Date()), d = dayIso(new Date(iso));
+  const cls = kind==="followup"
+    ? (d < today ? "dt-late" : d === today ? "dt-today" : "dt-soon")
+    : (d === today ? "dt-today" : d > today ? "dt-soon" : "dt-past");
+  const when = d===today ? "Today" : fmtDayFull(iso);
+  return `<span class="dt ${cls}">${when}</span>`;
+}
+async function loadPatients(){
+  if (!PATIENTS.length) $("patients").innerHTML = '<div class="listloading"><span class="spinner"></span>Loading patients…</div>';
+  const nowIso = new Date().toISOString(), todayStr = dayIso(new Date());
+  const [{ data: people }, { data: appts }, { data: rxs }] = await Promise.all([
+    sb.from("patients").select("id,name,age,sex,patient_code,wa_phone,allergies,source,created_at,contact_id")
+      .eq("is_test", false).order("created_at",{ascending:false}),
+    sb.from("appointments").select("patient_id,slot_start,status,arrived_at,consult_at,type_code,appointment_types(name_en)")
+      .order("slot_start",{ascending:false}),
+    sb.from("prescriptions").select("patient_id,created_at,follow_up_days").not("follow_up_days","is",null)
+      .order("created_at",{ascending:false}),
+  ]);
+  const byPatient = {};
+  for (const a of (appts||[])) (byPatient[a.patient_id] ||= []).push(a);
+  const fuBy = {};
+  for (const r of (rxs||[])) if (!fuBy[r.patient_id])
+    fuBy[r.patient_id] = dayIso(new Date(new Date(r.created_at).getTime() + r.follow_up_days*86400000));
+
+  PATIENTS = (people||[]).map(p=>{
+    const mine = byPatient[p.id] || [];
+    const live = mine.filter(a=>a.status==="booked");
+    const next = live.filter(a=>a.slot_start > nowIso).sort((x,y)=>x.slot_start.localeCompare(y.slot_start))[0] || null;
+    const past = mine.filter(a=>a.slot_start <= nowIso).sort((x,y)=>y.slot_start.localeCompare(x.slot_start))[0] || null;
+    // "Today" has to mean booked today, not booked later today: at 6pm the doctor
+    // still expects this morning's patients in the Today list.
+    const todayAppt = live.filter(a=>dayIso(new Date(a.slot_start))===todayStr)
+      .sort((x,y)=>x.slot_start.localeCompare(y.slot_start))[0] || null;
+    return { ...p, isPatient: p.source==="staff" || mine.length>0,
+             next, past, todayAppt, visits: mine.filter(a=>a.status==="completed").length,
+             total: mine.length, followUp: fuBy[p.id] || null };
+  }).filter(p=>p.isPatient);
+  renderPatients();
+}
+function patientSegments(){
+  const today = dayIso(new Date());
+  const laterDay = (p)=> p.next && dayIso(new Date(p.next.slot_start)) > today;
+  return {
+    today:    PATIENTS.filter(p=>p.todayAppt),
+    upcoming: PATIENTS.filter(laterDay),
+    // A worklist, not a bucket: overdue follow-ups with nothing already booked.
+    followup: PATIENTS.filter(p=>p.followUp && p.followUp <= today && !p.todayAppt && !laterDay(p)),
+    past:     PATIENTS.filter(p=>!p.todayAppt && !laterDay(p)),
+  };
+}
+window.setPatientSeg = (k)=>{ patientSeg = k; renderPatients(); };
+function renderPatients(){
+  const segs = patientSegments();
+  const q = ($("patSearch")?.value || "").trim().toLowerCase();
+  let rows = segs[patientSeg] || [];
+  if (q) rows = rows.filter(p=>((p.name||"")+" "+(p.patient_code||"")+" "+(p.wa_phone||"")).toLowerCase().includes(q));
+  // Soonest first when looking forward; most recently seen first when looking back.
+  rows = rows.slice().sort((a,b)=> (patientSeg==="past" || patientSeg==="followup")
+    ? String(b.past?.slot_start||b.created_at).localeCompare(String(a.past?.slot_start||a.created_at))
+    : String(a.next?.slot_start||"").localeCompare(String(b.next?.slot_start||"")));
+  const chip = (k,label)=>`<button class="${patientSeg===k?"on":""}" onclick="setPatientSeg('${k}')">${label} ${segs[k].length}</button>`;
+  $("patients").innerHTML =
+    `<div class="searchwrap"><input id="patSearch" placeholder="Search name, ID or number" oninput="renderPatients()" value="${esc(q)}"></div>
+     <div class="chips">${chip("today","Today")}${chip("upcoming","Upcoming")}${chip("followup","Follow-up due")}${chip("past","Past")}</div>`
+    + (rows.length ? rows.map(patientCard).join("")
+       : `<div class="notes-hint">${q?"No match.":"Nobody here yet. Patients appear once staff add them or they book."}</div>`);
+}
+// Where today's patient is in the queue — visible on the card so the doctor does not
+// have to open each one during a busy sitting.
+function visitStageChip(a){
+  const k = a.consult_at ? "In consult" : a.arrived_at ? "Arrived" : "";
+  return k ? `<span class="dt dt-today">${k}</span>` : "";
+}
+function patientCard(p){
+  const alg = p.allergies && !isNoAllergy(p.allergies);
+  const line2 = [p.age?`${p.age} yrs`:"", SEX_LABEL[p.sex]||"", p.patient_code||""].filter(Boolean).join(" · ");
+  const lastLabel = p.past ? (p.past.status==="no_show" ? "No-show" : "Last visit") : "";
+  return `<div class="pcard2" onclick="openPatientChat('${p.id}')">
+      <div class="pc-top">
+        <div class="pc-name">${esc(p.name||"Unnamed")}${alg?`<span class="pc-alg">⚠ ${esc(p.allergies)}</span>`:""}</div>
+        ${p.wa_phone?`<a class="pc-call" href="tel:+${esc(p.wa_phone)}" onclick="event.stopPropagation()" title="Call">
+          <svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.4 2.1L8 9.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.4c.8.3 1.7.5 2.6.6A2 2 0 0 1 22 16.9z"/></svg></a>`:""}
+      </div>
+      ${line2?`<div class="pc-sub">${esc(line2)}</div>`:""}
+      <div class="pc-rows">
+        ${p.todayAppt ? `<div class="pc-row"><span>Today</span><span class="dt dt-today">${fmtT(p.todayAppt.slot_start)}</span>${visitStageChip(p.todayAppt)}</div>`
+          : p.next ? `<div class="pc-row"><span>Next</span>${dateTag(p.next.slot_start)}<span class="pc-t">${fmtT(p.next.slot_start)}</span></div>` : ""}
+        ${p.past ? `<div class="pc-row"><span>${lastLabel}</span>${dateTag(p.past.slot_start)}${p.past.status==="no_show"?'<span class="dt dt-miss">missed</span>':""}</div>` : ""}
+        ${p.followUp ? `<div class="pc-row"><span>Follow-up</span>${dateTag(p.followUp,"followup")}</div>` : ""}
+        ${!p.next && !p.past && !p.todayAppt ? `<div class="pc-row"><span class="mut">Added ${fmtDayFull(p.created_at)} · no visit yet</span></div>` : ""}
+      </div>
+      ${p.visits>1?`<div class="pc-foot">${p.visits} visits</div>`:""}
+    </div>`;
 }
 
 let allChatRows = [];
 async function loadChats(){
   if (!allChatRows.length) $("chatList").innerHTML = '<div class="listloading"><span class="spinner"></span>Loading chats…</div>';
   const { data: convos, error } = await sb.from("conversations")
-    .select("id,status,unread_count,updated_at,last_patient_msg_at,contacts(wa_phone,is_test,patients(name,is_primary))")
+    .select("id,status,unread_count,updated_at,last_patient_msg_at,contacts(wa_phone,is_test,patients(id,name,is_primary,source))")
     .order("updated_at",{ascending:false}).limit(200);
   hideSplash();
   if (error){ $("chatList").innerHTML=''; toast(error.message); return; }
@@ -779,6 +911,11 @@ async function loadChats(){
   // glance why a number behaves differently instead of opening it to find out.
   const { data: blockedRows } = await sb.from("blocked_numbers").select("wa_phone");
   const blockedSet = new Set((blockedRows??[]).map(b=>b.wa_phone));
+  // A number is still a LEAD until someone on it books or is added by staff. Same rule
+  // as the Patients tab, so a number is never a lead in one place and a patient in the
+  // other.
+  const { data: bookedRows } = await sb.from("appointments").select("patient_id");
+  const bookedIds = new Set((bookedRows??[]).map(a=>a.patient_id));
   const preview = {};
   for (const m of (recent??[])) if (!preview[m.conversation_id]) {
     const who = m.direction==="out" ? "You: " : "";
@@ -789,11 +926,13 @@ async function loadChats(){
     const ct = c.contacts ?? {}, phone = ct.wa_phone || "";
     const people = ct.patients ?? [], primary = people.find(x=>x.is_primary) || people[0] || {};
     const nm = primary.name || ("+"+phone);
+    const isLead = !people.some(x=>x.source==="staff" || bookedIds.has(x.id));
     const tags = (blockedSet.has(phone) ? `<span class="ctag blocked">Blocked</span>` : "")
-               + (ct.is_test ? `<span class="ctag test">Test</span>` : "");
+               + (ct.is_test ? `<span class="ctag test">Test</span>` : "")
+               + (isLead ? `<span class="ctag lead">Enquiry</span>` : "");
     return {
       hay: (nm + " " + phone).toLowerCase(),
-      status: c.status, unread: c.unread_count>0,
+      status: c.status, unread: c.unread_count>0, isLead,
       html: `<div class="crow" onclick="openThread('${c.id}')">
         <div class="av">${esc(initials(primary.name)||"•")}</div>
         <div class="mid"><div class="nmrow"><span class="nm">${esc(nm)}</span>${tags}</div>
@@ -811,9 +950,11 @@ function renderChatList(){
   let rows = allChatRows;
   if (chatFilter==="needs_human") rows = rows.filter(r=>r.status==="needs_human");
   else if (chatFilter==="unread") rows = rows.filter(r=>r.unread);
+  else if (chatFilter==="leads") rows = rows.filter(r=>r.isLead);
   if (q) rows = rows.filter(r=>r.hay.includes(q));
   const emptyMsg = q ? "No matches for '"+esc(q)+"'."
     : chatFilter==="needs_human" ? "No chats need a reply right now. 🎉"
+    : chatFilter==="leads" ? "No open enquiries — everyone who messaged is already a patient."
     : chatFilter==="unread" ? "No unread chats."
     : "No conversations yet.<br>When a patient messages the clinic on WhatsApp, they will appear here.";
   $("chatList").innerHTML = rows.map(r=>r.html).join("") || `<div class="empty">${emptyMsg}</div>`;
@@ -998,7 +1139,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-10 (3af793c)";
+const APP_BUILD = "2026-08-18 (234b375)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -1938,11 +2079,11 @@ async function resolvePersonByPhone(digits, name){
     if (nm){ const hit = list.find(p=>(p.name||"").trim().toLowerCase()===nm); if (hit) return { id: hit.id, isNew:false }; }
     else { return { id: (list.find(p=>p.is_primary)||list[0]).id, isNew:false }; }
     // A name was given that no existing person matches → add a new person on this number.
-    const { data: np, error } = await sb.from("patients").insert({ wa_phone:digits, name }).select("id").single();
+    const { data: np, error } = await sb.from("patients").insert({ wa_phone:digits, name, source:"staff" }).select("id").single();
     if (error) throw new Error(error.message); return { id: np.id, isNew:true };
   }
   // Brand-new number: the first person is the primary.
-  const { data: np, error } = await sb.from("patients").insert({ wa_phone:digits, name: name||null, is_primary:true }).select("id").single();
+  const { data: np, error } = await sb.from("patients").insert({ wa_phone:digits, name: name||null, is_primary:true, source:"staff" }).select("id").single();
   if (error) throw new Error(error.message); return { id: np.id, isNew:true };
 }
 // The single conversation for a person's contact; created if missing. Returns its id.
