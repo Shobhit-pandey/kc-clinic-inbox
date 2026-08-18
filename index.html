@@ -188,6 +188,11 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .chips button{border:1px solid var(--line);background:#fff;color:var(--mut);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;flex-shrink:0}
 .chips button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
 .chips.wrap{flex-wrap:wrap;overflow-x:visible;row-gap:8px}
+.daterow{display:flex;align-items:center;gap:6px;padding:0 12px 10px;background:var(--chatbg)}
+.daterow label{display:flex;align-items:center;gap:5px;flex:1;min-width:0;font-size:12px;font-weight:700;color:var(--mut)}
+.daterow input{flex:1;min-width:0;border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 6px;font-size:12.5px;font-family:inherit;color:var(--ink)}
+.dclear{flex-shrink:0;border:1px solid var(--line);background:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.dclear svg{width:14px;height:14px;stroke:var(--mut);stroke-width:2.4;fill:none;stroke-linecap:round}
 .pplswitch{flex:none;display:flex;align-items:center;gap:7px;overflow-x:auto;padding:2px 2px 10px;-webkit-overflow-scrolling:touch}
 .pplswitch button{border:1px solid var(--line);background:#fff;color:var(--mut);border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer;flex-shrink:0}
 .pplswitch button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
@@ -899,7 +904,27 @@ const PAT_EMPTY = {
   followup: "No follow-up is due. 🎉",
   past:     "Nobody here yet. Patients appear once staff add them or they book.",
 };
+// Which date a view is "about" — the one printed on the card. Filtering Upcoming by a
+// date has to mean the next appointment, and Past the last visit; using one field for
+// both would silently filter on a date the card never shows.
+const patientDateFor = (p, seg)=>
+  seg === "upcoming" ? (p.next?.slot_start || null)
+  : seg === "today"  ? (p.todayAppt?.slot_start || null)
+  : seg === "followup" ? (p.followUp || null)
+  : (p.lastVisit?.slot_start || null);
+// Dates are compared as IST calendar days, never as instants: a 9pm appointment must
+// still count as its own day, whatever timezone the phone is set to.
+function inPatientDateRange(iso, from, to){
+  if (!from && !to) return true;
+  if (!iso) return false;                       // no date at all cannot match a range
+  const d = iso.length === 10 ? iso : dayIso(new Date(iso));
+  return (!from || d >= from) && (!to || d <= to);
+}
+// Only the two views the doctor asked for: Today needs no range, and Messages is a
+// worklist rather than a date list.
+const PAT_DATED = ["upcoming", "past"];
 window.setPatientSeg = (k)=>{ patientSeg = k; renderPatients(); };
+window.clearPatDates = ()=>{ $("patFrom").value = ""; $("patTo").value = ""; renderPatients(); };
 let patSearchSeed = "";
 function renderPatients(){
   const segs = patientSegments();
@@ -912,6 +937,13 @@ function renderPatients(){
   let rows = q
     ? PATIENTS.filter(p=>((p.name||"")+" "+(p.patient_code||"")+" "+(p.wa_phone||"")).toLowerCase().includes(q))
     : (segs[patientSeg] || []);
+  // A search already spans every view, so a range on top of it would filter on a date
+  // that does not belong to any one of them. Search wins, and the row hides.
+  const dated = !q && PAT_DATED.includes(patientSeg);
+  const from = dated ? ($("patFrom")?.value || "") : "";
+  const to   = dated ? ($("patTo")?.value || "") : "";
+  const total = rows.length;
+  if (from || to) rows = rows.filter(p=>inPatientDateRange(patientDateFor(p, patientSeg), from, to));
   // Soonest first when looking forward; most recently seen first when looking back.
   if (q) rows = rows.slice().sort((a,b)=> String(a.name||"").localeCompare(String(b.name||"")));
   else if (patientSeg === "messages")
@@ -928,12 +960,26 @@ function renderPatients(){
   // only ever took one character.
   if (!$("patSearch")) $("patients").innerHTML =
     `<div class="searchwrap"><input id="patSearch" placeholder="🔍 Search name, ID or number" autocapitalize="none" oninput="renderPatients()"><button class="npbtn" title="New patient" onclick="openNewPatient()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
-     <div class="chips wrap" id="patChips"></div><div id="patList"></div>`;
+     <div class="chips wrap" id="patChips"></div>
+     <div class="daterow hide" id="patDates">
+       <label>From <input type="date" id="patFrom" onchange="renderPatients()"></label>
+       <label>To <input type="date" id="patTo" onchange="renderPatients()"></label>
+       <button class="dclear hide" id="patDateClear" onclick="clearPatDates()" title="Clear dates"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+     </div><div id="patList"></div>`;
   if (patSeeded) $("patSearch").value = q;
+  $("patDates").classList.toggle("hide", !dated);
+  $("patDateClear").classList.toggle("hide", !(from || to));
   $("patChips").innerHTML = `${msgChip}${chip("today","Today")}${chip("upcoming","Upcoming")}${chip("followup","Follow-up")}${chip("past","Past")}`;
-  $("patList").innerHTML = (q ? `<div class="notes-hint">Searching all ${PATIENTS.length} patients.</div>` : "")
+  // Say how much the range is hiding: the chip still counts the whole view, and a chip
+  // reading 12 above a list of 2 looks like a bug otherwise.
+  const hint = q ? `Searching all ${PATIENTS.length} patients.`
+    : (from || to) ? `${rows.length} of ${total} by date${
+        from && to && from === to ? `, on ${fmtDayFull(from)}`
+        : from && to ? `, ${fmtDayFull(from)} to ${fmtDayFull(to)}`
+        : from ? ` from ${fmtDayFull(from)}` : ` up to ${fmtDayFull(to)}`}.` : "";
+  $("patList").innerHTML = (hint ? `<div class="notes-hint">${hint}</div>` : "")
     + (rows.length ? rows.map(patientCard).join("")
-       : `<div class="notes-hint">${q ? "No match." : PAT_EMPTY[patientSeg]}</div>`);
+       : `<div class="notes-hint">${q ? "No match." : (from||to) ? "Nobody in that date range." : PAT_EMPTY[patientSeg]}</div>`);
 }
 // Where today's patient is in the queue — visible on the card so the doctor does not
 // have to open each one during a busy sitting.
@@ -1238,7 +1284,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-18 (de6e8d8)";
+const APP_BUILD = "2026-08-18 (968eea3)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -2877,7 +2923,7 @@ const MOCKS = {
 const buildMock = (k)=> MOCKS[k] ? MOCKS[k]() : "";
 const TUTORIAL = [
   ["chats","Chats: new enquiries","Chats holds the numbers that have messaged but are not patients yet, newest first. Tap one to reply or to call them back. Once someone books, or you add them as a patient, they move to the Patients tab and leave this list, so what is left here is your call-back list.","New enquiries waiting on you."],
-  ["patients","Patients","Everyone you have added, and everyone who has booked. Four views: Today, Upcoming, Follow-up due and Past. Each card shows age, sex, Patient ID, the next or last visit and any allergy, so you can read the list without opening anyone. Dates are colour-coded: navy for today, green for coming up, grey for past, red for a follow-up that is overdue. Tap a card to open that patient's chat and notes, or the phone icon to call. If a patient messages you, a Messages view appears here with a red dot on the tab.","Your real patient list."],
+  ["patients","Patients","Everyone you have added, and everyone who has booked. Four views: Today, Upcoming, Follow-up due and Past. Each card shows age, sex, Patient ID, the next or last visit and any allergy, so you can read the list without opening anyone. Dates are colour-coded: navy for today, green for coming up, grey for past, red for a follow-up that is overdue. Tap a card to open that patient's chat and notes, or the phone icon to call. If a patient messages you, a Messages view appears here with a red dot on the tab. On Upcoming and Past you can also narrow the list to a date range with From and To.","Your real patient list."],
   ["bot","The bot books for you","New patients are answered automatically and guided through booking. When someone asks for a person or sends a photo, the chat is flagged 'Needs reply' and the bot steps aside for you. Outside clinic hours it says we're closed but still lets them book.","Jump in whenever a chat needs a human."],
   ["reply","Replying","Type and send like WhatsApp. Use the clip to send a photo or a file (a prescription or report PDF), and the quick-reply button for canned answers. Tap the phone icon at the top to call the patient. WhatsApp allows replies within 24 hours of the patient's last message.","Send reports, confirm details, answer questions."],
   ["notes","Private notes","Inside any chat, switch to Notes. This is staff-only and the patient never sees it. Keep a timestamped history plus vitals like BP and weight, and edit the profile up top. You'll see every visit listed with its date and outcome, and if a patient walks in without an appointment, tap 'Log walk-in visit' to record it.","Record history, vitals, and every visit."],
@@ -3015,6 +3061,7 @@ const FAQ = [
     ["When does someone move from Chats to Patients?","The moment they book, or as soon as you add them with <b>＋</b>. You can also open an enquiry and tap <b>Add to Patients</b>, which is useful for someone who phoned instead of booking."],
     ["A patient sent me a message. Will I see it?","Yes. A red dot appears on the <b>Patients</b> tab, a <b>Messages</b> view appears at the top of that list, and the count shows on their card."],
     ["What do the colours on the dates mean?","Navy is today, green is coming up, grey is past, red is a follow-up that is overdue, and amber marks a visit they missed."],
+    ["Can I see only a certain date range?","Yes, on <b>Upcoming</b> and <b>Past</b>. Set <b>From</b>, <b>To</b>, or just one of them, and the list narrows to visits in that range. Upcoming filters on the next appointment and Past on the last visit. Tap the <b>✕</b> to clear. A search ignores the dates, because it looks across every patient."],
     ["The four views on Patients — what are they?","<b>Today</b> is everyone booked today. <b>Upcoming</b> is booked for a later day. <b>Follow-up due</b> is patients whose follow-up date has passed with nothing booked, so it is a call list. <b>Past</b> is everyone else."],
   ]},
   { h:"Bookings and the day", qa:[
