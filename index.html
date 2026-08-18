@@ -62,7 +62,7 @@ nav{position:absolute;left:14px;right:14px;bottom:calc(10px + env(safe-area-inse
   background:rgba(255,255,255,.72);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);
   border:1px solid rgba(255,255,255,.65);border-radius:28px;box-shadow:0 10px 34px rgba(20,30,40,.18);
   display:flex;padding:9px 8px 8px;gap:2px;z-index:6}
-nav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;color:#8a97a0;font-size:11px;font-weight:600;cursor:pointer;padding:2px}
+nav button{flex:1;border:0;position:relative;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;color:#8a97a0;font-size:11px;font-weight:600;cursor:pointer;padding:2px}
 nav button svg{width:25px;height:25px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;transition:transform .16s}
 nav button.on{color:var(--green)}
 nav button.on svg{stroke-width:2.1}
@@ -79,10 +79,10 @@ nav button:active svg{transform:scale(.84)}
 .ctag{flex-shrink:0;font-size:10.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:2px 7px;border-radius:999px}
 .ctag.blocked{background:#fdecec;color:var(--bad)}
 .ctag.test{background:#fff4e0;color:var(--warn)}
-.ctag.lead{background:#eef1f4;color:var(--mut)}
 .crow .pv{font-size:14px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
 .crow .rt{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
 .crow .tm{font-size:12px;color:var(--mut)}
+.navdot{position:absolute;top:0;right:calc(50% - 16px);width:9px;height:9px;border-radius:50%;background:var(--badge);box-shadow:0 0 0 2px #fff}
 .badge{background:var(--badge);color:#fff;border-radius:999px;min-width:20px;height:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
 .stat{font-size:10.5px;padding:2px 8px;border-radius:999px;background:#e9edf4;color:var(--green);white-space:nowrap}
 .stat.needs_human{background:#fef3c7;color:var(--warn)}
@@ -187,6 +187,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .chips{display:flex;gap:8px;padding:0 12px 10px;background:var(--chatbg);overflow-x:auto}
 .chips button{border:1px solid var(--line);background:#fff;color:var(--mut);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer;flex-shrink:0}
 .chips button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.chips.wrap{flex-wrap:wrap;overflow-x:visible;row-gap:8px}
 .pplswitch{flex:none;display:flex;align-items:center;gap:7px;overflow-x:auto;padding:2px 2px 10px;-webkit-overflow-scrolling:touch}
 .pplswitch button{border:1px solid var(--line);background:#fff;color:var(--mut);border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer;flex-shrink:0}
 .pplswitch button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
@@ -250,6 +251,10 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .pcard2{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 12px;cursor:pointer}
 .pc-top{display:flex;align-items:flex-start;gap:10px}
 .pc-name{flex:1;min-width:0;font-size:16.5px;font-weight:700;color:var(--tx);line-height:1.25}
+.pc-unread{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:#fff;background:var(--badge);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.pc-reply{display:inline-block;font-size:11.5px;font-weight:700;color:var(--warn);background:#fff4e0;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.chips button.alert{border-color:var(--badge);color:var(--badge)}
+.chips button.alert.on{background:var(--badge);border-color:var(--badge);color:#fff}
 .pc-alg{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;color:var(--bad);background:#fdecec;border-radius:999px;padding:2px 8px;white-space:nowrap}
 .pc-call{flex-shrink:0;width:36px;height:36px;border-radius:50%;background:#eef4ff;display:flex;align-items:center;justify-content:center}
 .pc-call svg{width:18px;height:18px;fill:var(--brand);stroke:none}
@@ -335,6 +340,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 .mk-ph{fill:#9aa6b0;font:400 8.5px system-ui,sans-serif}
 .mk-statpill{fill:#fdecea}
 .mk-statpill-t{fill:#c0392b;font:700 7px system-ui,sans-serif}
+.mk-dt-t{fill:var(--brand);font:700 7.5px system-ui,sans-serif}
 .mk-badge{fill:var(--brand)}
 .mk-badge-t{fill:#fff;font:700 8px system-ui,sans-serif}
 .mk-search{fill:#eef1f4}
@@ -535,6 +541,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   nav#tabs button span{font-size:15px}
   nav#tabs button.on{background:#eef2f7;color:var(--brand)}
   nav#tabs button:hover{background:#f4f6f9}
+  nav#tabs .navdot{top:50%;right:12px;transform:translateY(-50%)}
   /* comfortable reading widths on wide screens */
   #chats,#bookings,#settings{max-width:860px;margin:0 auto;width:100%}
   .m{max-width:64%}
@@ -562,7 +569,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
   <button class="acctbtn" id="hAcct" style="display:none" title="Account" onclick="openAccount()"><span id="hAcctIni">•</span></button>
 </header>
 <main>
-  <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"><button class="npbtn" title="New patient" onclick="openNewPatient()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div><div class="chips" id="chatChips"><button data-f="all" class="on">All</button><button data-f="leads">Leads</button><button data-f="needs_human">Needs reply</button><button data-f="unread">Unread</button></div><div id="chatList"></div></div>
+  <div id="chats" class="pane"><div class="searchwrap"><input id="chatSearch" placeholder="🔍 Search name or number" autocapitalize="none"><button class="npbtn" title="New patient" onclick="openNewPatient()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div><div class="chips" id="chatChips"><button data-f="all" class="on">All</button><button data-f="needs_human">Needs reply</button><button data-f="unread">Unread</button></div><div id="chatList"></div></div>
   <div id="thread" class="hide">
     <div class="seg" id="threadSeg">
       <button data-mode="chat" class="on"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg>Chat</button>
@@ -571,6 +578,7 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
     <div class="tbar" id="tbar">
       <span id="tStatus" class="stat"></span>
       <span style="flex:1"></span>
+      <button class="ghost hide" id="toPatient">Add to Patients</button>
       <button class="ghost" id="toBot">Give to bot</button>
       <button class="ghost" id="toClosed">Close</button>
       <button class="ghost danger" id="blockBtn">Block</button>
@@ -592,8 +600,8 @@ input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0;width:100
 </main>
 <nav id="tabs">
   <div class="navbrand"><img src="emblem.png" alt="">KC Dada Clinic</div>
-  <button data-tab="chats" class="on"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg><span>Chats</span></button>
-  <button data-tab="patients"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Patients</span></button>
+  <button data-tab="chats" class="on"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg><span>Chats</span><span class="navdot hide" id="dotChats"></span></button>
+  <button data-tab="patients"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Patients</span><span class="navdot hide" id="dotPat"></span></button>
   <button data-tab="bookings"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Bookings</span></button>
   <button data-tab="settings"><svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span>Settings</span></button>
 </nav>
@@ -734,7 +742,7 @@ sb.auth.onAuthStateChange(async (ev, session) => {
     if (pr?.must_change_pw) { hideSplash(); showSetPw(); return; }   // temp password → must set a new one
     showSplash("Loading your inbox…");
     $("app").classList.remove("hide");
-    showTab("chats"); subscribeRealtime(); handleDeepLink();   // loadChats hides the splash when the inbox is ready
+    showTab("chats"); subscribeRealtime(); refreshTabDots(); handleDeepLink();   // loadChats hides the splash when the inbox is ready
   }
 });
 const canWriteRx = ()=> myRole === "admin" || myRole === "doctor";
@@ -769,7 +777,10 @@ if ("serviceWorker" in navigator) {
 }
 
 document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => showTab(b.dataset.tab));
-$("backBtn").onclick = () => showTab("chats");
+$("backBtn").onclick = () => showTab(lastListTab);
+// Threads open from Chats, Patients and Bookings, so Back has to return to the list you
+// were actually in.
+let lastListTab = "chats";
 function showTab(tab){
   openConvo = null;
   ["chats","thread","patients","bookings","settings"].forEach((id)=>$(id).classList.add("hide"));
@@ -783,6 +794,7 @@ function showTab(tab){
   $("hAv").innerHTML = '<img src="emblem-white.png" alt="">';
   $("hTitle").textContent = "KC Dada Clinic";
   $("hSub").textContent = tab==="chats" ? "Staff inbox" : tab==="patients" ? "Patient records" : tab==="bookings" ? "Appointments" : "Preferences";
+  if (tab==="chats" || tab==="patients" || tab==="bookings") lastListTab = tab;
   if (tab==="chats") loadChats();
   if (tab==="patients") loadPatients();
   if (tab==="bookings") loadBookings();
@@ -794,7 +806,19 @@ function showTab(tab){
 // other number that messaged is a LEAD and stays in Chats, where the doctor calls
 // them back. Keeping enquiries out of the clinical list was the whole point: the
 // roster was 36 enquiries around 10 real patients.
-// Chats deliberately still shows everyone — you must be able to reply to a patient.
+//
+// Chats shows ONLY leads, so the two lists never overlap. A patient's conversation is
+// still one tap away from their card, and anything they send surfaces on the card and
+// in the Messages view, so moving them out of Chats cannot lose a message.
+//
+// This is the single definition of the rule. Chats, this tab and the tab-bar dots all
+// call it, so a number can never count as a patient in one place and a lead in another.
+const isPatientPerson = (person, bookedIds)=> person.source === "staff" || bookedIds.has(person.id);
+// Which numbers Chats lists: the enquiries, plus developer/test numbers. A test number is
+// kept out of the Patients list, so if Chats dropped it as well it would disappear from
+// both screens the moment it booked anything.
+const showsInChats = (contact, people, bookedIds)=>
+  !!contact.is_test || !people.some((x)=>isPatientPerson(x, bookedIds));
 let PATIENTS = [];
 let patientSeg = "upcoming";
 const dayIso = (d)=> new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata"}).format(d);
@@ -812,16 +836,23 @@ function dateTag(iso, kind){
 async function loadPatients(){
   if (!PATIENTS.length) $("patients").innerHTML = '<div class="listloading"><span class="spinner"></span>Loading patients…</div>';
   const nowIso = new Date().toISOString(), todayStr = dayIso(new Date());
-  const [{ data: people }, { data: appts }, { data: rxs }] = await Promise.all([
+  const [{ data: people }, { data: appts }, { data: rxs }, { data: convos }] = await Promise.all([
     sb.from("patients").select("id,name,age,sex,patient_code,wa_phone,allergies,source,created_at,contact_id")
       .eq("is_test", false).order("created_at",{ascending:false}),
     sb.from("appointments").select("patient_id,slot_start,status,arrived_at,consult_at,type_code,appointment_types(name_en)")
       .order("slot_start",{ascending:false}),
     sb.from("prescriptions").select("patient_id,created_at,follow_up_days").not("follow_up_days","is",null)
       .order("created_at",{ascending:false}),
+    // Patients are out of Chats now, so their unread messages have to show up here.
+    sb.from("conversations").select("contact_id,unread_count,status,last_patient_msg_at"),
   ]);
+  // Unread belongs to the NUMBER, so when two people share a phone the badge shows on
+  // both cards. Better that than guessing which of them wrote and hiding it from one.
+  const convBy = {};
+  for (const c of (convos||[])) convBy[c.contact_id] = c;
   const byPatient = {};
-  for (const a of (appts||[])) (byPatient[a.patient_id] ||= []).push(a);
+  const bookedIds = new Set();
+  for (const a of (appts||[])) { (byPatient[a.patient_id] ||= []).push(a); bookedIds.add(a.patient_id); }
   const fuBy = {};
   for (const r of (rxs||[])) if (!fuBy[r.patient_id])
     fuBy[r.patient_id] = dayIso(new Date(new Date(r.created_at).getTime() + r.follow_up_days*86400000));
@@ -830,14 +861,21 @@ async function loadPatients(){
     const mine = byPatient[p.id] || [];
     const live = mine.filter(a=>a.status==="booked");
     const next = live.filter(a=>a.slot_start > nowIso).sort((x,y)=>x.slot_start.localeCompare(y.slot_start))[0] || null;
-    const past = mine.filter(a=>a.slot_start <= nowIso).sort((x,y)=>y.slot_start.localeCompare(x.slot_start))[0] || null;
+    // The last visit must be an EARLIER DAY: comparing against the clock made this
+    // evening's 5pm appointment show up as both "Today" and "Last visit". A cancelled
+    // appointment was never a visit either.
+    const lastVisit = mine.filter(a=>a.status !== "cancelled" && dayIso(new Date(a.slot_start)) < todayStr)
+      .sort((x,y)=>y.slot_start.localeCompare(x.slot_start))[0] || null;
     // "Today" has to mean booked today, not booked later today: at 6pm the doctor
     // still expects this morning's patients in the Today list.
     const todayAppt = live.filter(a=>dayIso(new Date(a.slot_start))===todayStr)
       .sort((x,y)=>x.slot_start.localeCompare(y.slot_start))[0] || null;
-    return { ...p, isPatient: p.source==="staff" || mine.length>0,
-             next, past, todayAppt, visits: mine.filter(a=>a.status==="completed").length,
-             total: mine.length, followUp: fuBy[p.id] || null };
+    const conv = convBy[p.contact_id] || {};
+    return { ...p, isPatient: isPatientPerson(p, bookedIds),
+             next, lastVisit, todayAppt, visits: mine.filter(a=>a.status==="completed").length,
+             total: mine.length, followUp: fuBy[p.id] || null,
+             unread: conv.unread_count || 0, needsReply: conv.status === "needs_human",
+             lastMsgAt: conv.last_patient_msg_at || null };
   }).filter(p=>p.isPatient);
   renderPatients();
 }
@@ -845,6 +883,8 @@ function patientSegments(){
   const today = dayIso(new Date());
   const laterDay = (p)=> p.next && dayIso(new Date(p.next.slot_start)) > today;
   return {
+    // The safety net for taking patients out of Chats: anyone waiting on a reply.
+    messages: PATIENTS.filter(p=>p.unread > 0 || p.needsReply),
     today:    PATIENTS.filter(p=>p.todayAppt),
     upcoming: PATIENTS.filter(laterDay),
     // A worklist, not a bucket: overdue follow-ups with nothing already booked.
@@ -853,21 +893,40 @@ function patientSegments(){
   };
 }
 window.setPatientSeg = (k)=>{ patientSeg = k; renderPatients(); };
+let patSearchSeed = "";
 function renderPatients(){
   const segs = patientSegments();
-  const q = ($("patSearch")?.value || "").trim().toLowerCase();
-  let rows = segs[patientSeg] || [];
-  if (q) rows = rows.filter(p=>((p.name||"")+" "+(p.patient_code||"")+" "+(p.wa_phone||"")).toLowerCase().includes(q));
+  const patSeeded = !!patSearchSeed;
+  const q = (patSearchSeed || $("patSearch")?.value || "").trim().toLowerCase();
+  patSearchSeed = "";
+  // A search looks across EVERY patient, not just the open view. Hunting for a name is
+  // not browsing a segment, and "no match" while the patient sits under another chip is
+  // exactly what makes staff stop trusting the list.
+  let rows = q
+    ? PATIENTS.filter(p=>((p.name||"")+" "+(p.patient_code||"")+" "+(p.wa_phone||"")).toLowerCase().includes(q))
+    : (segs[patientSeg] || []);
   // Soonest first when looking forward; most recently seen first when looking back.
+  if (q) rows = rows.slice().sort((a,b)=> String(a.name||"").localeCompare(String(b.name||"")));
+  else if (patientSeg === "messages")
+    rows = rows.slice().sort((a,b)=> String(b.lastMsgAt||"").localeCompare(String(a.lastMsgAt||"")));
+  else
   rows = rows.slice().sort((a,b)=> (patientSeg==="past" || patientSeg==="followup")
-    ? String(b.past?.slot_start||b.created_at).localeCompare(String(a.past?.slot_start||a.created_at))
+    ? String(b.lastVisit?.slot_start||b.created_at).localeCompare(String(a.lastVisit?.slot_start||a.created_at))
     : String(a.next?.slot_start||"").localeCompare(String(b.next?.slot_start||"")));
-  const chip = (k,label)=>`<button class="${patientSeg===k?"on":""}" onclick="setPatientSeg('${k}')">${label} ${segs[k].length}</button>`;
-  $("patients").innerHTML =
-    `<div class="searchwrap"><input id="patSearch" placeholder="Search name, ID or number" oninput="renderPatients()" value="${esc(q)}"></div>
-     <div class="chips">${chip("today","Today")}${chip("upcoming","Upcoming")}${chip("followup","Follow-up due")}${chip("past","Past")}</div>`
+  const chip = (k,label,cls="")=>`<button class="${cls} ${patientSeg===k?"on":""}" onclick="setPatientSeg('${k}')">${label} ${segs[k].length}</button>`;
+  // Messages only appears when someone is actually waiting, so it reads as work to do.
+  const msgChip = segs.messages.length ? chip("messages","Messages","alert") : "";
+  // The search box and chips are drawn ONCE and left alone. Re-rendering the whole pane
+  // on every keystroke replaced the input mid-type, so the field lost focus and search
+  // only ever took one character.
+  if (!$("patSearch")) $("patients").innerHTML =
+    `<div class="searchwrap"><input id="patSearch" placeholder="🔍 Search name, ID or number" autocapitalize="none" oninput="renderPatients()"><button class="npbtn" title="New patient" onclick="openNewPatient()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div>
+     <div class="chips wrap" id="patChips"></div><div id="patList"></div>`;
+  if (patSeeded) $("patSearch").value = q;
+  $("patChips").innerHTML = `${msgChip}${chip("today","Today")}${chip("upcoming","Upcoming")}${chip("followup","Follow-up")}${chip("past","Past")}`;
+  $("patList").innerHTML = (q ? `<div class="notes-hint">Searching all ${PATIENTS.length} patients.</div>` : "")
     + (rows.length ? rows.map(patientCard).join("")
-       : `<div class="notes-hint">${q?"No match.":"Nobody here yet. Patients appear once staff add them or they book."}</div>`);
+       : `<div class="notes-hint">${q?"No match.":patientSeg==="messages"?"No patient is waiting on a reply.":"Nobody here yet. Patients appear once staff add them or they book."}</div>`);
 }
 // Where today's patient is in the queue — visible on the card so the doctor does not
 // have to open each one during a busy sitting.
@@ -878,7 +937,10 @@ function visitStageChip(a){
 function patientCard(p){
   const alg = p.allergies && !isNoAllergy(p.allergies);
   const line2 = [p.age?`${p.age} yrs`:"", SEX_LABEL[p.sex]||"", p.patient_code||""].filter(Boolean).join(" · ");
-  const lastLabel = p.past ? (p.past.status==="no_show" ? "No-show" : "Last visit") : "";
+  const lastLabel = p.lastVisit ? (p.lastVisit.status==="no_show" ? "No-show" : "Last visit") : "";
+  const msg = p.unread > 0
+    ? `<span class="pc-unread">${p.unread} new message${p.unread>1?"s":""}</span>`
+    : p.needsReply ? `<span class="pc-reply">Needs reply</span>` : "";
   return `<div class="pcard2" onclick="openPatientChat('${p.id}')">
       <div class="pc-top">
         <div class="pc-name">${esc(p.name||"Unnamed")}${alg?`<span class="pc-alg">⚠ ${esc(p.allergies)}</span>`:""}</div>
@@ -889,12 +951,32 @@ function patientCard(p){
       <div class="pc-rows">
         ${p.todayAppt ? `<div class="pc-row"><span>Today</span><span class="dt dt-today">${fmtT(p.todayAppt.slot_start)}</span>${visitStageChip(p.todayAppt)}</div>`
           : p.next ? `<div class="pc-row"><span>Next</span>${dateTag(p.next.slot_start)}<span class="pc-t">${fmtT(p.next.slot_start)}</span></div>` : ""}
-        ${p.past ? `<div class="pc-row"><span>${lastLabel}</span>${dateTag(p.past.slot_start)}${p.past.status==="no_show"?'<span class="dt dt-miss">missed</span>':""}</div>` : ""}
+        ${p.lastVisit ? `<div class="pc-row"><span>${lastLabel}</span>${dateTag(p.lastVisit.slot_start)}${p.lastVisit.status==="no_show"?'<span class="dt dt-miss">missed</span>':""}</div>` : ""}
         ${p.followUp ? `<div class="pc-row"><span>Follow-up</span>${dateTag(p.followUp,"followup")}</div>` : ""}
-        ${!p.next && !p.past && !p.todayAppt ? `<div class="pc-row"><span class="mut">Added ${fmtDayFull(p.created_at)} · no visit yet</span></div>` : ""}
+        ${!p.next && !p.lastVisit && !p.todayAppt ? `<div class="pc-row"><span class="mut">Added ${fmtDayFull(p.created_at)} · no visit yet</span></div>` : ""}
       </div>
+      ${msg?`<div class="pc-rows"><div class="pc-row">${msg}</div></div>`:""}
       ${p.visits>1?`<div class="pc-foot">${p.visits} visits</div>`:""}
     </div>`;
+}
+
+// Unread lives in two places now, so each tab carries its own dot. Cheap enough to
+// recompute on a realtime nudge: three narrow selects, and it runs whatever tab is open.
+async function refreshTabDots(){
+  const [{ data: convos }, { data: people }, { data: booked }] = await Promise.all([
+    sb.from("conversations").select("contact_id,unread_count,contacts(is_test)").gt("unread_count", 0),
+    sb.from("patients").select("id,contact_id,source,is_test"),
+    sb.from("appointments").select("patient_id"),
+  ]);
+  const bookedIds = new Set((booked||[]).map(a=>a.patient_id));
+  const peopleOn = {};
+  for (const x of (people||[])) if (!x.is_test) (peopleOn[x.contact_id] ||= []).push(x);
+  let pat = 0, lead = 0;
+  // Same two functions the two lists use, so a dot can never point at an empty list.
+  for (const c of (convos||[]))
+    (showsInChats(c.contacts || {}, peopleOn[c.contact_id] || [], bookedIds) ? lead++ : pat++);
+  $("dotChats").classList.toggle("hide", lead === 0);
+  $("dotPat").classList.toggle("hide", pat === 0);
 }
 
 let allChatRows = [];
@@ -911,9 +993,9 @@ async function loadChats(){
   // glance why a number behaves differently instead of opening it to find out.
   const { data: blockedRows } = await sb.from("blocked_numbers").select("wa_phone");
   const blockedSet = new Set((blockedRows??[]).map(b=>b.wa_phone));
-  // A number is still a LEAD until someone on it books or is added by staff. Same rule
-  // as the Patients tab, so a number is never a lead in one place and a patient in the
-  // other.
+  // A number is still a LEAD until someone on it books or is added by staff, and only
+  // leads are listed here — patients live in the Patients tab. Same isPatientPerson
+  // rule both places, so a number can never appear in both lists or neither.
   const { data: bookedRows } = await sb.from("appointments").select("patient_id");
   const bookedIds = new Set((bookedRows??[]).map(a=>a.patient_id));
   const preview = {};
@@ -926,13 +1008,13 @@ async function loadChats(){
     const ct = c.contacts ?? {}, phone = ct.wa_phone || "";
     const people = ct.patients ?? [], primary = people.find(x=>x.is_primary) || people[0] || {};
     const nm = primary.name || ("+"+phone);
-    const isLead = !people.some(x=>x.source==="staff" || bookedIds.has(x.id));
+    const inChats = showsInChats(ct, people, bookedIds);
+    // No "Enquiry" tag any more: every row in this list is one.
     const tags = (blockedSet.has(phone) ? `<span class="ctag blocked">Blocked</span>` : "")
-               + (ct.is_test ? `<span class="ctag test">Test</span>` : "")
-               + (isLead ? `<span class="ctag lead">Enquiry</span>` : "");
+               + (ct.is_test ? `<span class="ctag test">Test</span>` : "");
     return {
       hay: (nm + " " + phone).toLowerCase(),
-      status: c.status, unread: c.unread_count>0, isLead,
+      status: c.status, unread: c.unread_count>0, inChats,
       html: `<div class="crow" onclick="openThread('${c.id}')">
         <div class="av">${esc(initials(primary.name)||"•")}</div>
         <div class="mid"><div class="nmrow"><span class="nm">${esc(nm)}</span>${tags}</div>
@@ -947,18 +1029,27 @@ async function loadChats(){
 let chatFilter = "all";
 function renderChatList(){
   const q = ($("chatSearch")?.value || "").trim().toLowerCase();
-  let rows = allChatRows;
+  // Enquiries only. Patients are in the Patients tab, chat included.
+  let rows = allChatRows.filter(r=>r.inChats);
   if (chatFilter==="needs_human") rows = rows.filter(r=>r.status==="needs_human");
   else if (chatFilter==="unread") rows = rows.filter(r=>r.unread);
-  else if (chatFilter==="leads") rows = rows.filter(r=>r.isLead);
   if (q) rows = rows.filter(r=>r.hay.includes(q));
-  const emptyMsg = q ? "No matches for '"+esc(q)+"'."
-    : chatFilter==="needs_human" ? "No chats need a reply right now. 🎉"
-    : chatFilter==="leads" ? "No open enquiries — everyone who messaged is already a patient."
-    : chatFilter==="unread" ? "No unread chats."
-    : "No conversations yet.<br>When a patient messages the clinic on WhatsApp, they will appear here.";
-  $("chatList").innerHTML = rows.map(r=>r.html).join("") || `<div class="empty">${emptyMsg}</div>`;
+  // Searching for a patient here used to work, so say where they went rather than
+  // showing "no matches" for a number that is plainly in the system.
+  const inPatients = q ? allChatRows.filter(r=>!r.inChats && r.hay.includes(q)).length : 0;
+  const jump = inPatients
+    ? `<div class="notes-hint">${inPatients} patient${inPatients>1?"s match":" matches"} “${esc(q)}”.
+        <a href="#" onclick="event.preventDefault();openPatientSearch()">Look in Patients</a></div>`
+    : "";
+  const emptyMsg = q ? "No enquiry matches '"+esc(q)+"'."
+    : chatFilter==="needs_human" ? "No enquiry needs a reply right now. 🎉"
+    : chatFilter==="unread" ? "No unread enquiries."
+    : "No enquiries right now.<br>A new number that messages the clinic appears here until they book or you add them as a patient.";
+  $("chatList").innerHTML = (rows.map(r=>r.html).join("") || `<div class="empty">${emptyMsg}</div>`) + jump;
 }
+// Carry the search over to the other list instead of making staff retype it. The
+// query is read from the box, never interpolated into this handler.
+window.openPatientSearch = ()=>{ patSearchSeed = ($("chatSearch")?.value || "").trim(); showTab("patients"); };
 $("chatSearch").addEventListener("input", renderChatList);
 document.querySelectorAll("#chatChips button").forEach((b)=> b.onclick = ()=>{
   chatFilter = b.dataset.f;
@@ -968,7 +1059,7 @@ document.querySelectorAll("#chatChips button").forEach((b)=> b.onclick = ()=>{
 
 window.openThread = async (id, focusPersonId=null) => {
   openConvo = id;
-  ["chats","bookings","settings"].forEach((x)=>$(x).classList.add("hide"));
+  ["chats","patients","bookings","settings"].forEach((x)=>$(x).classList.add("hide"));
   $("thread").classList.remove("hide");
   $("tabs").classList.add("hide");
   $("backBtn").style.display = "flex";
@@ -978,7 +1069,7 @@ window.openThread = async (id, focusPersonId=null) => {
   openPatientPhone = phone;
   // Everyone on this number; the active person drives the profile / notes / Rx panel.
   const { data: people } = openContactId
-    ? await sb.from("patients").select("id,name,age,sex,address,patient_code,blood_group,allergies,history,is_primary").eq("contact_id", openContactId).order("is_primary",{ascending:false}).order("created_at")
+    ? await sb.from("patients").select("id,name,age,sex,address,patient_code,blood_group,allergies,history,is_primary,source").eq("contact_id", openContactId).order("is_primary",{ascending:false}).order("created_at")
     : { data: [] };
   openPeople = people ?? [];
   const primary = openPeople.find(p=>p.is_primary) || openPeople[0] || null;
@@ -993,6 +1084,7 @@ window.openThread = async (id, focusPersonId=null) => {
   if (phone) { $("hCall").href = "tel:+"+phone; $("hCall").style.display = "flex"; } else $("hCall").style.display = "none";
   $("hAcct").style.display = "none";
   $("tStatus").textContent = statLabel(c?.status); $("tStatus").className = "stat " + (c?.status ?? "");
+  await refreshAddToPatients();
   setThreadMode("chat");
   await sb.from("conversations").update({ unread_count: 0 }).eq("id", id);
   await renderMsgs();
@@ -1139,7 +1231,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-18 (234b375)";
+const APP_BUILD = "2026-08-18 (30b09de)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -1623,6 +1715,7 @@ window.setActivePerson = (pid) => {
   $("hTitle").textContent = p.name || ("+"+(openPatientPhone||""));
   $("hAv").textContent = initials(p.name)||"•";
   renderNotes();
+  refreshAddToPatients();
 };
 // Add another person under this number (e.g. a family member on a shared phone).
 window.addPerson = () => {
@@ -1781,6 +1874,29 @@ async function setStatus(status){
   $("tStatus").textContent = statLabel(status); $("tStatus").className = "stat "+status;
   toast(status==="bot" ? "Bot will reply again" : "Conversation closed");
 }
+// The button follows the ACTIVE person, not the number: on a shared phone the mother can
+// be a patient while the daughter is still an enquiry. Offer it only to someone genuinely
+// still an enquiry, since on a patient it would do nothing.
+async function refreshAddToPatients(){
+  const p = openPeople.find(x=>x.id===openPatientId);
+  if (!p || p.source === "staff") { $("toPatient").classList.add("hide"); return; }
+  const { data: hasAppt } = await sb.from("appointments").select("patient_id").eq("patient_id", p.id).limit(1);
+  $("toPatient").classList.toggle("hide", !!(hasAppt||[]).length);
+}
+
+// Promote an enquiry to a patient. Same field the ＋ New patient button sets, so there
+// is one way to be a patient without a booking, not two.
+$("toPatient").onclick = async () => {
+  if (!openPatientId) return;
+  const { error } = await markStaffPatient(openPatientId);
+  if (error) { toast(error.message); return; }
+  if (openPatient) openPatient.source = "staff";
+  const me = openPeople.find(p=>p.id===openPatientId); if (me) me.source = "staff";
+  $("toPatient").classList.add("hide");
+  toast("Added to Patients");
+  refreshTabDots();
+};
+
 // Block the current number: no further messages from it reach the clinic.
 $("blockBtn").onclick = async () => {
   const phone = openPatientPhone; if (!phone) return;
@@ -2071,6 +2187,9 @@ async function buildStatsCard(){
 // person by name (or the primary/first when no name is given), otherwise creates a
 // new person under the number. Never uses maybeSingle on wa_phone — a number can
 // have several people. Returns { id, isNew }.
+// One place that records "staff treated this person as a patient". resolvePersonByPhone
+// only sets it on rows it creates, so an existing enquiry needs this explicitly.
+const markStaffPatient = (pid)=> sb.from("patients").update({ source:"staff" }).eq("id", pid);
 async function resolvePersonByPhone(digits, name){
   const { data: people } = await sb.from("patients").select("id,name,is_primary").eq("wa_phone", digits);
   const list = people || [];
@@ -2106,6 +2225,7 @@ async function saveWaitlist(){
   let pid; try { ({ id: pid } = await resolvePersonByPhone(digits, name)); } catch(e){ toast(e.message); return; }
   const { error } = await sb.from("waitlist").insert({ patient_id:pid, date, type_code:type, status:"active" });
   if(error){ toast(error.message); return; }
+  await markStaffPatient(pid);
   closeSheet(); toast("Added to the waitlist"); loadBookings();
 }
 window.removeWait = async (id)=>{ await sb.from("waitlist").update({status:"removed"}).eq("id",id); loadBookings(); };
@@ -2249,7 +2369,7 @@ window.saveSetPw = async () => {
   $("setpw").classList.remove("open");
   showSplash("Loading your inbox…");
   $("app").classList.remove("hide");
-  showTab("chats"); subscribeRealtime(); handleDeepLink();
+  showTab("chats"); subscribeRealtime(); refreshTabDots(); handleDeepLink();
 };
 function b64ToU8(b64){ const pad="=".repeat((4-b64.length%4)%4); const raw=atob((b64+pad).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from([...raw].map(c=>c.charCodeAt(0))); }
 async function enablePush(){
@@ -2274,11 +2394,18 @@ async function disablePush(){
   } catch (e) { toast(e.message); }
 }
 
+// A patient's message no longer lands in Chats, so a new message has to refresh
+// whichever list is open plus the dots — otherwise it is invisible until a tab switch.
+function refreshLists(){
+  if(!$("chats").classList.contains("hide")) loadChats();
+  if(!$("patients").classList.contains("hide")) loadPatients();
+  refreshTabDots();
+}
 function subscribeRealtime(){
   if (channel) return;
   channel = sb.channel("inbox")
-    .on("postgres_changes",{event:"*",schema:"public",table:"messages"},()=>{ if(openConvo)scheduleRender(); if(!$("chats").classList.contains("hide"))loadChats(); })
-    .on("postgres_changes",{event:"*",schema:"public",table:"conversations"},()=>{ if(!$("chats").classList.contains("hide"))loadChats(); })
+    .on("postgres_changes",{event:"*",schema:"public",table:"messages"},()=>{ if(openConvo)scheduleRender(); refreshLists(); })
+    .on("postgres_changes",{event:"*",schema:"public",table:"conversations"},()=>{ refreshLists(); })
     .on("postgres_changes",{event:"*",schema:"public",table:"patient_notes"},()=>{ if(threadMode==="notes"&&openPatientId)renderNotes(); })
     .subscribe();
 }
@@ -2571,7 +2698,7 @@ async function saveNewPatient(){
   if (digits.length === 10) digits = "91" + digits;         // default India country code
   if (digits.length < 11 || digits.length > 15) { toast("Enter a valid mobile number"); return; }
   let pid, convId, isNew;
-  try { ({ id: pid, isNew } = await resolvePersonByPhone(digits, name)); convId = await ensureConversationForPerson(pid); }
+  try { ({ id: pid, isNew } = await resolvePersonByPhone(digits, name)); convId = await ensureConversationForPerson(pid); await markStaffPatient(pid); }
   catch(e){ toast(e.message); return; }
   closeSheet();
   await openThread(convId, pid);
@@ -2600,7 +2727,7 @@ $("qrToggle").onclick = () => {
 // --- iOS-style swipe-from-left-edge to go back to the chat list ---
 let tsx=0, tsy=0;
 $("thread").addEventListener("touchstart",(e)=>{ const t=e.touches[0]; tsx=t.clientX; tsy=t.clientY; },{passive:true});
-$("thread").addEventListener("touchend",(e)=>{ const t=e.changedTouches[0]; if (tsx<=44 && (t.clientX-tsx)>70 && Math.abs(t.clientY-tsy)<55) showTab("chats"); },{passive:true});
+$("thread").addEventListener("touchend",(e)=>{ const t=e.changedTouches[0]; if (tsx<=44 && (t.clientX-tsx)>70 && Math.abs(t.clientY-tsy)<55) showTab(lastListTab); },{passive:true});
 
 // --- staff tutorial: swipeable walkthrough. Each slide shows an annotated
 // mini-mockup of the real screen (our own SVG), with the key control circled
@@ -2621,18 +2748,20 @@ const mkRow=(y,o)=>{
 };
 const mkSearch=(y,plus)=>mkR(22,y,plus?162:200,28,"mk-search",9)+mkT(34,y+18,"🔍  Search name or number","mk-ph")
   +(plus?mkC(206,y+14,15,"mk-accent")+`<path d="M206 ${y+7} v14 M199 ${y+14} h14" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>`:"");
-// Chats triage filter chips (All active).
+// Chats triage filter chips (All active). Enquiries only now, so no Leads chip.
 const mkChips=(y)=>mkR(22,y,44,20,"mk-accent",10)+mkT(44,y+14,"All","mk-accent-t","middle")
   +mkR(72,y,86,20,"mk-search",10)+mkT(115,y+14,"Needs reply","mk-ph","middle")
   +mkR(164,y,56,20,"mk-search",10)+mkT(192,y+14,"Unread","mk-ph","middle");
-const TAB_ICO=[
-  `<path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/>`,
-  `<rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/>`,
-  `<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>`,
+// Named, not indexed: the mock tab bar is drawn on nearly every tutorial screen, and
+// with numbers a new tab silently relabels every existing one.
+const MK_TABS=[
+  {k:"chats",lab:"Chats",x:39,ico:`<path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/>`},
+  {k:"patients",lab:"Patients",x:93,ico:`<path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M4 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`},
+  {k:"bookings",lab:"Bookings",x:147,ico:`<rect x="3" y="4.5" width="18" height="17" rx="3"/><line x1="16" y1="2.5" x2="16" y2="6.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="3" y1="10" x2="21" y2="10"/>`},
+  {k:"settings",lab:"Settings",x:201,ico:`<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>`},
 ];
-const TAB_LAB=["Chats","Bookings","Settings"];
 const mkTabBar=(active)=>`<line x1="10" y1="248" x2="230" y2="248" stroke="#eef1f4" stroke-width="1"/>`+
-  [56,120,184].map((x,i)=>`<g class="mk-tabico ${i===active?"on":""}" transform="translate(${(x-8).toFixed(0)},254) scale(0.68)">${TAB_ICO[i]}</g>`+mkT(x,282,TAB_LAB[i],"mk-tablab "+(i===active?"on":""),"middle")).join("");
+  MK_TABS.map((t)=>`<g class="mk-tabico ${t.k===active?"on":""}" transform="translate(${t.x-8},254) scale(0.68)">${t.ico}</g>`+mkT(t.x,282,t.lab,"mk-tablab "+(t.k===active?"on":""),"middle")).join("");
 // o: {title, sub, tab (-1 = no tab bar), back, body, annot}
 const mkFrame=(o)=>{
   const head = o.back
@@ -2647,81 +2776,92 @@ const mkFrame=(o)=>{
     +`<rect x="102" y="8" width="36" height="6" rx="3" fill="#d7dce2"/>`
     + head + mkT(tx,26,o.title,"mk-title") + (o.sub?mkT(tx,38,o.sub,"mk-sub"):"")
     + (o.call?`<g transform="translate(205,14) scale(0.6)" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></g>`:"")
-    + o.body + (o.tab>=0?mkTabBar(o.tab):"") + (o.annot||"") + `</svg>`;
+    + o.body + (o.tab?mkTabBar(o.tab):"") + (o.annot||"") + `</svg>`;
 };
 const MOCKS = {
-  chats: ()=> mkFrame({title:"KC Dada Clinic",sub:"Staff inbox",tab:0,
+  chats: ()=> mkFrame({title:"KC Dada Clinic",sub:"Staff inbox",tab:"chats",
     body: mkSearch(52)+mkChips(86)+mkRow(114,{nm:"Priya Sharma",pv:"Thank you, doctor 🙏",time:"9:41"})+mkRow(160,{nm:"Anjali Verma",pv:"Photo",time:"8:15",badge:"2"}),
     annot: mkRing(120,181,104,19)+mkT(120,228,"Tap a patient to open","mk-lab","middle")+mkArrow(120,220,132,198)}),
-  bot: ()=> mkFrame({title:"KC Dada Clinic",sub:"Staff inbox",tab:0,
+  bot: ()=> mkFrame({title:"KC Dada Clinic",sub:"Staff inbox",tab:"chats",
     body: mkRow(58,{nm:"Priya Sharma",pv:"Thank you 🙏",time:"9:41"})+mkRow(104,{nm:"Anjali",pv:"Photo",time:"8:15"})+mkRow(150,{nm:"Ritu Singh",pv:"Can I talk to someone?",time:"Tue",stat:"Needs reply"}),
     annot: mkRing(196,178,30,13)+mkT(116,224,"“Needs reply” = your turn","mk-lab","middle")+mkArrow(150,216,192,184)}),
-  reply: ()=> mkFrame({title:"Priya Sharma",sub:"Patient",back:true,call:true,tab:-1,
+  reply: ()=> mkFrame({title:"Priya Sharma",sub:"Patient",back:true,call:true,tab:"",
     body: mkR(22,60,120,26,"mk-in",13)+mkR(100,94,118,26,"mk-out",13)
       +mkR(18,252,168,28,"mk-comp",14)+mkC(35,266,9,"mk-rowln")+mkT(58,270,"Message","mk-ph")
       +mkC(206,266,15,"mk-accent")+`<path d="M199 266 h12 M205 260 l6 6 -6 6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
     annot: mkRing(118,266,110,20)+mkT(120,214,"Type here, tap to send","mk-lab","middle")+mkArrow(120,222,120,252)}),
-  notes: ()=> mkFrame({title:"Priya Sharma",sub:"Private notes",back:true,call:true,tab:-1,
+  notes: ()=> mkFrame({title:"Priya Sharma",sub:"Private notes",back:true,call:true,tab:"",
     body: mkR(44,60,152,26,"mk-seg",13)+mkT(80,77,"Chat","mk-ph","middle")+mkR(120,63,72,20,"mk-segsel",10)+mkT(156,77,"Notes","mk-accent-t","middle")
       +mkR(24,100,192,40,"mk-row",10)+mkR(24,148,192,40,"mk-row",10),
     annot: mkRing(156,73,44,15)+mkT(120,196,"Staff-only notes tab","mk-lab","middle")+mkArrow(150,188,158,86)}),
-  personplus: ()=> mkFrame({title:"KC Dada Clinic",sub:"Staff inbox",tab:0,
+  patients: ()=> mkFrame({title:"KC Dada Clinic",sub:"Patient records",tab:"patients",
+    body: mkR(22,56,168,28,"mk-search",9)+mkT(34,74,"🔍  Search name, ID or number","mk-ph")
+      +mkC(206,70,15,"mk-accent")+`<path d="M206 63 v14 M199 70 h14" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>`
+      +mkR(22,92,44,20,"mk-accent",10)+mkT(44,106,"Today","mk-accent-t","middle")
+      +mkR(72,92,62,20,"mk-search",10)+mkT(103,106,"Upcoming","mk-ph","middle")
+      +mkR(140,92,82,20,"mk-search",10)+mkT(181,106,"Follow-up due","mk-ph","middle")
+      +mkR(22,118,200,52,"mk-row",11)+mkT(36,136,"Priya Sharma","mk-nm")+mkT(36,149,"28 yrs · Female · KC-2026-0007","mk-pv")
+      +mkT(36,164,"Today","mk-pv")+mkR(66,154,50,13,"mk-out",6)+mkT(91,164,"5:00 PM","mk-dt-t","middle")
+      +mkR(22,176,200,46,"mk-row",11)+mkT(36,194,"Seema Devi","mk-nm")
+      +mkT(36,211,"Follow-up","mk-pv")+mkR(80,201,48,13,"mk-statpill",6)+mkT(104,211,"12 Aug","mk-statpill-t","middle"),
+    annot: mkRing(104,211,32,12)+mkT(120,240,"Red = follow-up overdue","mk-lab","middle")+mkArrow(120,232,110,218)}),
+  personplus: ()=> mkFrame({title:"KC Dada Clinic",sub:"Staff inbox",tab:"chats",
     body: mkSearch(54,true)+mkRow(90,{nm:"Priya Sharma",pv:"Thank you 🙏",time:"9:41"})+mkRow(136,{nm:"Anjali",pv:"Photo",time:"8:15"}),
     annot: mkRing(206,68,20,20)+mkT(118,214,"Add a walk-in patient","mk-lab","middle")+mkArrow(150,205,204,80)}),
-  calendar: ()=> mkFrame({title:"KC Dada Clinic",sub:"Appointments",tab:1,
+  calendar: ()=> mkFrame({title:"KC Dada Clinic",sub:"Appointments",tab:"bookings",
     body: mkR(22,56,196,44,"mk-row",11)+mkT(36,76,"5:00 PM","mk-id")+mkT(36,90,"Priya · First visit","mk-pv")+mkC(202,70,2,"mk-rowln")+mkC(202,77,2,"mk-rowln")+mkC(202,84,2,"mk-rowln")
       +mkR(22,108,196,44,"mk-row",11)+mkT(36,128,"5:15 PM","mk-id")+mkT(36,142,"Anjali · Follow-up","mk-pv"),
     annot: mkRing(202,77,15,17)+mkT(120,204,"Tap ⋯ for actions","mk-lab","middle")+mkArrow(150,196,202,90)}),
-  queue: ()=> mkFrame({title:"KC Dada Clinic",sub:"Appointments",tab:1,
+  queue: ()=> mkFrame({title:"KC Dada Clinic",sub:"Appointments",tab:"bookings",
     body: mkT(24,68,"Today","mk-id")+mkR(22,76,196,52,"mk-row",11)+mkT(36,96,"5:00 PM · Seema","mk-id")+mkR(36,104,60,13,"mk-statpill",6)+mkT(66,114,"Waiting","mk-statpill-t","middle")+mkBtn(150,98,60,22,"mk-accent","Arrived"),
     annot: mkRing(180,109,36,15)+mkT(120,186,"Arrived → Start → Done","mk-lab","middle")+mkArrow(150,178,180,120)}),
-  followup: ()=> mkFrame({title:"Priya Sharma",sub:"Chat",back:true,call:true,tab:-1,
+  followup: ()=> mkFrame({title:"Priya Sharma",sub:"Chat",back:true,call:true,tab:"",
     body: mkR(16,104,208,150,"mk-sheet",18)+mkT(120,128,"Book a follow-up?","mk-id","middle")
       +mkR(34,140,172,26,"mk-row",13)+mkT(120,157,"In 1 week","mk-id","middle")
       +mkR(34,174,172,26,"mk-accent",13)+mkT(120,191,"In 2 weeks","mk-accent-t","middle")
       +mkR(34,208,172,26,"mk-row",13)+mkT(120,225,"In 4 weeks","mk-id","middle"),
     annot: mkRing(120,187,92,17)+mkT(120,90,"One tap after “Done”","mk-lab","middle")+mkArrow(120,96,120,176)}),
-  calplus: ()=> mkFrame({title:"KC Dada Clinic",sub:"Appointments",tab:1,
+  calplus: ()=> mkFrame({title:"KC Dada Clinic",sub:"Appointments",tab:"bookings",
     body: mkBtn(112,56,110,26,"mk-accent","+ New booking")
       +mkR(22,98,196,42,"mk-row",11)+mkT(36,118,"5:00 PM","mk-id")+mkT(36,132,"Priya · First visit","mk-pv")
       +mkR(22,148,196,42,"mk-row",11)+mkT(36,168,"5:15 PM","mk-id"),
     annot: mkRing(167,69,63,18)+mkT(120,214,"Book for a patient","mk-lab","middle")+mkArrow(150,205,167,82)}),
-  clock: ()=> mkFrame({title:"KC Dada Clinic",sub:"Preferences",tab:2,
+  clock: ()=> mkFrame({title:"KC Dada Clinic",sub:"Preferences",tab:"settings",
     body: mkR(22,56,196,80,"mk-row",12)+mkT(36,78,"Clinic schedule","mk-id")+mkT(36,94,mockHours(),"mk-pv")+mkBtn(40,104,160,24,"mk-accent","Edit schedule"),
     annot: mkRing(120,116,86,16)+mkT(120,182,"Hours, sessions, day off","mk-lab","middle")+mkArrow(120,174,120,128)}),
-  idcard: ()=> mkFrame({title:"Seema Devi",sub:"Private notes",back:true,call:true,tab:-1,
+  idcard: ()=> mkFrame({title:"Seema Devi",sub:"Private notes",back:true,call:true,tab:"",
     body: mkR(22,60,196,68,"mk-row",12)+mkAv(46,92)+mkT(72,86,"Seema Devi","mk-id")+mkT(72,108,"KC-2026-0001","mk-id"),
     annot: mkRing(114,103,58,14)+mkT(120,168,"Permanent Patient ID","mk-lab","middle")+mkArrow(120,160,114,112)}),
-  bell: ()=> mkFrame({title:"KC Dada Clinic",sub:"Preferences",tab:2,
+  bell: ()=> mkFrame({title:"KC Dada Clinic",sub:"Preferences",tab:"settings",
     body: mkR(22,56,196,74,"mk-row",12)+mkT(36,80,"Notifications","mk-id")+mkT(36,96,"Alerts on this device","mk-pv")+mkBtn(36,104,168,26,"mk-accent","Enable on this device"),
     annot: mkRing(120,117,90,18)+mkT(120,178,"Turn on per device","mk-lab","middle")+mkArrow(120,170,120,130)}),
-  phone: ()=> mkFrame({title:"Emergency",sub:"",tab:-1,
+  phone: ()=> mkFrame({title:"Emergency",sub:"",tab:"",
     body: mkC(120,94,32,"mk-row")+mkC(120,88,10,"mk-screen")+`<path d="M108 108 a12 12 0 0 1 24 0" fill="none" stroke="#c6d0d8" stroke-width="5"/>`
       +mkR(84,140,72,7,"mk-rowln",3)+mkR(100,154,40,5,"mk-rowln",2.5)
       +mkC(120,196,27,"mk-ok")+`<path d="M111 188c0 10 7 17 17 17 1 0 2-1 2-2v-3c0-1-1-2-2-2-1 0-3 0-4-1-1 0-2 1-2 2-2-1-5-4-6-6 1 0 2-1 2-2 0-1 0-3-1-4-1-1-2-2-3-2-1 0-3 1-3 3z" fill="#fff"/>`,
     annot: mkRing(120,196,35,34)+mkT(120,244,"Call for anything urgent","mk-lab","middle")+mkArrow(120,236,120,222)}),
-  waitlist: ()=> mkFrame({title:"KC Dada Clinic",sub:"Appointments",tab:1,
+  waitlist: ()=> mkFrame({title:"KC Dada Clinic",sub:"Appointments",tab:"bookings",
     body: mkT(24,66,"Waitlist","mk-id")
       +mkR(22,74,196,46,"mk-row",11)+mkAv(44,97)+mkT(66,93,"Meena","mk-nm")+mkT(66,107,"Fri · Pregnancy check","mk-pv")+mkBtn(158,87,50,20,"mk-accent","Book")
       +mkR(22,128,196,46,"mk-row",11)+mkAv(44,151)+mkT(66,147,"Kavya","mk-nm")+mkT(66,161,"Sat · Consultation","mk-pv")+mkBtn(158,141,50,20,"mk-accent","Book"),
     annot: mkRing(183,97,32,15)+mkT(120,196,"Book them when a slot frees","mk-lab","middle")+mkArrow(150,188,183,107)}),
-  stats: ()=> mkFrame({title:"KC Dada Clinic",sub:"Preferences",tab:2,
+  stats: ()=> mkFrame({title:"KC Dada Clinic",sub:"Preferences",tab:"settings",
     body: mkR(22,56,196,102,"mk-row",12)+mkT(36,76,"Clinic stats","mk-id")
       +mkR(34,84,56,38,"mk-search",8)+mkT(62,103,"18","mk-id","middle")+mkT(62,115,"Next 7d","mk-tm","middle")
       +mkR(96,84,54,38,"mk-search",8)+mkT(123,103,"42","mk-id","middle")+mkT(123,115,"Seen","mk-tm","middle")
       +mkR(156,84,50,38,"mk-search",8)+mkT(181,103,"6%","mk-id","middle")+mkT(181,115,"No-show","mk-tm","middle")
       +mkR(34,130,170,9,"mk-rowln",3)+mkR(34,144,116,9,"mk-rowln",3),
     annot: mkRing(120,103,94,26)+mkT(120,192,"Your clinic at a glance","mk-lab","middle")+mkArrow(120,184,120,126)}),
-  block: ()=> mkFrame({title:"Unknown +9199…",sub:"Chat",back:true,call:true,tab:-1,
+  block: ()=> mkFrame({title:"Unknown +9199…",sub:"Chat",back:true,call:true,tab:"",
     body: mkR(20,64,150,26,"mk-in",13)+mkT(30,80,"…random spam message","mk-ph")
       +mkR(20,110,90,26,"mk-search",13)+mkT(65,127,"Give to bot","mk-ph","middle")
       +mkR(116,110,44,26,"mk-search",13)+mkT(138,127,"Close","mk-ph","middle")
       +mkR(166,110,54,26,"mk-search",13)+mkT(193,127,"Block","mk-statpill-t","middle"),
     annot: mkRing(193,123,33,17)+mkT(120,182,"Block a nuisance number","mk-lab","middle")+mkArrow(150,174,193,138)}),
-  account: ()=> mkFrame({title:"KC Dada Clinic",sub:"Staff inbox",tab:0,
+  account: ()=> mkFrame({title:"KC Dada Clinic",sub:"Staff inbox",tab:"chats",
     body: mkSearch(54)+mkRow(92,{nm:"Priya Sharma",pv:"Thank you 🙏",time:"9:41"})+mkRow(138,{nm:"Anjali",pv:"Photo",time:"8:15"}),
     annot: mkC(214,27,12,"mk-accent")+mkT(214,31,"A","mk-accent-t","middle")+mkRing(214,27,19,18)+mkT(120,150,"Your account & sign out","mk-lab","middle")+mkArrow(150,142,214,46)}),
-  rx: ()=> mkFrame({title:"Priya Sharma",sub:"Private notes",back:true,call:true,tab:-1,
+  rx: ()=> mkFrame({title:"Priya Sharma",sub:"Private notes",back:true,call:true,tab:"",
     body: mkR(22,58,196,48,"mk-row",12)+mkT(36,80,"Patient · KC-2026-0004","mk-id")+mkT(36,96,"Age 29 · O+","mk-pv")
       +mkBtn(34,114,172,26,"mk-accent","℞ Write prescription")
       +mkR(22,150,196,34,"mk-row",10)+mkT(36,164,"27 Jul","mk-id")+mkT(74,171,"2 medicines","mk-pv"),
@@ -2729,14 +2869,15 @@ const MOCKS = {
 };
 const buildMock = (k)=> MOCKS[k] ? MOCKS[k]() : "";
 const TUTORIAL = [
-  ["chats","Chats","Every patient WhatsApp conversation lands here, newest first. Tap one to open it, search by name or number, or use the filters to show only chats that need a reply or are unread.","Your main inbox, all day."],
+  ["chats","Chats: new enquiries","Chats holds the numbers that have messaged but are not patients yet, newest first. Tap one to reply or to call them back. Once someone books, or you add them as a patient, they move to the Patients tab and leave this list, so what is left here is your call-back list.","New enquiries waiting on you."],
+  ["patients","Patients","Everyone you have added, and everyone who has booked. Four views: Today, Upcoming, Follow-up due and Past. Each card shows age, sex, Patient ID, the next or last visit and any allergy, so you can read the list without opening anyone. Dates are colour-coded: navy for today, green for coming up, grey for past, red for a follow-up that is overdue. Tap a card to open that patient's chat and notes, or the phone icon to call. If a patient messages you, a Messages view appears here with a red dot on the tab.","Your real patient list."],
   ["bot","The bot books for you","New patients are answered automatically and guided through booking. When someone asks for a person or sends a photo, the chat is flagged 'Needs reply' and the bot steps aside for you. Outside clinic hours it says we're closed but still lets them book.","Jump in whenever a chat needs a human."],
   ["reply","Replying","Type and send like WhatsApp. Use the clip to send a photo or a file (a prescription or report PDF), and the quick-reply button for canned answers. Tap the phone icon at the top to call the patient. WhatsApp allows replies within 24 hours of the patient's last message.","Send reports, confirm details, answer questions."],
   ["notes","Private notes","Inside any chat, switch to Notes. This is staff-only and the patient never sees it. Keep a timestamped history plus vitals like BP and weight, and edit the profile up top. You'll see every visit listed with its date and outcome, and if a patient walks in without an appointment, tap 'Log walk-in visit' to record it.","Record history, vitals, and every visit."],
   ["idcard","Several people, one number","A husband may book for his wife, or a whole family shares one phone. Each person keeps their own profile, Patient ID, visit history and prescriptions. When booking, the bot asks who the appointment is for. In a chat, tap the person chips at the top of Notes to switch person, or Add person.","Shared phones and family members."],
   ["block","Block a number","If someone messages the clinic wrongly or keeps sending nuisance messages, open their chat and tap Block. You'll stop receiving any messages from that number. Unblock any time from Settings › Blocked numbers.","Stop unwanted or spam messages."],
   ["rx","Prescriptions","Open a patient's Notes and tap Write prescription. For each medicine add the dose, tap when it is to be taken — Morning, Afternoon, Evening, Night — and whether it is before, after or with food, then how long to continue. Add advice and a follow-up. Print it on the clinic letterhead, or tap Send to deliver it to the patient on WhatsApp as a PDF. The patient reads it in words, so there is no confusion about when to take what.","Give patients a proper prescription."],
-  ["personplus","Add a walk-in","Tap the plus on Chats to add someone by name and number without sending a message (free). If they message later, it links to the same record.","For patients who visit or call first."],
+  ["personplus","Add a walk-in","Tap the plus on Patients (or on Chats) to add someone by name and number without sending a message, so it is free. They appear in Patients straight away, and if they message later it links to the same record.","For patients who visit or call first."],
   ["calendar","Bookings","See today and the next 7 days. Tap an appointment to open that chat, or the three dots to mark done, move to another time, mark no-show, or cancel.","Run the day and manage every appointment."],
   ["queue","Today's queue","On today's appointments, tap Arrived when a patient reaches the clinic, Start when they go in, and Done when finished. Everyone sees who is waiting.","Track the waiting room at a glance."],
   ["followup","Follow-ups","When you mark a visit done, the app offers to book the next visit in 1, 2 or 4 weeks, or a date you choose. Then you pick the exact time on the booking screen.","Never lose a return visit."],
@@ -2797,7 +2938,7 @@ const STORIES = [
   { title:"New patient walks in or phones",
     sub:"Someone at the desk or on the phone who does not use WhatsApp.",
     steps:[
-      { actor:"staff", mock:"personplus", title:"Add them by hand", text:"On the <b>Chats</b> tab, tap the <b>＋</b> and choose <b>New patient</b>. Type their name and mobile number. No WhatsApp message is sent, so it's free. A record and Patient ID are created." },
+      { actor:"staff", mock:"personplus", title:"Add them by hand", text:"On the <b>Patients</b> tab, tap the <b>＋</b>. Type their name and mobile number. No WhatsApp message is sent, so it's free. A record and Patient ID are created, and they appear in the Patients list right away." },
       { actor:"staff", mock:"calplus", title:"Give them a slot", text:"If they need an appointment, go to <b>Bookings → New booking</b> and pick a day and time. Only genuinely free times show, the same ones the app offers patients." },
       { actor:"staff", mock:"notes", title:"Record the visit", text:"Open their <b>Notes</b>, tap <b>Edit profile</b> to fill age, blood group, allergies and history, then tap <b>＋ Log walk-in visit</b> to record that they came today. Add vitals too." },
       { actor:"doctor", mock:"rx", title:"Prescription on paper", text:"The doctor writes the prescription and taps <b>Print</b> to hand it over. If the patient messages from that number later, it links to this same record automatically." },
@@ -2861,6 +3002,14 @@ const FAQ = [
     ["How do I get alerts on my phone?","Open <b>Settings</b> and turn on notifications. On iPhone, first add the app to the Home Screen (tap Share, then <b>Add to Home Screen</b>), open it from that icon, and allow alerts."],
     ["The app looks old, or a button is missing.","Close it and open it again, or pull down to refresh. It updates itself when you reopen it."],
   ]},
+  { h:"Patients and enquiries", qa:[
+    ["What is the difference between Chats and Patients?","<b>Chats</b> holds numbers that have messaged but are not patients yet, so it is your call-back list. <b>Patients</b> holds everyone you added and everyone who has booked, with their visits, notes and prescriptions."],
+    ["My patient is not in Chats any more. Where did they go?","To the <b>Patients</b> tab. Tap their card and the same chat opens, with Notes beside it. Nothing is deleted and nothing is lost."],
+    ["When does someone move from Chats to Patients?","The moment they book, or as soon as you add them with <b>＋</b>. You can also open an enquiry and tap <b>Add to Patients</b>, which is useful for someone who phoned instead of booking."],
+    ["A patient sent me a message. Will I see it?","Yes. A red dot appears on the <b>Patients</b> tab, a <b>Messages</b> view appears at the top of that list, and the count shows on their card."],
+    ["What do the colours on the dates mean?","Navy is today, green is coming up, grey is past, red is a follow-up that is overdue, and amber marks a visit they missed."],
+    ["The four views on Patients — what are they?","<b>Today</b> is everyone booked today. <b>Upcoming</b> is booked for a later day. <b>Follow-up due</b> is patients whose follow-up date has passed with nothing booked, so it is a call list. <b>Past</b> is everyone else."],
+  ]},
   { h:"Bookings and the day", qa:[
     ["How does a patient book?","They message the clinic on WhatsApp and the app books them automatically. The booking appears in the <b>Bookings</b> tab and you get an alert."],
     ["Can I book for a patient myself?","Yes. <b>Bookings → New booking</b>. Enter a name and number, pick a day, and choose a free time."],
@@ -2877,6 +3026,7 @@ const FAQ = [
   ]},
   { h:"Notes, vitals and history", qa:[
     ["I tapped Arrived (or No-show) by mistake — can I undo it?","Yes. Tap the <b>\u22ef</b> button on that booking, or tap the status chip in the patient's <b>Notes</b> visit history, and pick the right one. You can move <b>backwards</b> too \u2014 Waiting, Arrived, In consult, Done, No-show \u2014 and even bring back a booking that was cancelled. Moving back to Waiting clears the arrival and consultation times so the queue stays honest."],
+    ["Can I search for a patient in Chats?","Search there covers enquiries. If your search matches a patient, the app says so and offers to look in <b>Patients</b>, where the search runs across every patient whatever view you are on."],
     ["What do the BLOCKED and TEST tags in the chat list mean?","<b>Blocked</b> means messages from that number are ignored by the bot \u2014 unblock it in Settings. <b>Test</b> means it is a developer number, so its bookings are kept out of the clinic statistics."],
     ["A patient sent a report photo — where does it go?","Open the patient and switch to <b>Notes</b>. Under <b>Reports &amp; documents</b> you'll see every photo and file on that number, newest first. Tap <b>Open</b> to view it, or <b>Label</b> to name it (e.g. \"USG report\") and say which person on that number it belongs to, so the doctor finds it later without scrolling the chat."],
     ["Do patients get an appointment reminder?","Yes, the evening before, once the clinic's WhatsApp reminder template is approved. It goes in the language the patient chose, and nobody is reminded twice."],
