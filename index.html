@@ -820,7 +820,7 @@ const isPatientPerson = (person, bookedIds)=> person.source === "staff" || booke
 const showsInChats = (contact, people, bookedIds)=>
   !!contact.is_test || !people.some((x)=>isPatientPerson(x, bookedIds));
 let PATIENTS = [];
-let patientSeg = "upcoming";
+let patientSeg = "today";
 const dayIso = (d)=> new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata"}).format(d);
 // How a date reads at a glance: today is what matters now, the future is fine, an
 // overdue follow-up is the one thing that should look wrong.
@@ -892,6 +892,13 @@ function patientSegments(){
     past:     PATIENTS.filter(p=>!p.todayAppt && !laterDay(p)),
   };
 }
+const PAT_EMPTY = {
+  messages: "No patient is waiting on a reply.",
+  today:    "Nobody is booked today. Check <b>Upcoming</b> for the next few days.",
+  upcoming: "Nothing booked ahead yet.",
+  followup: "No follow-up is due. 🎉",
+  past:     "Nobody here yet. Patients appear once staff add them or they book.",
+};
 window.setPatientSeg = (k)=>{ patientSeg = k; renderPatients(); };
 let patSearchSeed = "";
 function renderPatients(){
@@ -926,7 +933,7 @@ function renderPatients(){
   $("patChips").innerHTML = `${msgChip}${chip("today","Today")}${chip("upcoming","Upcoming")}${chip("followup","Follow-up")}${chip("past","Past")}`;
   $("patList").innerHTML = (q ? `<div class="notes-hint">Searching all ${PATIENTS.length} patients.</div>` : "")
     + (rows.length ? rows.map(patientCard).join("")
-       : `<div class="notes-hint">${q?"No match.":patientSeg==="messages"?"No patient is waiting on a reply.":"Nobody here yet. Patients appear once staff add them or they book."}</div>`);
+       : `<div class="notes-hint">${q ? "No match." : PAT_EMPTY[patientSeg]}</div>`);
 }
 // Where today's patient is in the queue — visible on the card so the doctor does not
 // have to open each one during a busy sitting.
@@ -1231,7 +1238,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-18 (30b09de)";
+const APP_BUILD = "2026-08-18 (de6e8d8)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
