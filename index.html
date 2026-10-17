@@ -99,6 +99,11 @@ nav button:active svg{transform:scale(.84)}
 .m.in{background:var(--in);align-self:flex-start;border-top-left-radius:1px}
 .m.out{background:var(--out);align-self:flex-end;border-top-right-radius:1px}
 .m img{max-width:100%;border-radius:7px;display:block;margin-bottom:3px}
+.m .promotag{display:table;font-size:10.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--brand);background:#e7eef7;border-radius:999px;padding:1px 8px;margin-bottom:5px}
+.promogrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 6px}
+.promogrid div{background:#f4f6f9;border-radius:10px;padding:8px 6px;text-align:center}
+.promogrid b{display:block;font-size:17px;color:var(--ink)}
+.promogrid span{font-size:11px;color:var(--mut);font-weight:600}
 .m .meta{float:right;margin:6px 0 -2px 9px;font-size:11px;color:var(--mut);white-space:nowrap;display:inline-flex;align-items:center;gap:3px}
 .m .tick.read{color:var(--tick)}
 .m .meta .fail{color:var(--bad);font-weight:600}
@@ -816,8 +821,10 @@ function showTab(tab){
 // still one tap away from their card, and anything they send surfaces on the card and
 // in the Messages view, so moving them out of Chats cannot lose a message.
 //
-// This is the single definition of the rule. Chats, this tab and the tab-bar dots all
-// call it, so a number can never count as a patient in one place and a lead in another.
+// This is the single definition of the rule in the app. Chats, this tab and the tab-bar
+// dots all call it, so a number can never count as a patient in one place and a lead in
+// another. The promotion sender keeps a server copy (supabase/functions/_shared/
+// broadcast.ts); tests/broadcast_test.mjs runs both on the same cases.
 const isPatientPerson = (person, bookedIds)=> person.source === "staff" || bookedIds.has(person.id);
 // Which numbers Chats lists: the enquiries, plus developer/test numbers. A test number is
 // kept out of the Patients list, so if Chats dropped it as well it would disappear from
@@ -1041,7 +1048,7 @@ async function loadChats(){
   hideSplash();
   if (error){ $("chatList").innerHTML=''; toast(error.message); return; }
   const { data: recent } = await sb.from("messages")
-    .select("conversation_id,body,type,direction,created_at").order("created_at",{ascending:false}).limit(500);
+    .select("conversation_id,body,type,direction,created_at,broadcast_id").order("created_at",{ascending:false}).limit(500);
   // Blocked and developer/test numbers get a tag in the list, so staff can see at a
   // glance why a number behaves differently instead of opening it to find out.
   const { data: blockedRows } = await sb.from("blocked_numbers").select("wa_phone");
@@ -1054,7 +1061,7 @@ async function loadChats(){
   const preview = {};
   for (const m of (recent??[])) if (!preview[m.conversation_id]) {
     const who = m.direction==="out" ? "You: " : "";
-    preview[m.conversation_id] = who + (m.type==="image" ? "📷 Photo" : m.type==="document" ? ("📄 "+((m.body||"").replace(/\n/g," ")||"Document")) : (m.body||"").replace(/\n/g," "));
+    preview[m.conversation_id] = who + (m.broadcast_id ? "📣 Promotion" : m.type==="image" ? "📷 Photo" : m.type==="document" ? ("📄 "+((m.body||"").replace(/\n/g," ")||"Document")) : (m.body||"").replace(/\n/g," "));
   }
   allChatRows = (convos??[]).map((c)=>{
     // The chat is per number; label it by the number's primary person (or the number).
@@ -1243,7 +1250,8 @@ async function renderNotes(){
   const { data: docMsgs } = convo
     ? await sb.from("messages").select("id,type,body,media_path,direction,created_at")
         .eq("conversation_id", convo.id).in("type",["image","document"])
-        .not("media_path","is",null).order("created_at",{ascending:false}).limit(60)
+        .not("media_path","is",null).is("broadcast_id", null)   // a promotion is not a report
+        .order("created_at",{ascending:false}).limit(60)
     : { data: [] };
   const { data: docTags } = (docMsgs && docMsgs.length)
     ? await sb.from("document_tags").select("message_id,patient_id,label").in("message_id", docMsgs.map(m=>m.id))
@@ -1284,7 +1292,7 @@ async function loadClinic(force){ if (CLINIC && !force) return CLINIC; const { d
 // injected at build time and identifies the exact deploy, so a device still
 // holding an older copy of the app is obvious instead of guesswork.
 const APP_VERSION = "1.0.0";
-const APP_BUILD = "2026-08-18 (968eea3)";
+const APP_BUILD = "2026-10-17 (f8c77a0)";
 window.reloadApp = () => {
   const u = new URL(location.href);
   u.searchParams.set("v", Date.now().toString(36));  // defeat the cached copy
@@ -1829,9 +1837,10 @@ async function addNote(){
 async function renderMsgs(){
   if (!openConvo) return;
   const renderFor = openConvo;
-  const { data: msgs } = await sb.from("messages")
-    .select("direction,sender,type,body,media_path,delivery_status,created_at")
+  const { data: msgs, error: msgErr } = await sb.from("messages")
+    .select("direction,sender,type,body,media_path,delivery_status,created_at,broadcast_id")
     .eq("conversation_id", renderFor).order("created_at").limit(300);
+  if (msgErr) { toast("Couldn't load messages: " + msgErr.message); return; }
   const parts = []; let lastDay = "";
   for (const m of (msgs??[])) {
     const day = istKey(m.created_at);
@@ -1844,7 +1853,10 @@ async function renderMsgs(){
         : `<a href="${s.signedUrl}" target="_blank">📎 Open file</a>`;
     }
     const meta = `<span class="meta">${fmtT(m.created_at)}${m.direction==="out"?" "+tickHtml(m.delivery_status):""}</span>`;
-    parts.push(`<div class="m ${m.direction}">${media}${esc(m.body)}${meta}</div>`);
+    // A promotion sent to everyone shows in each chat, labelled so staff can tell it
+    // apart from a message written to this patient.
+    const tag = m.broadcast_id ? `<span class="promotag">Promotion</span>` : "";
+    parts.push(`<div class="m ${m.direction}">${tag}${media}${esc(m.body)}${meta}</div>`);
   }
   if (openConvo !== renderFor) return;
   $("msgs").innerHTML = parts.join("") ||
@@ -2117,6 +2129,7 @@ async function currentPushSub(){
 }
 // Card-header SVG icons (never emoji-as-icon). 24x24 stroke paths, tinted via CSS.
 const CHIC = {
+  megaphone:'<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/>',
   bell:'<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
   book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
   chart:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
@@ -2128,6 +2141,76 @@ const CHIC = {
   chat:'<path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/>',
 };
 const chead = (name,label)=>`<b class="ch"><span class="chic"><svg viewBox="0 0 24 24">${CHIC[name]||""}</svg></span>${label}</b>`;
+// What each promotion did and what it actually cost, from Meta's delivery receipts.
+// Read-only: sending happens on the server, after the exact charge is approved.
+async function buildPromoCard(){
+  if (myRole === "staff") return "";
+  const { data: bs, error: bErr } = await sb.from("broadcasts").select("id,key,rate_inr,gst_pct,created_at")
+    .order("created_at",{ascending:false}).limit(5);
+  // A failed load must never read as "₹0 charged".
+  const failCard = (m)=> `<div class="card">${chead('megaphone','Promotions')}<p class="mut" style="margin-top:6px;color:var(--bad)">Couldn't load promotion results (${esc(m)}). Pull down to retry.</p></div>`;
+  if (bErr) return failCard(bErr.message);
+  if (!(bs||[]).length) return "";
+  const ids = bs.map(b=>b.id);
+  const [{ data: rs, error: rErr }, { data: stoppers, error: sErr }] = await Promise.all([
+    sb.from("broadcast_recipients").select("broadcast_id,contact_id,grp,message_id,accepted_at,delivered_at,read_at,failed_at,billable,error_code,error_title").in("broadcast_id", ids),
+    sb.from("contacts").select("id,promo_opt_out_at").not("promo_opt_out_at","is",null),
+  ]);
+  if (rErr || sErr) return failCard((rErr||sErr).message);
+  const msgIds = (rs||[]).map(r=>r.message_id).filter(Boolean);
+  const { data: sentMsgs, error: mErr } = msgIds.length ? await sb.from("messages").select("id,conversation_id").in("id", msgIds) : { data: [] };
+  if (mErr) return failCard(mErr.message);
+  const convOf = Object.fromEntries((sentMsgs||[]).map(m=>[m.id, m.conversation_id]));
+  const convIds = [...new Set(Object.values(convOf))];
+  const firstSend = (rs||[]).map(r=>r.accepted_at).filter(Boolean).sort()[0];
+  const { data: inbound, error: iErr } = convIds.length && firstSend
+    ? await sb.from("messages").select("conversation_id,created_at").eq("direction","in").in("conversation_id", convIds).gte("created_at", firstSend)
+    : { data: [] };
+  if (iErr) return failCard(iErr.message);
+  const stopAt = Object.fromEntries((stoppers||[]).map(c=>[c.id, c.promo_opt_out_at]));
+  const rupees = (n)=> "₹" + n.toFixed(2);
+  return `<div class="card">${chead('megaphone','Promotions')}` + bs.map(b=>{
+    const mine = (rs||[]).filter(r=>r.broadcast_id===b.id);
+    const real = mine.filter(r=>r.grp!=="test"), tests = mine.length - real.length;
+    const sent = real.filter(r=>r.accepted_at);
+    const delivered = sent.filter(r=>r.delivered_at || r.read_at);
+    const read = sent.filter(r=>r.read_at);
+    const failed = sent.filter(r=>r.failed_at && !r.delivered_at && !r.read_at);
+    const heldBack = failed.filter(r=>r.error_code===131049).length;
+    const isStopper = (r)=> stopAt[r.contact_id] && stopAt[r.contact_id] >= r.accepted_at;
+    const stops = sent.filter(isStopper).length;
+    // Replied = wrote back and did not opt out (the Stop tap itself arrives as a message).
+    const replied = sent.filter(r=>{
+      const cv = convOf[r.message_id];
+      return !isStopper(r) && cv && (inbound||[]).some(m=>m.conversation_id===cv && m.created_at > r.accepted_at);
+    }).length;
+    // Meta bills a message once it is DELIVERED (unless its receipt says not billable).
+    // A send Meta never confirmed may still have been delivered, so it is shown apart
+    // and counted in the upper figure.
+    const billed = mine.filter(r=>(r.delivered_at || r.read_at) && r.billable!==false).length;
+    // Claimed but never confirmed by Meta (a timeout, or a lost write after the send).
+    // Refused numbers are released, so whatever is left here may have been delivered.
+    const unconfirmed = mine.filter(r=>!r.accepted_at).length;
+    const perMsg = Number(b.rate_inr) * (1 + Number(b.gst_pct)/100);
+    const when = sent.length ? fmtDayFull(sent.map(r=>r.accepted_at).sort()[0]) : "not sent yet";
+    return `<div style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px">
+        <div class="bname">${esc(b.key.replace(/_/g," "))}</div>
+        <div class="mut">${when}${tests?` · ${tests} test`:""}</div>
+        <div class="promogrid">
+          <div><b>${sent.length}</b><span>Sent</span></div>
+          <div><b>${delivered.length}</b><span>Delivered</span></div>
+          <div><b>${read.length}</b><span>Read</span></div>
+          <div><b>${failed.length}</b><span>Failed</span></div>
+          <div><b>${replied}</b><span>Replied</span></div>
+          <div><b>${stops}</b><span>Stopped</span></div>
+          <div style="grid-column:span 2"><b>${rupees(billed*perMsg)}</b><span>Charged so far (incl. GST)</span></div>
+        </div>
+        ${unconfirmed ? `<p class="mut" style="margin:2px 0 0;color:var(--warn)">${unconfirmed} unconfirmed: Meta did not answer, so they may have been delivered (up to ${rupees(unconfirmed*perMsg)} more).</p>` : ""}
+        ${failed.length ? `<p class="mut" style="margin:2px 0 0">Failed messages are not charged.${heldBack?` ${heldBack} were held back by Meta's limit on promotions to people who rarely open business messages.`:""}</p>` : ""}
+      </div>`;
+  }).join("") + `</div>`;
+}
+
 async function loadSettings(){
   const sub = await currentPushSub();
   const perm = ("Notification" in window) ? Notification.permission : "unsupported";
@@ -2151,6 +2234,7 @@ async function loadSettings(){
        <p class="mut" style="margin:8px 0 10px">Slot length: <b style="color:var(--ink)">${c?c.slot_minutes:"—"} min</b> · Booking window: <b style="color:var(--ink)">${c?c.days_ahead:"—"} days</b></p>
        <button class="act" style="width:100%" onclick="openScheduleEditor()">Edit schedule</button></div>`;
   const statsCard = await buildStatsCard();
+  const promoCard = await buildPromoCard();
   const cp = await loadClinic(true);
   const clinicCard = (myRole!=="staff") ? `<div class="card">${chead('rx','Clinic & doctor details')}
        <p class="mut" style="margin:6px 0 2px">Printed on prescriptions. Fill the doctor's registration number and mobile.</p>
@@ -2190,6 +2274,7 @@ async function loadSettings(){
        <button class="act" style="width:100%" onclick="openWaQr()">Show QR to a patient</button>
        <button class="ghost" style="width:100%;margin-top:8px" onclick="openReviewQr()">Show Google review QR</button></div>` +
     statsCard +
+    promoCard +
     schedCard +
     clinicCard +
     teamCard +
@@ -2449,10 +2534,22 @@ async function disablePush(){
 
 // A patient's message no longer lands in Chats, so a new message has to refresh
 // whichever list is open plus the dots — otherwise it is invisible until a tab switch.
+// Debounced: sending a promotion writes several hundred message rows and receipts in
+// a minute, and reloading the lists for each one would hammer every open device.
+// A steady stream would keep pushing a plain debounce back, so a patient's message
+// arriving mid-send would not show until the send ended: refresh at least every 4 s.
+let listsTimer = null, listsFirstAsk = 0;
 function refreshLists(){
-  if(!$("chats").classList.contains("hide")) loadChats();
-  if(!$("patients").classList.contains("hide")) loadPatients();
-  refreshTabDots();
+  const now = Date.now();
+  if (!listsFirstAsk) listsFirstAsk = now;
+  clearTimeout(listsTimer);
+  const wait = Math.max(0, Math.min(1200, 4000 - (now - listsFirstAsk)));
+  listsTimer = setTimeout(()=>{
+    listsFirstAsk = 0;
+    if(!$("chats").classList.contains("hide")) loadChats();
+    if(!$("patients").classList.contains("hide")) loadPatients();
+    refreshTabDots();
+  }, wait);
 }
 function subscribeRealtime(){
   if (channel) return;
